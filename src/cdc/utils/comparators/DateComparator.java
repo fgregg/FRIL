@@ -70,7 +70,6 @@ public class DateComparator implements CompareFunctionInterface {
 			Date d2 = ((SimpleDateFormat)local2.get()).parse((String)cellB.getValue());
 			return d1.compareTo(d2);
 		} catch (java.text.ParseException e) {
-			e.printStackTrace();
 			return specialCase.compare(cellA, cellB);
 		}
 	}

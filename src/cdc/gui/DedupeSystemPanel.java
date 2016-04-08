@@ -560,4 +560,12 @@ public class DedupeSystemPanel extends SystemPanel {
 			this.viewMinus.setToolTipText(TOOLTIP_VIEW_MINUS + " (requires the option of summary of not joined data to be enabled)");
 		}
 	}
+	
+	public void cleanup() {
+		if (processPanel != null) {
+			this.processPanel.cleanup();
+		}
+		this.processPanel = null;
+		this.system = null;
+	}
 }

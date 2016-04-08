@@ -181,6 +181,7 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 		c.weightx = 0.4;
 		c.fill = GridBagConstraints.BOTH;
 		this.add(showExamples, c);
+		avaialbleMethods.setSelectedIndex(0);
 		
 		
 	}
@@ -218,7 +219,14 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 	public boolean okPressed(JDialog parent) {
 		distance = null;
 		if (attributesList.getSelectedIndex() == -1) {
-			JOptionPane.showMessageDialog(parent, "Please select left column");
+			JOptionPane.showMessageDialog(parent, "Please select column");
+			return false;
+		}
+		
+		try {
+			Integer.parseInt(weight.getText());
+		} catch (NumberFormatException e) {
+			JOptionPane.showMessageDialog(parent, "Weight should be an integer number.");
 			return false;
 		}
 		

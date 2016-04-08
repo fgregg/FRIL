@@ -180,6 +180,11 @@ public class JaroWinkler extends AbstractStringDistance {
 		System.out.println(dst.distance("John", "Jeremy"));
 		System.out.println(dst.distance("YVETTE", "YEVETT"));
 		System.out.println(dst.distance("MASSEY", "MASSIE"));
+		System.out.println(dst.distance("DWAYNE", "DUANE"));
+		
+		com.wcohen.ss.JaroWinkler jw = new com.wcohen.ss.JaroWinkler();
+		System.out.println(jw.explainScore("DWAYNE", "DUANE"));
+		
 	}
 
 }

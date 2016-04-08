@@ -171,4 +171,11 @@ public class StrataChooser extends JPanel {
 		}
 	}
 	
+	public void dispose() {
+		this.sourceA = null;
+		this.sourceB = null;
+		this.tabs = null;
+		this.addButton = null;
+	}
+	
 }

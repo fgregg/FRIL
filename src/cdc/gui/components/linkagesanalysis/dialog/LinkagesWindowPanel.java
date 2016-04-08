@@ -57,7 +57,7 @@ public class LinkagesWindowPanel extends JPanel {
 	private static final String CONFIGURE_SORTING = "Configure sorting";
 	private static final String CONFIGURE_FITER = "Configure fiter";
 	
-	private static int RECORDS_PER_PAGE = Props.getInteger("records-per-page", 10);
+	private static int RECORDS_PER_PAGE = Props.getInteger("records-per-page", 200);
 	
 	private LinkagesPanel linkages;
 	private SpanTableModel tableModel;
@@ -627,6 +627,12 @@ public class LinkagesWindowPanel extends JPanel {
 		tableModel.removeRow(rId * 2);
 		notifyAllListeners(accepted, linkage);
 		loadingThread.updateCursor();
+	}
+	
+	public void setVisible(boolean aFlag) {
+		if (!aFlag) {
+			stopLoadingThread();
+		}
 	}
 
 	private void notifyAllListeners(boolean accepted, DataRow linkage) {

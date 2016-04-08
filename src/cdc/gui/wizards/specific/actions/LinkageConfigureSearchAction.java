@@ -324,6 +324,7 @@ public class LinkageConfigureSearchAction extends WizardAction {
 	public void dispose() {
 		removeAll(activeCombo);
 		removeAll(scrollPanel);
+		this.strataChooser.dispose();
 		this.activeCombo = null;
 		this.scrollPanel = null;
 		this.buffer = null;

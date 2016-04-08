@@ -118,6 +118,12 @@ public class ProcessPanel extends JPanel {
 		start.setEnabled(b);
 	}
 	
+	public void cleanup() {
+		this.processStarter = null;
+		this.system = null;
+		this.systemPanel = null;
+	}
+	
 	public void setConfiguredSystem(ConfiguredSystem system) {
 		//System.out.println("System new");
 		this.system = system;

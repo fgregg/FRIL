@@ -1,11 +1,14 @@
 package cdc.gui.components.linkagesanalysis;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
@@ -20,19 +23,27 @@ import cdc.gui.components.linkagesanalysis.dialog.DecisionListener;
 import cdc.gui.components.linkagesanalysis.dialog.LinkagesWindowPanel;
 import cdc.gui.components.linkagesanalysis.dialog.ViewLinkagesDialog;
 import cdc.impl.join.strata.StrataJoinWrapper;
+import cdc.utils.Log;
 import cdc.utils.RJException;
 
 public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface, DecisionListener {
 
+	protected static final Object[] OPTIONS_CLOSE = new String[] {"Yes (accept all linkages)", "Yes (reject all linkages)", "Cancel"};
 	private DataColumnDefinition[][] dataModel;
 	private DataColumnDefinition confidence;
 	private DataColumnDefinition stratum;
 	private DataColumnDefinition[][] comparedColumns;
 	
+	private DecisionListener listener;
+	
+	private boolean ultimateDecisionAcceptAll;
+	private volatile boolean allAdded = false;
+	
 	private AbstractDistance[] distances;
 	
 	private ViewLinkagesDialog dialog;
 	private List internalData = new ArrayList();
+	private Thread decisionThread;
 	
 	//private DuplicateLinkageLoadingThread activeThread;
 	
@@ -49,6 +60,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface,
 		}
 		
 		comparedColumns = removeNotAvailableColumns(comparedColumns, dataModel);
+		listener = decisionListener;
 		
 		//do all the transformations of data column definitions...
 		confidence = new PropertyBasedColumn(AbstractJoin.PROPERTY_CONFIDNCE, "src", "Confidence");
@@ -60,6 +72,22 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface,
 		
 		dialog = new ViewLinkagesDialog(dataModel, true, confidence, stratum, comparedColumns, distances, this, true);
 		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		dialog.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				int response = JOptionPane.showOptionDialog(dialog, "You are about to close manual decision module. Are you sure?", "Close manual linkage", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+						OPTIONS_CLOSE, OPTIONS_CLOSE[0]);
+				if (response == 0) {
+					ultimateDecisionAcceptAll = true;
+					dialog.setVisible(false);
+					startDecisionThread();
+				} else if (response == 1) {
+					ultimateDecisionAcceptAll = false;
+					dialog.setVisible(false);
+					startDecisionThread();
+				}
+			}
+
+		});
 		dialog.getLinkageWindowPanel().addDecisionListener(decisionListener);
 		dialog.getLinkageWindowPanel().addDecisionListener(this);
 //		dialog.getLinkageWindowPanel().addDecisionListener(new DecisionListener() {
@@ -143,6 +171,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface,
 
 	public boolean isDone() {
 		synchronized (internalData) {
+			allAdded = true;
 			return internalData.isEmpty();
 		}
 	}
@@ -150,6 +179,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface,
 	public void closeDecisionWindow() {
 		dialog.setVisible(false);
 		dialog.getLinkageWindowPanel().removeAllDecisionListeners();
+		listener = null;
 	}
 
 	public void linkageAccepted(DataRow linkage) {
@@ -162,6 +192,38 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface,
 		synchronized (internalData) {
 			internalData.remove(linkage);
 		}
+	}
+	
+	private void startDecisionThread() {
+		decisionThread = new Thread() {
+			public void run() {
+				Log.log(getClass(), "Automatic decision thread started.", 1);
+				try {
+					synchronized (internalData) {
+						while (true) {
+							if (allAdded && internalData.isEmpty()) {
+								return;
+							} else if (internalData.isEmpty()) {
+								internalData.wait(100);
+							} else {
+								while (!internalData.isEmpty()) {
+									DataRow data = (DataRow) internalData.remove(0);
+									if (ultimateDecisionAcceptAll) {
+										listener.linkageAccepted(data);
+									} else {
+										listener.linkageRejected(data);
+									}
+								}
+							}
+						}
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				Log.log(getClass(), "Automatic decision thread done.", 1);
+			}
+		};
+		decisionThread.start();
 	}
 
 }

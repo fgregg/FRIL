@@ -124,7 +124,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		for (int i = 0; i < savers.length; i++) {
 			savers[i].close();
 		}
-		System.out.println("Close completed!");
+		getCache().trash();
 	}
 
 	private void doDeduplication() throws IOException, RJException {

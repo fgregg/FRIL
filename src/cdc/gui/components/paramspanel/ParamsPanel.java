@@ -40,7 +40,10 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.Box;
@@ -60,6 +63,11 @@ public class ParamsPanel extends JPanel implements DialogListener {
 	private FieldCreator defaultCreator = new DefaultParamPanelFieldCreator();
 	private Map validators = new HashMap();
 	private int index = 0;
+	private Map listeners;
+	private String[] labels;
+	private String[] defaultValues;
+	
+	private List appended = new ArrayList();
 	
 	public ParamsPanel(String[] params, String[] labels) {
 		this(params, labels, null, null);
@@ -74,12 +82,22 @@ public class ParamsPanel extends JPanel implements DialogListener {
 	}
 	
 	public ParamsPanel(String[] params, String[] labels, String[] defaultValues, Map listeners) {
-		this.params = params;
-		this.fields = new ParamPanelField[params.length];
 		if (listeners == null) {
 			listeners = new HashMap();
 		}
+		this.listeners = listeners;
 		setLayout(new GridBagLayout());
+		createFields(params, labels, defaultValues);
+		
+	}
+	
+	private void createFields(String[] params, String[] labels, String[] defaultValues) {
+		index = 0;
+		this.removeAll();
+		this.params = params;
+		this.labels = labels;
+		this.defaultValues = defaultValues;
+		this.fields = new ParamPanelField[params.length];
 		for (int i = 0; i < labels.length; i++) {
 			FieldCreator creator = (FieldCreator)listeners.get(params[i]);
 			if (creator == null) {
@@ -99,11 +117,6 @@ public class ParamsPanel extends JPanel implements DialogListener {
 			if (componentInputField != null) {
 				add(componentInputField, c[1]);
 			}
-			
-			//JSeparator s1 = new JSeparator(JSeparator.HORIZONTAL);
-			//c = getNextConstraint();
-			//c[0].gridwidth = 2;
-			//add(s1, c[0]);
 		}
 		
 		GridBagConstraints c = new GridBagConstraints();
@@ -113,9 +126,43 @@ public class ParamsPanel extends JPanel implements DialogListener {
 		c.gridy = 200;
 		add(Box.createRigidArea(new Dimension(2, 2)), c);
 		
-		
+		for (Iterator iterator = appended.iterator(); iterator.hasNext();) {
+			JComponent comp = (JComponent) iterator.next();
+			JPanel holder = new JPanel();
+			holder.add(comp);
+			GridBagConstraints[] cArr = getNextConstraint();
+			cArr[0].gridwidth = 2;
+			add(holder, cArr[0]);
+		}
 	}
 
+	public void insertField(int position, String param, String label, String defaultValue) {
+		insertField(position, param, label, defaultValue, null);
+	}
+	
+	public void insertField(int position, String param, String label, String defaultValue, FieldCreator creator) {
+		String[] newParams = new String[this.params.length + 1];
+		String[] newLabels = new String[this.labels.length + 1];
+		String[] defaultVals = new String[this.defaultValues.length + 1];
+		
+		System.arraycopy(this.params, 0, newParams, 0, position);
+		System.arraycopy(this.params, position, newParams, position + 1, this.params.length - position);
+		newParams[position] = param;
+		
+		System.arraycopy(this.labels, 0, newLabels, 0, position);
+		System.arraycopy(this.labels, position, newLabels, position + 1, this.labels.length - position);
+		newLabels[position] = label;
+		
+		System.arraycopy(this.defaultValues, 0, defaultVals, 0, position);
+		System.arraycopy(this.defaultValues, position, defaultVals, position + 1, this.defaultValues.length - position);
+		defaultVals[position] = defaultValue;
+		
+		if (creator != null) {
+			listeners.put(param, creator);
+		}
+		
+		createFields(newParams, newLabels, defaultVals);
+	}
 	
 	private GridBagConstraints[] getNextConstraint() {
 		GridBagConstraints c1 = new GridBagConstraints();
@@ -166,6 +213,7 @@ public class ParamsPanel extends JPanel implements DialogListener {
 	}
 
 	public void append(JComponent slope) {
+		appended.add(slope);
 		JPanel holder = new JPanel();
 		holder.add(slope);
 		GridBagConstraints[] c = getNextConstraint();
@@ -192,6 +240,15 @@ public class ParamsPanel extends JPanel implements DialogListener {
 			}
 		}
 		return ret;
+	}
+
+	public void setPropertyValue(String property, String value) {
+		for (int i = 0; i < params.length; i++) {
+			if (params[i].equals(property)) {
+				this.defaultValues[i] = value;
+				this.fields[i].setValue(value);
+			}
+		}
 	}
 	
 	

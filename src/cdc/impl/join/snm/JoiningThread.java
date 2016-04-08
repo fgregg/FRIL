@@ -479,6 +479,15 @@ public class JoiningThread extends Thread {
 					wait();
 				}
 			}
+			this.sourceA = null;
+			this.sourceB = null;
+			this.buffer = null;
+			this.connector = null;
+			this.mapLeft = null;
+			this.mapRight = null;
+			this.nextA = null;
+			this.nextB = null;
+			this.outBuffer = null;
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

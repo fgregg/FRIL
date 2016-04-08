@@ -314,6 +314,7 @@ public class SortedData {
 	
 	public void cleanup() {
 		synchronized (this) {
+			this.comparator = null;
 //			try {
 //				if (cache != null) {
 //					cache.trash();

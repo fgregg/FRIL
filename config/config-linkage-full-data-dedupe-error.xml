@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <left-data-source class="cdc.impl.datasource.text.CSVDataSource" name="original">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="original"/>
+            <param name="input-file" value="./data-sample/generated-data-full.csv"/>
+        </params>
+        <row-model>
+            <column converter="cdc.datamodel.converters.JoinConverter" name="name">
+                <empty-values/>
+                <params>
+                    <param name="columns" value="firsrt_name,last_name"/>
+                    <param name="script" value="//This script can use two parameters:&#xa;//   columns - values of converter's input columns (Array of String objects)&#xa;//   connector - string used to connect fields&#xa;//Return value: String&#xa;&#xa;StringBuffer buffer = new StringBuffer();&#xa;for (int i = 0; i &lt; columns.length; i++) {&#xa;    if (i > 0) {&#xa;        buffer.append(connector);&#xa;    }&#xa;    buffer.append(columns[i]);&#xa;}&#xa;return buffer.toString();&#xa;"/>
+                    <param name="out-name" value="name"/>
+                    <param name="coupler-param" value=" "/>
+                </params>
+            </column>
+            <column column="DOB"
+                converter="cdc.datamodel.converters.TrimConverter" name="DDMM">
+                <empty-values/>
+                <params>
+                    <param name="trim-front" value="-1"/>
+                    <param name="substring-end" value="-1"/>
+                    <param name="trim-end" value="-1"/>
+                    <param name="substring-front" value="4"/>
+                    <param name="script" value="if (trimFront != -1) {&#xa;&#x9;column = column.substring(trimFront > column.length() ? column.length() : trimFront);&#xa;}&#xa;if (trimEnd != -1) {&#xa;&#x9;column = column.substring(0, column.length() - trimEnd &lt; 0 ? 0 : column.length() - trimEnd);&#xa;}&#xa;if (leaveFront != -1) {&#xa;&#x9;column = column.substring(0, leaveFront &lt; column.length() ? leaveFront : column.length());&#xa;}&#xa;if (leaveEnd != -1) {&#xa;&#x9;column = column.substring(column.length() - leaveEnd > 0 ? column.length() - leaveEnd : 0, column.length());&#xa;}&#xa;return column;&#xa;"/>
+                    <param name="out-name" value="DDMM"/>
+                </params>
+            </column>
+            <column column="DOB"
+                converter="cdc.datamodel.converters.TrimConverter" name="YY">
+                <empty-values/>
+                <params>
+                    <param name="trim-front" value="-1"/>
+                    <param name="substring-end" value="2"/>
+                    <param name="trim-end" value="-1"/>
+                    <param name="substring-front" value="-1"/>
+                    <param name="script" value="if (trimFront != -1) {&#xa;&#x9;column = column.substring(trimFront > column.length() ? column.length() : trimFront);&#xa;}&#xa;if (trimEnd != -1) {&#xa;&#x9;column = column.substring(0, column.length() - trimEnd &lt; 0 ? 0 : column.length() - trimEnd);&#xa;}&#xa;if (leaveFront != -1) {&#xa;&#x9;column = column.substring(0, leaveFront &lt; column.length() ? leaveFront : column.length());&#xa;}&#xa;if (leaveEnd != -1) {&#xa;&#x9;column = column.substring(column.length() - leaveEnd > 0 ? column.length() - leaveEnd : 0, column.length());&#xa;}&#xa;return column;&#xa;"/>
+                    <param name="out-name" value="YY"/>
+                </params>
+            </column>
+            <column converter="cdc.datamodel.converters.JoinConverter" name="DOB">
+                <empty-values/>
+                <params>
+                    <param name="columns" value="DDMM,YY"/>
+                    <param name="script" value="//This script can use two parameters:&#xa;//   columns - values of converter's input columns (Array of String objects)&#xa;//   connector - string used to connect fields&#xa;//Return value: String&#xa;&#xa;StringBuffer buffer = new StringBuffer();&#xa;for (int i = 0; i &lt; columns.length; i++) {&#xa;    if (i > 0) {&#xa;        buffer.append(connector);&#xa;    }&#xa;    buffer.append(columns[i]);&#xa;}&#xa;return buffer.toString();&#xa;"/>
+                    <param name="out-name" value="DOB"/>
+                    <param name="coupler-param" value="&lt;empty>"/>
+                </params>
+            </column>
+            <column column="sex"
+                converter="cdc.datamodel.converters.DummyConverter" name="sex">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="race"
+                converter="cdc.datamodel.converters.DummyConverter" name="race">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="height"
+                converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="weight"
+                converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="ZIP"
+                converter="cdc.datamodel.converters.DummyConverter" name="ZIP">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="street"
+                converter="cdc.datamodel.converters.DummyConverter" name="street">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="defect_code"
+                converter="cdc.datamodel.converters.DummyConverter" name="defect_code">
+                <empty-values/>
+                <params/>
+            </column>
+        </row-model>
+    </left-data-source>
+    <right-data-source class="cdc.impl.datasource.text.CSVDataSource" name="error">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="error"/>
+            <param name="input-file" value="./data-sample/generated-data-full-error.csv"/>
+        </params>
+        <row-model>
+            <column column="name"
+                converter="cdc.datamodel.converters.DummyConverter" name="name">
+                <empty-values/>
+            </column>
+            <column column="DOB"
+                converter="cdc.datamodel.converters.DummyConverter" name="DOB">
+                <empty-values/>
+            </column>
+            <column column="sex"
+                converter="cdc.datamodel.converters.DummyConverter" name="sex">
+                <empty-values/>
+            </column>
+            <column column="race"
+                converter="cdc.datamodel.converters.DummyConverter" name="race">
+                <empty-values/>
+            </column>
+            <column column="height"
+                converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <empty-values/>
+            </column>
+            <column column="weight"
+                converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <empty-values/>
+            </column>
+            <column column="zip"
+                converter="cdc.datamodel.converters.DummyConverter" name="zip">
+                <empty-values/>
+            </column>
+            <column column="street"
+                converter="cdc.datamodel.converters.DummyConverter" name="street">
+                <empty-values/>
+            </column>
+            <column column="brth_cert_number"
+                converter="cdc.datamodel.converters.DummyConverter" name="brth_cert_number">
+                <empty-values/>
+            </column>
+        </row-model>
+        <preprocessing>
+            <deduplication>
+                <deduplication-condition acceptance-level="75">
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name" weight="25">
+                        <params>
+                            <param name="match-level-start" value="0.1"/>
+                            <param name="math-level-end" value="0.3"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="DOB" empty-match="0.2" weight="20">
+                        <params>
+                            <param name="match-level-start" value="0.05"/>
+                            <param name="math-level-end" value="0.3"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="sex" weight="11">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="race" empty-match="0.2" weight="15">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="height" empty-match="0.35" weight="14">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="weight" empty-match="0.35" weight="15">
+                        <params/>
+                    </condition>
+                </deduplication-condition>
+                <hashing-function columns="name,name" hash="soundex(5)"/>
+                <minus-file file="duplicates.csv"/>
+            </deduplication>
+        </preprocessing>
+    </right-data-source>
+    <join class="cdc.impl.join.blocking.BlockingJoin"
+        summary-left="true" summary-right="true">
+        <params>
+            <param name="blocking-function" value="soundex(5)"/>
+            <param name="blocking-param" value="0"/>
+        </params>
+        <join-condition class="cdc.impl.conditions.WeightedJoinCondition">
+            <params>
+                <param name="acceptance-level" value="65"/>
+            </params>
+            <condition class="cdc.impl.distance.EditDistance"
+                left-column="name" right-column="name" weight="25">
+                <params>
+                    <param name="match-level-start" value="0.1"/>
+                    <param name="math-level-end" value="0.3"/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.EditDistance"
+                empty-match-score="0.3" left-column="DOB"
+                right-column="DOB" weight="20">
+                <params>
+                    <param name="match-level-start" value="0.05"/>
+                    <param name="math-level-end" value="0.3"/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.EqualFieldsDistance"
+                empty-match-score="0.3" left-column="sex"
+                right-column="sex" weight="10">
+                <params/>
+            </condition>
+            <condition class="cdc.impl.distance.EqualFieldsDistance"
+                empty-match-score="0.3" left-column="race"
+                right-column="race" weight="15">
+                <params/>
+            </condition>
+            <condition class="cdc.impl.distance.NumericDistance"
+                empty-match-score="0.35" left-column="weight"
+                right-column="weight" weight="15">
+                <params>
+                    <param name="use-lineral-approximation" value="true"/>
+                    <param name="percent-difference" value="10.0,10.0"/>
+                    <param name="numeric-difference" value=""/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.NumericDistance"
+                empty-match-score="0.35" left-column="height"
+                right-column="height" weight="15">
+                <params>
+                    <param name="use-lineral-approximation" value="true"/>
+                    <param name="percent-difference" value="10.0,10.0"/>
+                    <param name="numeric-difference" value=""/>
+                </params>
+            </condition>
+        </join-condition>
+        <row-model>
+            <column name="name" source="original"/>
+            <column name="name" source="error"/>
+            <column name="DOB" source="original"/>
+            <column name="DOB" source="error"/>
+            <column name="sex" source="original"/>
+            <column name="sex" source="error"/>
+            <column name="race" source="original"/>
+            <column name="race" source="error"/>
+            <column name="weight" source="original"/>
+            <column name="weight" source="error"/>
+            <column name="height" source="original"/>
+            <column name="height" source="error"/>
+            <column name="street" source="original"/>
+            <column name="street" source="error"/>
+            <column name="ZIP" source="original"/>
+            <column name="zip" source="error"/>
+            <column name="defect_code" source="original"/>
+            <column name="brth_cert_number" source="error"/>
+        </row-model>
+    </join>
+    <results-savers>
+        <results-saver class="cdc.impl.resultsavers.DeduplicatingResultsSaver">
+            <params>
+                <param name="deduplication" value="both"/>
+                <param name="delete-duplicates" value="ask"/>
+            </params>
+            <savers>
+                <results-saver class="cdc.impl.resultsavers.CSVFileSaver">
+                    <params>
+                        <param name="output-file" value="results.csv"/>
+                    </params>
+                </results-saver>
+            </savers>
+        </results-saver>
+    </results-savers>
+</configuration>

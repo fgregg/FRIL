@@ -191,5 +191,11 @@ public class SortThread extends Thread {
 	public long getRowsNumber() {
 		return size;
 	}
+
+	public void cleanup() {
+		this.sortedData.cleanup();
+		this.sortedData = null;
+		this.queue = null;
+	}
 	
 }

@@ -170,6 +170,7 @@ public class DynamicAnalysisFrame extends JDialog {
 		
 		compMatrix = new JTable();
 		compMatrix.setEnabled(false);
+		compMatrix.setAutoCreateRowSorter(true);
 		compMatrix.getTableHeader().setReorderingAllowed(false);
 		
 		JPanel mainPanel = new JPanel();

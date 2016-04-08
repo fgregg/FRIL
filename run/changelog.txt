@@ -1,11 +1,23 @@
-Version 1.0 patch6 (current)
+Version 1.0 patch7 (current)
 
 IMPORTANT: If your linkage produces large number of linkages (>80,000 or so),
 and if you are enablind results desuplication (in either available form),
 make sure to increase the memory available for FRIL. Go to FAQ section of the
 webpage for instructions.
 
+
 Latest features:
+1. New feature: Street address distance
+2. New feature: Manual decision module can be closed, rejecting or accepting all linkages
+3. New feature: Sort enabled in table in dynamic analysis window
+4. Fix: Memory leak in results deduplication
+5. Fix: Memory leak in sorted neighborhood search method
+6. Fix: Possible exception when removing item from condition (dedupe condition)
+7. Update: Updated deduplication condition configuration window
+
+
+
+Version 1.0 patch5:
 1.  New feature: Deduplication supports weightsb and acceptance level
 2.  New feature: Support for comparing empty values
 3.  New feature: Empty values can be set for each of attributes used in FRIL (Data source config.)
@@ -20,8 +32,6 @@ Latest features:
 12. Fix: Deduplication in result savers could omit saving some not joined records for large linkage result
 13. Update: New blocking configuration panel (deduplication and linkage modes)
 14. Update: Miscellaneous changes in GUI
-
-
 
 Version 1.0 patch5:
 1. New feature: Save removed duplicates from data source into files

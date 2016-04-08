@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration deduplication="true">
+    <left-data-source class="cdc.impl.datasource.text.CSVDataSource" name="sourceA">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="sourceA"/>
+            <param name="input-file" value="./data-sample/generated-data-full-error.csv"/>
+        </params>
+        <row-model>
+            <column column="name"
+                converter="cdc.datamodel.converters.DummyConverter" name="name">
+                <empty-values/>
+            </column>
+            <column column="DOB"
+                converter="cdc.datamodel.converters.DummyConverter" name="DOB">
+                <empty-values/>
+            </column>
+            <column column="sex"
+                converter="cdc.datamodel.converters.DummyConverter" name="sex">
+                <empty-values/>
+            </column>
+            <column column="race"
+                converter="cdc.datamodel.converters.DummyConverter" name="race">
+                <empty-values/>
+            </column>
+            <column column="height"
+                converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <empty-values/>
+            </column>
+            <column column="weight"
+                converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <empty-values/>
+            </column>
+            <column column="zip"
+                converter="cdc.datamodel.converters.DummyConverter" name="zip">
+                <empty-values/>
+            </column>
+            <column column="street"
+                converter="cdc.datamodel.converters.DummyConverter" name="street">
+                <empty-values/>
+            </column>
+            <column column="brth_cert_number"
+                converter="cdc.datamodel.converters.DummyConverter" name="brth_cert_number">
+                <empty-values/>
+            </column>
+        </row-model>
+        <preprocessing>
+            <deduplication>
+                <deduplication-condition acceptance-level="75">
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name" weight="25">
+                        <params>
+                            <param name="match-level-start" value="0.1"/>
+                            <param name="math-level-end" value="0.3"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="DOB" weight="20">
+                        <params>
+                            <param name="match-level-start" value="0.05"/>
+                            <param name="math-level-end" value="0.25"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="sex" weight="11">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="race" empty-match="0.35" weight="15">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="height" empty-match="0.35" weight="15">
+                        <params/>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="weight" empty-match="0.35" weight="14">
+                        <params/>
+                    </condition>
+                </deduplication-condition>
+                <hashing-function columns="name,name" hash="soundex(5)"/>
+                <minus-file file="duplicates.csv"/>
+                <dedupe-file file="deduplicated-source.csv"/>
+            </deduplication>
+        </preprocessing>
+    </left-data-source>
+</configuration>

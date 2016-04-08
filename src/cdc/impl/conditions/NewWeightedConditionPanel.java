@@ -177,6 +177,13 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		avaialbleMethods.addActionListener(new ActionListener() {
 			private Map cache = new HashMap();
 			public void actionPerformed(ActionEvent e) {
+				
+				JComboBox source = (JComboBox)e.getSource();
+				//This is to fix a problem in OSX where you can deselect an item
+				if (source.getSelectedIndex() == -1) {
+					source.setSelectedIndex(0);
+				}
+				
 				if (oldCreator != null) {
 					oldCreator.configurationPanelClosed();
 				}
@@ -187,7 +194,14 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 					cache.put(componentCreator, cachedPanel);
 				}
 				comboSpecificPanel.removeAll();
-				comboSpecificPanel.add(cachedPanel);
+				comboSpecificPanel.setLayout(new GridBagLayout());
+				GridBagConstraints c = new GridBagConstraints();
+				c.gridx = 0;
+				c.gridy = 0;
+				c.fill = GridBagConstraints.BOTH;
+				c.weightx = 1;
+				c.weighty = 1;
+				comboSpecificPanel.add(cachedPanel, c);
 				NewWeightedConditionPanel.this.validate();
 				NewWeightedConditionPanel.this.repaint();
 				oldCreator = componentCreator;

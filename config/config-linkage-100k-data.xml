@@ -4,7 +4,7 @@
         <params>
             <param name="column-separator" value=","/>
             <param name="source-name" value="original"/>
-            <param name="input-file" value="./data-sample\generated-data-100k-full.csv"/>
+            <param name="input-file" value="./data-sample/generated-data-100k-full.csv"/>
         </params>
         <row-model>
             <column converter="cdc.datamodel.converters.JoinConverter" name="name">

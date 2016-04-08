@@ -45,9 +45,9 @@ public class PrefixBlockingFunction implements BlockingFunction {
 	private int prefixLength;
 	
 	public PrefixBlockingFunction(DataColumnDefinition[][] columns, int prefixLength) {
-		if (columns.length != 1) {
-			throw new RuntimeException("PrefixBlockingFunction can use only one column!");
-		}
+//		if (columns.length != 1) {
+//			throw new RuntimeException("PrefixBlockingFunction can use only one column!");
+//		}
 		this.columns = columns;
 		this.prefixLength = prefixLength;
 	}

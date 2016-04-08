@@ -246,12 +246,17 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		if (closed) {
 			return;
 		}
+		if (workers != null) {
+			for (int i = 0; i < workers.length; i++) {
+				workers[i].cleanup();
+			}
+		}
+		workers = null;
 		closed = true;
 		if (sortedData != null) {
 			sortedData.close();
 		}
 		sortedData = null;
-		workers = null;
 		initialized = false;
 		synchronized (parentSource) {
 			parentSource.close();

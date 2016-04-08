@@ -20,5 +20,7 @@ public abstract class SystemPanel extends JPanel {
 	public abstract void reportErrorRightSource();
 	public abstract void reportErrorJoinSource();
 	public abstract void reportErrorResultSavers();
+	
+	public abstract void cleanup();
 
 }

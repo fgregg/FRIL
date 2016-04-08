@@ -2,7 +2,6 @@ package cdc.impl.deduplication.gui;
 
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -11,11 +10,12 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-import javax.swing.Box;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
@@ -57,8 +57,15 @@ public class DeduplicationConditionAction extends WizardAction {
 	}
 
 	public JPanel beginStep(AbstractWizard wizard) {
+		acceptLevel.setPreferredSize(new Dimension(40, 20));
+		acceptLevel.setMinimumSize(new Dimension(40, 20));
+		acceptLevel.setHorizontalAlignment(JTextField.CENTER);
+		sumLabel.setPreferredSize(new Dimension(40, 20));
+		sumLabel.setMinimumSize(new Dimension(40, 20));
+		sumLabel.setHorizontalAlignment(JLabel.CENTER);
 		dialog = wizard;
 		table = new TablePanel(COLUMNS, true, true, TablePanel.BUTTONS_LEFT);
+		table.getTable().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		text = new JLabel();
 		activeWizard = wizard;
 		table.addEditButtonListener(new ActionListener() {
@@ -89,6 +96,20 @@ public class DeduplicationConditionAction extends WizardAction {
 				computeText();
 			}
 		});
+		table.addRemoveButtonListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				int sumWeights = Integer.parseInt(sumLabel.getText());
+				Object[] selected = table.getSelectedRows();
+				int[] ids = table.getSelectedRowId();
+				table.clearSelection();
+				for (int i = 0; i < selected.length; i++) {
+					sumWeights -= ((Integer)((Object[])selected[i])[2]).intValue();
+					table.removeRow(ids[i]);
+				}
+				((JButton)e.getSource()).setEnabled(false);
+				sumLabel.setText(String.valueOf(sumWeights));
+			}
+		});
 		
 		if (prevConditions == null) {
 			for (int i = 0; i < config.getTestedColumns().length; i++) {
@@ -102,22 +123,24 @@ public class DeduplicationConditionAction extends WizardAction {
 			}
 		}
 		
-		JPanel mainPanel = new JPanel(new GridBagLayout());
-		GridBagConstraints c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 0;
-		c.weighty = 0.8;
-		c.fill = GridBagConstraints.BOTH;
-		mainPanel.add(table, c);
+//		JPanel mainPanel = new JPanel(new GridBagLayout());
+//		GridBagConstraints c = new GridBagConstraints();
+//		c.gridx = 0;
+//		c.gridy = 0;
+//		c.weighty = 0.8;
+//		c.fill = GridBagConstraints.BOTH;
+//		mainPanel.add(table, c);
 		
-		JPanel weightsSumPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-		JLabel label = new JLabel("Duplicate acceptance level: ");
-		weightsSumPanel.add(label);
-		weightsSumPanel.add(acceptLevel);
-		weightsSumPanel.add(Box.createRigidArea(new Dimension(20, 20)));
-		label = new JLabel("Current sum of weights: ");
-		weightsSumPanel.add(label);
-		weightsSumPanel.add(sumLabel);
+		JPanel weightsSumPanel = new JPanel(new GridBagLayout());
+		
+		JLabel label = new JLabel("Current sum of weights: ", JLabel.RIGHT);
+		weightsSumPanel.add(label, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0,0,0,10), 0, 0));
+		weightsSumPanel.add(sumLabel, new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		
+		label = new JLabel("Duplicate acceptance level: ", JLabel.RIGHT);
+		weightsSumPanel.add(label, new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0,0,0,10), 0, 0));
+		weightsSumPanel.add(acceptLevel, new GridBagConstraints(1, 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		
 		sumLabel.addPropertyChangeListener("text", new PropertyChangeListener() {
 			public void propertyChange(PropertyChangeEvent evt) {
 				int sum = Integer.parseInt((String)evt.getNewValue());
@@ -128,27 +151,16 @@ public class DeduplicationConditionAction extends WizardAction {
 				}
 			}
 		});
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 1;
-		c.weightx = 1;
-		c.fill = GridBagConstraints.BOTH;
-		c.anchor = GridBagConstraints.EAST;
-		c.insets = new Insets(20, 20, 20 ,40);
-		mainPanel.add(weightsSumPanel, c);
 		
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 2;
-		c.weightx = 1;
-		c.fill = GridBagConstraints.BOTH;
-		c.insets = new Insets(20, 20, 20 ,20);
-		mainPanel.add(text, c);
+		JPanel buffer = new JPanel(new GridBagLayout());			
+		buffer.add(table, new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		buffer.add(weightsSumPanel, new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0,10,0,40), 0, 0));
+		buffer.add(text, new GridBagConstraints(0, 2, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10,10,0,10), 0, 0));
 		
 		updateWeights();
 		computeText();
 		
-		return mainPanel;
+		return buffer;
 	}
 	
 	

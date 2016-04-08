@@ -638,6 +638,9 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 	
 	private void createSystemPanel() {
+		if (this.applicationPanel != null) {
+			this.applicationPanel.cleanup();
+		}
 		this.applicationPanel = linkage.getState() ? (SystemPanel)new LinkageSystemPanel(this) : new DedupeSystemPanel(this);
 		JScrollPane appScroll = new JScrollPane(applicationPanel);
 		applicationWrappingPanel.removeAll();

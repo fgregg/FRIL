@@ -66,7 +66,7 @@ public class EditDistance extends AbstractStringDistance {
 	public static final double DEFAULT_BEGIN_APPROVE_LEVEL = 0.2;
 	public static final double DEFAULT_END_APPROVE_LEVEL = 0.4;
 	
-	private static class EditDistanceVisibleComponent extends GUIVisibleComponent {
+	public static class EditDistanceVisibleComponent extends GUIVisibleComponent {
 
 		private class CreatorV1 extends DefaultParamPanelFieldCreator {
 			private SlopePanel slope;

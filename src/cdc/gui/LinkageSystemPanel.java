@@ -704,33 +704,6 @@ public class LinkageSystemPanel extends SystemPanel {
 		return processPanel;
 	}
 
-//	/* (non-Javadoc)
-//	 * @see cdc.gui.SystemPanel#setAltered(boolean)
-//	 */
-//	public void setAltered(boolean b) {
-//		altered = true;
-//	}
-
-//	/* (non-Javadoc)
-//	 * @see cdc.gui.SystemPanel#saveIfNeeded()
-//	 */
-//	public boolean saveIfNeeded() {
-//		if (altered) {
-//			int result = JOptionPane.showConfirmDialog(LinkageSystemPanel.this, "Current linkage configuration was changed. Do you want to save it?", "Save new configuration", JOptionPane.YES_NO_CANCEL_OPTION);
-//			if (result == JOptionPane.YES_OPTION) {
-//				if (MainFrame.main.saveCurrentConfiguration(true)) {
-//					systemSaved();
-//				}
-//			} else if (result == JOptionPane.CANCEL_OPTION) {
-//				return false;
-//			} else {
-//				//delete tmp config
-//				MainFrame.main.surrenderConfiguration();
-//			}
-//		}
-//		return true;
-//	}
-
 	public void openLinkagesDialog() {
 		try {
 			LinkageResultsAnalysisProvider provider = new LinkageResultsAnalysisProvider(getSystem().getJoin());
@@ -768,5 +741,16 @@ public class LinkageSystemPanel extends SystemPanel {
 			this.viewMinusB.setEnabled(false);
 			this.viewMinusB.setToolTipText(TOOLTIP_VIEW_MINUS + " (requires the option of summary of not joined data to be enabled)");
 		}
+	}
+
+	public void cleanup() {
+		this.join = null;
+		if (processPanel != null) {
+			this.processPanel.cleanup();
+		}
+		this.processPanel = null;
+		this.sourceA = null;
+		this.sourceB = null;
+		this.system = null;
 	}
 }
