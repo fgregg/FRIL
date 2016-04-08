@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="build" name="FRIL">
+    <property environment="env"/>
+    <path id="FRIL.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="lib/commons-logging-1.1.jar"/>
+        <pathelement location="lib/emory-util-all.jar"/>
+        <pathelement location="lib/jtds-1.2.2.jar"/>
+        <pathelement location="lib/jwf-1.0.1.jar"/>
+        <pathelement location="lib/log4j-1.2.13.jar"/>
+        <pathelement location="lib/opencsv-1.8.jar"/>
+        <pathelement location="lib/ostermillerutils_1_05_00_for_java_1_4.jar"/>
+        <pathelement location="lib/ostermillerutils_1_06_01.jar"/>
+        <pathelement location="lib/poi-3.1-FINAL-20080629.jar"/>
+        <pathelement location="lib/poi-contrib-3.1-FINAL-20080629.jar"/>
+        <pathelement location="lib/libsvm.jar"/>
+        <pathelement location="lib/poi-scratchpad-3.1-FINAL-20080629.jar"/>
+        <pathelement location="lib/postgresql-8.2dev-503.jdbc3.jar"/>
+        <pathelement location="lib/secondstring-20060615.jar"/>
+        <pathelement location="lib/serializer.jar"/>
+        <pathelement location="lib/swing-layout-1.0.jar"/>
+        <pathelement location="lib/swingx_v0203.jar"/>
+        <pathelement location="lib/xercesImpl.jar"/>
+        <pathelement location="lib/xml-apis.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-project,dist,cleanall" name="build"/>
+    <target depends="init" name="build-project">
+        <echo message="os.name:             ${os.name}"/>
+        <echo message="ant.file:            ${ant.file}"/>
+        <echo message="ant.java.version:    ${ant.java.version}"/>
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="false" destdir="bin" >
+            <src path="src"/>
+            <classpath refid="FRIL.classpath"/>
+        </javac>
+    </target>
+    <target depends="build-project" name="dist">
+        <delete dir="build"/>
+        <mkdir dir="build"/>
+        <copy todir="build/jars">
+            <fileset dir="lib"/>
+        </copy>
+        <copy todir="build/icons">
+            <fileset dir="icons"/>
+        </copy>
+        <copy todir="build/data-sample">
+            <fileset dir="data-sample"/>
+        </copy>
+        <copy todir="build/config">
+            <fileset dir="config"/>
+        </copy>
+        <copy todir="build">
+            <fileset dir="run"/>
+        </copy>
+        <jar destfile="build/jars/join.jar" basedir="bin"/>
+    </target>
+</project>

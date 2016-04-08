@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <left-data-source class="cdc.impl.datasource.text.CSVDataSource" name="sourceA">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="sourceA"/>
+            <param name="input-file" value="./data-sample/generated-data.csv"/>
+        </params>
+        <row-model>
+            <column column="patient_name" converter="cdc.datamodel.converters.DummyConverter" name="patient_name">
+                <params/>
+            </column>
+            <column column="DOB" converter="cdc.datamodel.converters.DummyConverter" name="DOB">
+                <params/>
+            </column>
+            <column column="height" converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <params/>
+            </column>
+            <column column="weight" converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <params/>
+            </column>
+        </row-model>
+    </left-data-source>
+    <right-data-source class="cdc.impl.datasource.text.CSVDataSource" name="sourceB">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="sourceB"/>
+            <param name="input-file" value="./data-sample/generated-data-error.csv"/>
+        </params>
+        <row-model>
+            <column converter="cdc.datamodel.converters.JoinConverter" name="name">
+                <params>
+                    <param name="out-name" value="name"/>
+                    <param name="coupler-param" value=" "/>
+                </params>
+                <row-model>
+                    <column name="firsrt_name"/>
+                    <column name="last_name"/>
+                </row-model>
+            </column>
+            <column column="DOB" converter="cdc.datamodel.converters.TrimConverter" name="DOB_MO_DAY">
+                <params>
+                    <param name="trim-front" value="-1"/>
+                    <param name="substring-end" value="-1"/>
+                    <param name="trim-end" value="-1"/>
+                    <param name="substring-front" value="4"/>
+                    <param name="out-name" value="DOB_MO_DAY"/>
+                </params>
+            </column>
+            <column column="DOB" converter="cdc.datamodel.converters.TrimConverter" name="DOB_2D_YR">
+                <params>
+                    <param name="trim-front" value="-1"/>
+                    <param name="substring-end" value="2"/>
+                    <param name="trim-end" value="-1"/>
+                    <param name="substring-front" value="-1"/>
+                    <param name="out-name" value="DOB_2D_YR"/>
+                </params>
+            </column>
+            <column column="height" converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <params/>
+            </column>
+            <column column="weight" converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <params/>
+            </column>
+            <column converter="cdc.datamodel.converters.JoinConverter" name="DOB">
+                <params>
+                    <param name="out-name" value="DOB"/>
+                    <param name="coupler-param" value="&lt;empty>"/>
+                </params>
+                <row-model>
+                    <column name="DOB_MO_DAY"/>
+                    <column name="DOB_2D_YR"/>
+                </row-model>
+            </column>
+        </row-model>
+    </right-data-source>
+    <join class="cdc.impl.join.snm.SNMJoin_v1" summary-left="true" summary-right="true">
+        <params>
+            <param name="window" value="8"/>
+            <param name="sort-order-right" value="patient_name,DOB,weight,height"/>
+            <param name="sort-order-left" value="name,DOB,weight,height"/>
+        </params>
+        <join-condition class="cdc.impl.conditions.WeightedJoinCondition">
+            <params>
+                <param name="acceptance-level" value="75"/>
+            </params>
+            <condition class="cdc.impl.distance.EditDistance" left-column="patient_name" right-column="name" weight="40">
+                <params>
+                    <param name="match-level-start" value="0.2"/>
+                    <param name="math-level-end" value="0.4"/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.EditDistance" left-column="DOB" right-column="DOB" weight="30">
+                <params>
+                    <param name="match-level-start" value="0.1"/>
+                    <param name="math-level-end" value="0.3"/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.NumericDistance" left-column="weight" right-column="weight" weight="15">
+                <params>
+                    <param name="use-lineral-approximation" value="true"/>
+                    <param name="percent-difference" value="10.0,10.0"/>
+                </params>
+            </condition>
+            <condition class="cdc.impl.distance.NumericDistance" left-column="height" right-column="height" weight="15">
+                <params>
+                    <param name="use-lineral-approximation" value="true"/>
+                    <param name="percent-difference" value="10.0,10.0"/>
+                </params>
+            </condition>
+        </join-condition>
+        <row-model>
+            <column name="patient_name" source="sourceA"/>
+            <column name="name" source="sourceB"/>
+            <column name="DOB" source="sourceA"/>
+            <column name="DOB" source="sourceB"/>
+            <column name="height" source="sourceA"/>
+            <column name="height" source="sourceB"/>
+            <column name="weight" source="sourceA"/>
+            <column name="weight" source="sourceB"/>
+        </row-model>
+    </join>
+    <results-savers>
+        <results-saver class="cdc.impl.resultsavers.CSVFileSaver">
+            <params>
+                <param name="output-file" value="results.csv"/>
+            </params>
+        </results-saver>
+    </results-savers>
+</configuration>
