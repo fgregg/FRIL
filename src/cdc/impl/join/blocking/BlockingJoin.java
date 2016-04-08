@@ -54,11 +54,18 @@ import cdc.utils.HTMLUtils;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 
+/**
+ * This class provides an implementation of Blocking Search Method to identify 
+ * pairs of records that should be tested against being linkages.
+ * @author Pawel Jurczyk
+ *
+ */
 public class BlockingJoin extends AbstractJoin {
 	
-	public static final String HASHING_FUNCTION_SOUNDEX = "soundex";
-	public static final String HASHING_FUNCTION_EQUALITY = "equality";
-	
+	/**
+	 * The properties read from configuration. The properties define 
+	 * the the configuration of blocking attribute and blocking function.
+	 */
 	public static final String BLOCKING_PARAM = "blocking-param";
 	public static final String BLOCKING_FUNCTION = "blocking-function";
 	
@@ -66,6 +73,9 @@ public class BlockingJoin extends AbstractJoin {
 		DataRow row;
 	}
 	
+	/**
+	 * A connector class used by the BlockingJoinThreads. Threads send notifications to the BlockingJoin using this connector.
+	 */
 	public class BlockingJoinConnector {
 
 		public AbstractJoinCondition getJoinCondition() {
@@ -106,38 +116,73 @@ public class BlockingJoin extends AbstractJoin {
 		
 	}
 	
+	/**
+	 * Indication of the state of the join
+	 */
 	private boolean closed = false;
 	private boolean open = false;
+	private boolean initialized = false;
 	
-	private int[] blockingFactor;
+	/**
+	 * Blocking configuration
+	 */
 	private BlockingFunction blockingFunction;
 	private DataColumnDefinition[][] blocks;
 	
+	/**
+	 * Bucket manager that does the actual blocking
+	 */
 	private BucketManager buckets;
 	
-	private boolean initialized = false;
-	
+	/**
+	 * Threads used for reading input in parallel and adding the records into BucketManager
+	 */
 	private HashingThread[] hashers;
+	
+	/**
+	 * Threads used for the linkage
+	 */
 	private BlockingJoinThread[] threads;
+	
+	/**
+	 * Results buffer
+	 */
 	private ArrayBlockingQueue result = new ArrayBlockingQueue(1000);
+	
+	/**
+	 * Synchronizer for hashing threads
+	 */
 	private CountDownLatch latch;
 	
+	/**
+	 * Size of read data - for statistical/logging purposes
+	 */
 	private int readA;
 	private int readB;
 	
+	/**
+	 * Creates a new blocking search method-based linkage
+	 * @param sourceA first data source
+	 * @param sourceB second data source
+	 * @param outColumns output columns
+	 * @param condition linkage condition
+	 * @param params parameters used by this linkage (BLOCKING_PARAM and BLOCKING_FUNCTION)
+	 * @throws RJException
+	 * @throws IOException
+	 */
 	public BlockingJoin(AbstractDataSource sourceA, AbstractDataSource sourceB,
 			DataColumnDefinition[] outColumns, AbstractJoinCondition condition, Map params) throws RJException, IOException {
-		super(fixSource(sourceA, condition.getLeftJoinColumns()), 
-				fixSource(sourceB, condition.getRightJoinColumns()), condition, outColumns, params);
+		
+		super(sourceA, sourceB, condition, outColumns, params);
 		
 		int paramId = Integer.parseInt(getProperty(BLOCKING_PARAM));
 		String function = getProperty(BLOCKING_FUNCTION);
 		
-		blockingFactor = new int[] {paramId};
-		blocks = new DataColumnDefinition[this.blockingFactor.length][2];
+		int[] blockingFactor = new int[] {paramId};
+		blocks = new DataColumnDefinition[blockingFactor.length][2];
 		for (int i = 0; i < blocks.length; i++) {
-			blocks[i][0] = condition.getLeftJoinColumns()[this.blockingFactor[i]];
-			blocks[i][1] = condition.getRightJoinColumns()[this.blockingFactor[i]];
+			blocks[i][0] = condition.getLeftJoinColumns()[blockingFactor[i]];
+			blocks[i][1] = condition.getRightJoinColumns()[blockingFactor[i]];
 		}
 		
 		blockingFunction = BlockingFunctionFactory.createBlockingFunction(blocks, function);
@@ -146,17 +191,9 @@ public class BlockingJoin extends AbstractJoin {
 		doOpen();
 	}
 	
-	private static AbstractDataSource fixSource(AbstractDataSource source, DataColumnDefinition[] order) throws IOException, RJException {
-		return source;
-//		if (source.canSort()) {
-//			source.setOrderBy(order);
-//			return source;
-//		} else {
-//			ExternallySortingDataSource sorter = new ExternallySortingDataSource(source.getSourceName(), source, order, new HashMap());
-//			return sorter;
-//		}
-	}
-	
+	/**
+	 * Closes the blocking search method-based join.
+	 */
 	protected void doClose() throws IOException, RJException {
 		if (closed) {
 			return;
@@ -180,12 +217,16 @@ public class BlockingJoin extends AbstractJoin {
 		getSourceB().close();
 	}
 
+	/**
+	 * Gets the next linkage result
+	 */
 	protected DataRow doJoinNext() throws IOException, RJException {
-		//System.out.println("Initialized: " + initialized);
+		//If first time caller - initialize the bucket manager
 		if (!initialized ) {
 			getSourceA().reset();
 			getSourceB().reset();
 			
+			//Create hashing threads, start them and wait for finish
 			latch = new CountDownLatch(CPUInfo.testNumberOfCPUs());
 			hashers = new HashingThread[CPUInfo.testNumberOfCPUs()];
 			for (int i = 0; i < hashers.length; i++) {
@@ -208,12 +249,14 @@ public class BlockingJoin extends AbstractJoin {
 				buckets.addingCompleted();
 			}
 			
+			//Check for any errors.
 			for (int i = 0; i < hashers.length; i++) {
 				if (hashers[i].getError() != null) {
 					throw hashers[i].getError();
 				}
 			}
 			
+			//If process was canceled, restart the bucket manager to clean up...
 			if (isCancelled()) {
 				if (buckets != null) {
 					buckets.cleanup();
@@ -225,17 +268,19 @@ public class BlockingJoin extends AbstractJoin {
 			}
 		}
 		
+		//Check whether worker threads need to be created
 		createThreadsIfNeeded();
 		
 		if (isCancelled()) {
-			tearDownThreads();
+			//tearDownThreads();
 			return null;
 		}
 		
 		try {
+			//Await for any linkages from the workers. If linkage found, output.
 			main: while (true) {
 				if (isCancelled()) {
-					tearDownThreads();
+					//tearDownThreads();
 					return null;
 				}
 				Object fromQueue = result.poll(100, TimeUnit.MILLISECONDS);
@@ -260,6 +305,9 @@ public class BlockingJoin extends AbstractJoin {
 		}
 	}
 
+	/**
+	 * Just updates the number of read records from the data source.
+	 */
 	private void updateSrcStats() {
 		for (int i = 0; i < hashers.length; i++) {
 			readA += hashers[i].getReadA();
@@ -267,6 +315,10 @@ public class BlockingJoin extends AbstractJoin {
 		}
 	}
 
+	/**
+	 * Checks is any unexpected error occurred in the sub-threads
+	 * @throws RJException
+	 */
 	private void checkError() throws RJException {
 		for (int i = 0; i < threads.length; i++) {
 			if (threads[i].getError() != null) {
@@ -275,6 +327,9 @@ public class BlockingJoin extends AbstractJoin {
 		}
 	}
 
+	/**
+	 * Creates the linkage threads if needed
+	 */
 	private void createThreadsIfNeeded() {
 		if (threads == null) {
 			BlockingJoinConnector connector = new BlockingJoinConnector();
@@ -287,10 +342,9 @@ public class BlockingJoin extends AbstractJoin {
 		}
 	}
 
-	private void tearDownThreads() {
-		System.out.println("Need to implement thear down threads!!");
-	}
-
+	/**
+	 * Just to provide a progress of the linkage...
+	 */
 	private void updateProgress() {
 		long buckets = this.buckets.getNumberOfBuckets();
 		double step = 100 / (double)buckets;
@@ -306,10 +360,14 @@ public class BlockingJoin extends AbstractJoin {
 		setProgress(initialProgress + (int)withinProgress);	
 	}
 
+	
 	protected DataRow[] doJoinNext(int size) throws IOException, RJException {
 		throw new RuntimeException("Not yet implemented!");
 	}
 
+	/**
+	 * Resets the linkage so that it can be started again.
+	 */
 	protected void doReset(boolean deep) throws IOException, RJException {
 		if (threads != null) {
 			for (int i = 0; i < threads.length; i++) {
@@ -337,15 +395,25 @@ public class BlockingJoin extends AbstractJoin {
 		}
 	}
 
+	/**
+	 * Sets the state of opened linkage.
+	 */
 	private void doOpen() {
 		this.open = true;
 		this.closed = false;
 	}
 
+	/**
+	 * The configuration GUI panel that should be used for this search method
+	 * @return
+	 */
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new BlockingGUIVisibleComponent();
 	}
 	
+	/**
+	 * Creates an HTML-based summary of the linkage configuration
+	 */
 	public String toHTMLString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(HTMLUtils.getHTMLHeader());
@@ -367,6 +435,9 @@ public class BlockingJoin extends AbstractJoin {
 		return builder.toString();
 	}
 	
+	/**
+	 * Makes sure that everything is cleaned, and no memory is held...
+	 */
 	protected void finalize() throws Throwable {
 		
 		Log.log(getClass(), "Finalize. About to clear memory.");
@@ -378,15 +449,24 @@ public class BlockingJoin extends AbstractJoin {
 		super.finalize();
 	}
 	
+	/**
+	 * Implementation of the abstract method from superclass
+	 */
 	public boolean isProgressSupported() {
 		return true;
 	}
 	
+	/**
+	 * Implementation of the abstract method from superclass
+	 */
 	public boolean isConfigurationProgressSupported() {
 		return true;
 	}
 	
-	
+	/**
+	 * Implementation of the abstract method from superclass
+	 * Returns current progress of the linkage.
+	 */
 	public int getConfigurationProgress() {
 		try {
 			super.setConfigurationProgress((int) (100 * (getSourceA().position() + getSourceB().position()) / (double)(getSourceA().size() + getSourceB().size())));
@@ -396,6 +476,10 @@ public class BlockingJoin extends AbstractJoin {
 		return super.getConfigurationProgress();
 	}
 	
+	/**
+	 * Implementation of the abstract method from superclass
+	 * Returns a linkage summary (number of linked records, size of input data).
+	 */
 	public LinkageSummary getLinkageSummary() {
 		return new LinkageSummary(readA, readB, getLinkedCnt());
 	}

@@ -40,14 +40,32 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.utils.StringUtils;
 
+/**
+ * An implementation of blocking function that generates the same buckets
+ * from the records having the same value of attributes used for blocking.
+ * The block description string when more than one input attribute is used
+ * is generated as follows: [value-of-1-attribute]_[value-of-2-attribute]_...  
+ * @author Pawel Jurczyk
+ *
+ */
 public class EqualityBlockingFunction implements BlockingFunction {
 
+	/**
+	 * The attributes used for generating a block descriptor for input record
+	 */
 	private DataColumnDefinition[][] columns;
 	
+	/**
+	 * The constructor. The column describe attributes for both data sources (@see BlockingFunction).
+	 * @param columns attributes of records that are used to generate block descriptors.
+	 */
 	public EqualityBlockingFunction(DataColumnDefinition[][] columns) {
 		this.columns = columns;
 	}
 	
+	/**
+	 * The implementation of hash function (@see BlockingFunction).
+	 */
 	public String hash(DataRow value, int id) {
 		StringBuffer buffer = new StringBuffer();
 		boolean empty = true;
@@ -65,6 +83,9 @@ public class EqualityBlockingFunction implements BlockingFunction {
 		return buffer.toString();
 	}
 
+	/**
+	 * Returns the columns used for blocking.
+	 */
 	public DataColumnDefinition[][] getColumns() {
 		return columns;
 	}

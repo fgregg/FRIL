@@ -57,6 +57,7 @@ import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
+import cdc.impl.join.blocking.BlockingFunctionFactory;
 import cdc.impl.join.blocking.BlockingJoin;
 import cdc.impl.join.blocking.BucketManager;
 import cdc.impl.join.blocking.EqualityBlockingFunction;
@@ -164,10 +165,10 @@ public class SVMJoin extends AbstractJoin {
 			}
 		}
 		
-		if (function.startsWith(BlockingJoin.HASHING_FUNCTION_SOUNDEX)) {
+		if (function.startsWith(BlockingFunctionFactory.SOUNDEX)) {
 			String paramsStr = function.substring(function.indexOf("(") + 1, function.length()-1);
 			this.function = new SoundexBlockingFunction(blocks, Integer.parseInt(paramsStr));
-		} else if (function.startsWith(BlockingJoin.HASHING_FUNCTION_EQUALITY)) {
+		} else if (function.startsWith(BlockingFunctionFactory.EQUALITY)) {
 			this.function = new EqualityBlockingFunction(blocks);
 		} else {
 			throw new RuntimeException("Property " + BlockingJoin.BLOCKING_FUNCTION + " accepts only soundex or equality options.");

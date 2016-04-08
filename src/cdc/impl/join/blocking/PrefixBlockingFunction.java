@@ -38,22 +38,48 @@ package cdc.impl.join.blocking;
 
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.utils.StringUtils;
 
+/**
+ * An implementation of blocking function that generates the same buckets
+ * from the records having the same prefix of value of attributes used for blocking.
+ * Note that this function takes prefix of only the first attribute (of columns provide
+ * more than one attribute, the later attributes are simply ignored.
+ * This blocking function allows to create blocks from records that have for instance
+ * the same first three letters of the last name.
+ * @author Pawel Jurczyk
+ *
+ */
 public class PrefixBlockingFunction implements BlockingFunction {
 	
+	/**
+	 * The attributes used for generating a block descriptor for input record
+	 */
 	private DataColumnDefinition[][] columns;
+	
+	/**
+	 * The length of prefix (how many charasters shoulb be used as a prefix).
+	 */
 	private int prefixLength;
 	
+	/**
+	 * The column describe attributes for both data sources (@see BlockingFunction).
+	 * @param columns attributes of records that are used to generate block descriptors.
+	 * @param prefixLength length of the prefix
+	 */
 	public PrefixBlockingFunction(DataColumnDefinition[][] columns, int prefixLength) {
-//		if (columns.length != 1) {
-//			throw new RuntimeException("PrefixBlockingFunction can use only one column!");
-//		}
 		this.columns = columns;
 		this.prefixLength = prefixLength;
 	}
 	
+	/**
+	 * The implementation of hash function (@see BlockingFunction).
+	 */
 	public String hash(DataRow value, int id) {
 		String val = value.getData(columns[0][id]).getValue().toString();
+		if (StringUtils.isNullOrEmpty(val)) {
+			return null;
+		}
 		if (val.length() < prefixLength) {
 			return val;
 		} else {
@@ -64,7 +90,10 @@ public class PrefixBlockingFunction implements BlockingFunction {
 	public DataColumnDefinition[][] getColumns() {
 		return columns;
 	}
-	
+
+	/**
+	 * Function that compares two prefix blocking functions.
+	 */
 	public boolean equals(Object obj) {
 		if (!(obj instanceof PrefixBlockingFunction)) {
 			return false;
@@ -73,6 +102,11 @@ public class PrefixBlockingFunction implements BlockingFunction {
 		return this.prefixLength == that.prefixLength && equalAttributes(that);
 	}
 
+	/**
+	 * Just a helper function for the equals
+	 * @param that
+	 * @return
+	 */
 	private boolean equalAttributes(PrefixBlockingFunction that) {
 		if (columns[0].length != that.columns[0].length) {
 			return false;
@@ -85,6 +119,10 @@ public class PrefixBlockingFunction implements BlockingFunction {
 		return true;
 	}
 
+	/**
+	 * Returns a prefix length of this function.
+	 * @return
+	 */
 	public int getPrefixLength() {
 		return prefixLength;
 	}

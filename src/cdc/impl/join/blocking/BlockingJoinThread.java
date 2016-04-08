@@ -50,32 +50,88 @@ import cdc.utils.Log;
 import cdc.utils.RJException;
 import cdc.utils.RowUtils;
 
+/**
+ * This class represents a thread that does the linkage in BlockingJoin.
+ * The BlockingJoin can start as many threads as needed to speedup the work.
+ * The threads are getting new job assignment from bucket manager.
+ * @author pjurczy
+ *
+ */
 public class BlockingJoinThread extends Thread {
 	
+	/**
+	 * A reference to BlockingJoinConnector - a communication interface between thread and BlockingJoin class.
+	 */
 	private BlockingJoinConnector join;
+	
+	/**
+	 * Bucket manager that provides data
+	 */
 	private BucketManager bucketManager;
+	
+	/**
+	 * Output queue for linkages.
+	 */
 	private ArrayBlockingQueue resultsBuffer;
+	
+	/**
+	 * The bucket currently being used by this thread
+	 */
 	private DataRow[][] activeBucket;
+	
+	/**
+	 * Pointers to currently considered records from the bucket
+	 */
 	private int index1;
 	private int index2;
 	
+	/**
+	 * Just a statistics - to be able to estimate the progress
+	 */
 	private AtomicLong bucketsCompleted = new AtomicLong(0);
 	private AtomicInteger completedWithinBucket = new AtomicInteger(0);
+	
+	/**
+	 * Number of joined records by this thread
+	 */
 	private long joined = 0;
 	
+	/**
+	 * Info about error - so that it can be passed up.
+	 */
 	private volatile RJException error;
 	
+	/**
+	 * Signal of thread being done with work
+	 */
 	private volatile boolean finished;
+	
+	/**
+	 * Signal to force stop thread
+	 */
 	private volatile boolean forceFinish = false;
+	
+	/**
+	 * Another statistics - # of records processed by this thread. Used for logging. 
+	 */
 	private int tB = 0;
 	private int tA = 0;
 	
+	/**
+	 * Creates a new thread
+	 * @param manager bucket manager that will provide data
+	 * @param resultBuffer buffer for the results
+	 * @param join reference to the join connector
+	 */
 	public BlockingJoinThread(BucketManager manager, ArrayBlockingQueue resultBuffer, BlockingJoinConnector join) {
 		this.join = join;
 		this.bucketManager = manager;
 		this.resultsBuffer = resultBuffer;
 	}
 	
+	/**
+	 * The main working function...
+	 */
 	public void run() {
 		
 		Log.log(getClass(), "Thread " + getName() + " is starting.", 2);
@@ -83,8 +139,10 @@ public class BlockingJoinThread extends Thread {
 		
 		try {
 			
+			//The process continues until there is a data in bucket manager
 		main: while (true) {
 			
+			//Load new bucket if necessary
 			if (activeBucket == null || (index1 == activeBucket[0].length)) {
 				do {
 					activeBucket = bucketManager.getBucket();
@@ -110,6 +168,8 @@ public class BlockingJoinThread extends Thread {
 				index1 = index2 = 0;
 				//System.out.println("Buckets: " + activeBucket[0].length + " <--> " + activeBucket[1].length);
 			}
+			
+			//Process the bucket (or continue processing previously started bucket)
 			long completed = 0;
 			for (; index1 < activeBucket[0].length; index1++) {
 				for (; index2 < activeBucket[1].length; index2++) {
@@ -181,26 +241,45 @@ public class BlockingJoinThread extends Thread {
 		this.activeBucket = null;
 	}
 
+	/**
+	 * Reports number of completed buckets by this thread
+	 * @return
+	 */
 	public long getCompletedBuckets() {
 		return bucketsCompleted.get();
 	}
 
+	/**
+	 * Reports number of completed records within the bucket 
+	 * @return
+	 */
 	public long getCompletedWithinBucket() {
 		return completedWithinBucket.get();
 	}
 	
+	/**
+	 * Indication whether the thread is done.
+	 * @return
+	 */
 	public boolean done() {
 		synchronized (this) {
 			return finished;
 		}
 	}
 	
+	/**
+	 * Returns the stored error, if any
+	 * @return
+	 */
 	public RJException getError() {
 		synchronized (this) {
 			return error;
 		}
 	}
 
+	/**
+	 * Stops the work of this thread
+	 */
 	public void stopProcessing() {
 		try {
 			interrupt();

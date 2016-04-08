@@ -41,8 +41,40 @@ import java.io.Serializable;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 
-
+/**
+ * This interface represents a blocking function.
+ * The implementation of this interface can be used
+ * to generate blocks of records. The most important
+ * method in this interface is the hash method.
+ * This method is supposed to return a string descriptor
+ * of the block that should be used for given input record.
+ * Two records will end up in the same block if their blocks string
+ * descriptors are the same. 
+ * @author Pawel Jurczyk
+ *
+ */
 public interface BlockingFunction extends Serializable {
+	
+	//TODO Probably should refactor - create abstract class BlockingFunction that would hold columns used for blocking and provided getter for these.
+	/**
+	 * Return columns used for blocking. The returned array is two-dimensional.
+	 * The array formatting is as follows:
+	 * {{attr-0-first-source, attr-0-second-source},
+	 *  {attr-1-first-source, attr-1-second-source},
+	 *  ...
+	 *  {attr-n-first-source, attr-n-second-source}}
+	 *  Note that blocking functions can use any number of input attributes. 
+	 * @return columns used for hashing in the format defined above
+	 */
 	public DataColumnDefinition[][] getColumns();
-	public String hash(DataRow value, int id);
+	
+	/**
+	 * Returns a string representing hash value of given data row.
+	 * The blocking manager will build buckets from the records that have
+	 * the same hash value. Note that this function returns String hash value.
+	 * @param value input data row
+	 * @param id sourceID (0 - left source, 1 - right source)
+	 * @return hash value
+	 */
+	public String hash(DataRow value, int sourceId);
 }

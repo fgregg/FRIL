@@ -45,19 +45,57 @@ import cdc.datamodel.DataRow;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 
+/**
+ * Thread that reads data from input source and attempts to add the record to bucket manager.
+ * As add method in bucket manager calculates value of hashing function and then schedules the operation,
+ * this is potential speedup of processing as the evaluation of hashing function can be pricy...
+ * @author Pawel Jurczyk
+ *
+ */
 public class HashingThread extends Thread {
 	
+	/**
+	 * Reference to parent join.
+	 */
 	private AbstractJoin join;
+	
+	/**
+	 * First data source
+	 */
 	private AbstractDataSource sourceA;
+	
+	/**
+	 * Second data source
+	 */
 	private AbstractDataSource sourceB;
+	
+	/**
+	 * Latch that should be notified when processing is completed.
+	 */
 	private CountDownLatch latch;
+	
+	/**
+	 * The bucket manager that will accept the records
+	 */
 	private BucketManager manager;
 	
+	/**
+	 * Just for statistical purposes - size of input data processed by this thread.
+	 */
 	private int readA = 0;
 	private int readB = 0;
 	
+	/**
+	 * An exception that occurred during the processing.
+	 */
 	private volatile RJException error;
 	
+	/**
+	 * Creates new hashing thread
+	 * @param join
+	 * @param latch
+	 * @param manager
+	 */
 	public HashingThread(AbstractJoin join, CountDownLatch latch, BucketManager manager) {
 		this.sourceA = join.getSourceA();
 		this.sourceB = join.getSourceB();
@@ -66,6 +104,9 @@ public class HashingThread extends Thread {
 		this.join = join;
 	}
 
+	/**
+	 * The mail work function.
+	 */
 	public void run() {
 		Log.log(getClass(), "Thread " + getName() + " is starting.");
 		
@@ -93,14 +134,26 @@ public class HashingThread extends Thread {
 		Log.log(getClass(), "Thread " + getName() + " is done.");
 	}
 	
+	/**
+	 * Report any error that could occur in run
+	 * @return
+	 */
 	public RJException getError() {
 		return error;
 	}
 	
+	/**
+	 * Returns number of records read by this thread from first data source.
+	 * @return
+	 */
 	public int getReadA() {
 		return readA;
 	}
 	
+	/**
+	 * Returns number of records read by this thread from second data source.
+	 * @return
+	 */
 	public int getReadB() {
 		return readB;
 	}

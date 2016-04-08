@@ -39,29 +39,78 @@ package cdc.impl.join.blocking;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.impl.distance.SoundexDistance;
 
+/**
+ * This is a factory for well-known blocking (or hashing) functions.
+ * The current well-known functions are:
+ * 1. Equality - blocks will be built from records that have the same value of specified attributes.
+ * 2. Soundex - blocks will be built from records that have the same soundex code of attributes (appropriate for names).
+ * 3. Prefix - blocks will be built from records that have the same prefix (e.g., the strings that have the first n characters  the same).
+ * @author pjurczy
+ *
+ */
 public class BlockingFunctionFactory {
 
+	/**
+	 * Identifier of EQUALITY blocking function.
+	 */
+	public static final String EQUALITY = "equality";
+	
+	/**
+	 * Identifier of SOUNDEX blocking function.
+	 */
+	public static final String SOUNDEX = "soundex";
+	
+	/**
+	 * Identifier of PREFIX blocking function.
+	 */
+	public static final String PREFIX = "prefix";
+	
+	/**
+	 * The inner class that represents a descriptor of given blocking function.
+	 * The descriptor can consist of function identifier and array of integer attributes.
+	 * The attributes are optional, and the meaning of the attributes is specific for given 
+	 * function.
+	 *
+	 */
 	public static class BlockingFunctionDescriptor {
-		
+	
+		//The function identifier
 		public String function;
+		
+		//The attributes
 		public int[] arguments;
 		
+		/**
+		 * The constructor of function descriptor that does not require attributes.
+		 * @param fName blocking function identifier
+		 */
 		public BlockingFunctionDescriptor(String fName) {
 			this(fName, null);
 		}
 		
+		/**
+		 * The constructor of function descriptor with additional parameters.
+		 * Parameters can be null (representing no parameters).
+		 * @param fName blocking function identifier
+		 * @param args function arguments (or parameters)
+		 */
 		public BlockingFunctionDescriptor(String fName, int[] args) {
 			function = fName;
 			arguments = args;
 		}
 		
 	}
-
-	public static final String EQUALITY = "equality";
-	public static final String SOUNDEX = "soundex";
-	public static final String PREFIX = "prefix";
 	
-	
+	/**
+	 * The factory method that creates blocking function.
+	 * The function is created for input string representing given function.
+	 * The format of function descriptor string is: function_identifier[(list-of-parameters)].
+	 * Note that list of parameters is optional.
+	 * An example of function descriptor is "soundex(5)" or "equality".
+	 * @param columns the attributes that will be used for blocking by the created function
+	 * @param function the blocking function descriptor
+	 * @return the created blocking function
+	 */
 	public static BlockingFunction createBlockingFunction(DataColumnDefinition[][] columns, String function) {
 		BlockingFunctionDescriptor descriptor = parseBlockingFunctionDescriptor(function);
 		if (descriptor.function.equals(EQUALITY)) {
@@ -73,6 +122,14 @@ public class BlockingFunctionFactory {
 		}
 	}
 
+	/**
+	 * The method that parses given function descriptor and returns BlockingFunctionDescriptor
+	 * that represents the parsed descriptor. Note that the function requires the correct
+	 * descriptor. If incorrect one is used, RuntimeException is thrown as this is considered
+	 * a fatal error.
+	 * @param function the function descriptor as a string 
+	 * @return the parsed descriptor
+	 */
 	public static BlockingFunctionDescriptor parseBlockingFunctionDescriptor(String function) {
 		if (function.startsWith(EQUALITY)) {
 			return new BlockingFunctionDescriptor(EQUALITY);
@@ -85,6 +142,14 @@ public class BlockingFunctionFactory {
 		}
 	}
 
+	/**
+	 * A helper function for parseBlockingFunctionDescriptor. The function
+	 * parses the list of arguments. Note that the function requires actually the
+	 * list of arguments to be present. Otherwise, and Runtime exception is thrown.
+	 * Such an approach is used as a validation method for the input configuration.
+	 * @param function the list of arguments
+	 * @return list of arguments
+	 */
 	private static int[] getParameters(String function) {
 		int firstParenthesis = function.indexOf('(');
 		int lastParenthesis = function.lastIndexOf(')');
@@ -100,6 +165,12 @@ public class BlockingFunctionFactory {
 		return argsInt;
 	}
 
+	/**
+	 * The method that encodes given blocking function to its String representation.
+	 * This method is used to save given blocking function config to configuration file.
+	 * @param fnct function to be encoded
+	 * @return encoded function as String
+	 */
 	public static String encodeBlockingFunction(BlockingFunction fnct) {
 		if (fnct instanceof EqualityBlockingFunction) {
 			return EQUALITY;

@@ -44,11 +44,33 @@ import cdc.datamodel.DataRow;
 import cdc.impl.distance.SoundexDistance;
 import cdc.utils.StringUtils;
 
+/**
+ * An implementation of blocking function that generates the same buckets
+ * from the records having the same soundex code of value of attributes used for blocking.
+ * Note that this function takes soundex code of all the attributes (if columns provide
+ * more than one attribute, the soundex codes are simply concatenated together using "_").
+ * This blocking function allows to create blocks from records that have for instance
+ * the same soundex codes of the last name.
+ * @author Pawel Jurczyk
+ *
+ */
 public class SoundexBlockingFunction implements BlockingFunction {
 	
+	/**
+	 * The inner soundex distance - a class that provides encoding of given String to soundex code.
+	 */
 	private SoundexDistance soundex;
+	
+	/**
+	 * The attributes used for generating a block descriptor for input record
+	 */
 	private DataColumnDefinition[][] columns;
 	
+	/**
+	 * The column describe attributes for both data sources (@see BlockingFunction).
+	 * @param columns attributes of records that are used to generate block descriptors.
+	 * @param length soundex length
+	 */
 	public SoundexBlockingFunction(DataColumnDefinition[][] columns, int length) {
 		Map props = new HashMap();
 		props.put(SoundexDistance.PROP_SIZE, String.valueOf(length));
@@ -56,6 +78,9 @@ public class SoundexBlockingFunction implements BlockingFunction {
 		this.columns = columns;
 	}
 	
+	/**
+	 *  The implementation of hash function (@see BlockingFunction).
+	 */
 	public String hash(DataRow value, int id) {
 		StringBuffer buffer = new StringBuffer();
 		boolean empty = true;
@@ -73,14 +98,24 @@ public class SoundexBlockingFunction implements BlockingFunction {
 		return buffer.toString();
 	}
 
+	/**
+	 * The implementation of hash function (@see BlockingFunction).
+	 */
 	public DataColumnDefinition[][] getColumns() {
 		return columns;
 	}
 	
+	/**
+	 * Function that returns the inner soundex distance.
+	 * @return
+	 */
 	public SoundexDistance getSoundexDistance() {
 		return soundex;
 	}
 	
+	/**
+	 * Function that compares two prefix blocking functions.
+	 */
 	public boolean equals(Object obj) {
 		if (!(obj instanceof SoundexBlockingFunction)) {
 			return false;
@@ -89,6 +124,11 @@ public class SoundexBlockingFunction implements BlockingFunction {
 		return soundex.getProperty(SoundexDistance.PROP_SIZE).equals(that.soundex.getProperty(SoundexDistance.PROP_SIZE)) && equalAttributes(that);
 	}
 
+	/**
+	 * Just a helper function for the equals
+	 * @param that
+	 * @return
+	 */
 	private boolean equalAttributes(SoundexBlockingFunction that) {
 		if (columns[0].length != that.columns[0].length) {
 			return false;

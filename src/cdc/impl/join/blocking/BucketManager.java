@@ -65,55 +65,110 @@ import cdc.utils.Props;
 import cdc.utils.RJException;
 import cdc.utils.RowUtils;
 
+/**
+ * This class provides a complex functionality of the buckets manager. Specifically,
+ * it has a capability of putting the records from two data sources into separate buckets.
+ * The records that have the same value calculated by the hashing function end up in the
+ * same bucket. The hashing function and attributes used for hashing can be specified in
+ * the costructor.
+ * 
+ * The interface that this class provides works as follows. Once the BucketManager
+ * is created, user can start adding records into it. As records are added, the buckets
+ * are built (the records are cached in memory). Once there are too many records in the
+ * cache of bucket manager, the class dumps the records into cache on disk. This frees
+ * the space for new data. Once the phase of adding records to the bucket manager is
+ * finished (signaled by calling the addingComplete), the user can start getting 
+ * back the buckets. The main method to do that is the getBucket method, that
+ * returns two dimensional array of records for both data sources that ended up in the same
+ * bucket.
+ * 
+ * The caching of records to the files is quite complex process. The number of cache files
+ * is specified in the configuration (by default 50). The records are being divided among those cache files,
+ * and each cache file is responsible for a set of buckets. Initially the buckets are assigned
+ * to cache files on a round-robin basis.
+ * 
+ * If the input files are small enough and the data that is being added to BucketManager fits within
+ * its in-memory buffer, no caching to external files is performed.
+ * 
+ * The class uses inside thread to do the heavy work. This helps to keep the running time
+ * of "add" methods quite short - the actual operation is scheduled in queue, and the add method
+ * can return quickly. The inside thread has a role of reading the input items and doing the actual
+ * processing of the item that should be stored in the bucket manager.
+ *   
+ * @author Pawel Jurczyk
+ *
+ */
 public class BucketManager {
 
-	private static final int BLOCK_TASH_FACTOR = Props.getInteger("bucket-manager-trash-factor");
+	/**
+	 * Just some properties that are used by the code. The properties are read from the
+	 * configuration file. BLOCK_TRASH_FACTOR specifies the size of in-memory cache for data.
+	 */
+	private static final int BLOCK_TRASH_FACTOR = Props.getInteger("bucket-manager-trash-factor");
 	private static final String FILE_PREFIX = Props.getString("bucket-manager-file-prefix");
 	private static final int FILE_POOL = Props.getInteger("bucket-manager-file-pool");
 	
+	/**
+	 * The synonyms for left and right data source.
+	 */
 	private static final int LEFT = 0;
 	private static final int RIGHT = 1;
+	
+	/**
+	 * Name of the property that will be appended to row cached into disk.
+	 * This property will indicate what is the bucket of the record.
+	 */
 	private static final String BUCKET_MARKER = "bucket-id";
 	
+	/**
+	 * An item of in-memory buffer.
+	 */
 	private class BufferItem {
 		private int id;
 		private DataRow row;
 		private String hash;
 	}
 	
+	//TODO: This class is a bit too long. Probably need to refactor, possibly move the the bucket consumer so that it is an external class
+	/**
+	 * A thread that has a role of reading buffer of records that should be stored in bucket manager
+	 * and then adding those records into actual buffer - based on the bucket hash code.
+	 * When all the records has been added, the BufferConsumer will start reading the data from bucket
+	 * manager, and putting them into buffer of ready buckets.
+	 *
+	 */
 	private class BufferConsumer extends Thread {
 		
 		public void run() {
 			Log.log(getClass(), "Thread starts.", 2);
-			int addedLeft = 0;
-			int addedRight = 0;
 			try {
+				//Phase of reading the data items scheduled in the add methods
 				while ((!done || !buffer.isEmpty()) && !stopped) {
 					BufferItem item = (BufferItem)buffer.poll(100, TimeUnit.MILLISECONDS);
 					if (item == null) {
 						continue;
 					} else if (item.id == LEFT) {
-						addedLeft++;
 						addToBucket(LEFT, item.row, item.hash);
-						//System.out.println("Adding to left: " + item.row);
 					} else {
-						addedRight++;
 						int pool = addToBucket(RIGHT, item.row, item.hash);
 						test[pool] = true;
 					}
 				}
 				Log.log(getClass(), "Thread done with data reading. Now pushing results.", 2);
-				//System.out.println("Thread received left: " + addedLeft);
-				//System.out.println("Thread received right: " + addedRight);
-				//verifyBuckets();
+				
+				//If data provided by any of the sources was stored in disk cache,
+				//force the tail of records into the disk
 				if (dataInFile[LEFT]) {
 					trashIfNeeded(LEFT, true);
 				}
 				if (dataInFile[RIGHT]) {
 					trashIfNeeded(RIGHT, true);
 				}
+				
+				//Notify the counter that the consumer is ready to read back data
 				counter.countDown();
-				addedLeft = addedRight = 0;
+				
+				//Read the data (from disk if needed)
 				while (true && !stopped) {
 					if (bucketsInMemory.isEmpty()) {
 						closeStreams();
@@ -144,31 +199,24 @@ public class BucketManager {
 							}
 						}
 						
-//						if (read[LEFT].isEmpty()) {
-//							bucketsInMemory.addAll(read[RIGHT].keySet());
-//						} else {
-//							bucketsInMemory.addAll(read[LEFT].keySet());
-//						}
 					}
 					
+					//Check whether the data was exhausted, if yes, finish the loop
 					if (bucketsInMemory.isEmpty()) {
 						break;
 					}
 					
+					//Fill in the buffer of ready buckets
 					DataRow[][] ret = new DataRow[2][];
 					Bucket b = (Bucket) bucketsInMemory.remove(0);
-					
 					ret[0] = getBucket(LEFT, b);
 					ret[1] = getBucket(RIGHT, b);
-					addedLeft += ret[0].length;
-					addedRight += ret[1].length;
 					Log.log(getClass(), "Adding bucket to buffer: " + ret[0].length + " <-> " + ret[1].length, 3);
 					bufferBuckets.put(ret);
 				}
+				
+				//Thread done its work...
 				Log.log(getClass(), "Thread has completed.", 2);
-				//System.out.println("Thread retrieved left: " + addedLeft);
-				//System.out.println("Thread retrieved right: " + addedRight);
-				//System.out.println("Not touched: " + buckets.size());
 				bufferBuckets.put(new DataRow[][] {});
 				thread = null;
 				return;
@@ -190,45 +238,116 @@ public class BucketManager {
 		}
 	}
 	
+	/**
+	 * Prefix for cache files used by this bucket manager
+	 */
 	private String filePrefix;
 	
+	/**
+	 * Files used by the cache
+	 */
 	private File[][] file = new File[2][FILE_POOL];
+	
+	/**
+	 * Output streams used for the cache (using the files above)
+	 */
 	private DataRowOutputStream dros[][] = new DataRowOutputStream[2][FILE_POOL];
 	
+	/**
+	 * Blocking function used by this bucket manager
+	 */
 	private BlockingFunction blockingFunction;
 	
+	/**
+	 * Blocks of data in memory
+	 */
 	private Map[][] blocks;
+	
+	/**
+	 * Mappings of buckets to files (so that all records 
+	 * that fall into the same bucket end up in the same file on disk if caching is needed)
+	 */
 	private Map bucktesToFileId = new HashMap();
+	
+	/**
+	 * Count of records added to the bucket manager (per data source) 
+	 */
 	private int[] sizes;
+	
+	/**
+	 * Round robin index
+	 */
 	private int nextFileFromPool = 0;
+	
+	/**
+	 * The buffered buckets.
+	 */
 	private Map buckets = new HashMap();
 	
+	/**
+	 * Structures used to read buckets from the bucket manager,
+	 * and to decide whether any data is stored in files
+	 */
 	private int[] usedFilesFromPool;
 	private Iterator bucketIterator[] = new Iterator[FILE_POOL];
 	private Iterator rowsIterator;
 	private Bucket trashedBucket;
-	
 	private boolean dataInFile[] = new boolean[] {false, false};
 	private Map[] read = new Map[2];
+	
+	/**
+	 * Current buckets in memory - in the reading phase
+	 */
 	private List bucketsInMemory = new ArrayList();
 	
 	private boolean test[] = new boolean[FILE_POOL];
 	private boolean cachingEnabled;
+	
+	/**
+	 * Just to count statistics.
+	 */
 	private int addedRows = 0;
 	
+	/**
+	 * The instance of buffer consumer thread that does actual job.
+	 */
 	private BufferConsumer thread = new BufferConsumer();
+	
+	/**
+	 * Indication of BucketManager state
+	 */
 	private volatile boolean stopped= false;
 	private volatile boolean done = false;
 	private volatile boolean error = false;
-	private volatile RJException exception = null;
-	private ArrayBlockingQueue buffer = new ArrayBlockingQueue(Props.getInteger("intrathread-buffer"));
-	private ArrayBlockingQueue bufferBuckets = new ArrayBlockingQueue(300);
-	private CountDownLatch counter = new CountDownLatch(1);
 	private volatile boolean completed = false;
+	private volatile RJException exception = null;
 	
+	/**
+	 * The input queue (adding phase)
+	 */
+	private ArrayBlockingQueue buffer = new ArrayBlockingQueue(Props.getInteger("intrathread-buffer"));
+	
+	/**
+	 * The output queue (reading phase)
+	 */
+	private ArrayBlockingQueue bufferBuckets = new ArrayBlockingQueue(300);
+	
+	/**
+	 * Indication of BufferConsumer being ready to read data
+	 */
+	private CountDownLatch counter = new CountDownLatch(1);
+	
+	/**
+	 * Count of records per data source - for statistics
+	 */
 	private AtomicInteger leftSize = new AtomicInteger(0);
 	private AtomicInteger rightSize = new AtomicInteger(0);
 	
+	/**
+	 * Constructs a new bucket manager
+	 * @param blockingFunction the function used for blocking
+	 * @param cache true if data should be cached into files if there are too many records in memory
+	 */
 	public BucketManager(BlockingFunction blockingFunction, boolean cache) {
 		this.cachingEnabled = cache;
 		
@@ -262,10 +381,20 @@ public class BucketManager {
 		thread.start();
 	}
 	
+	/**
+	 * Constructor
+	 * @param blockingFunction
+	 */
 	public BucketManager(BlockingFunction blockingFunction) {
 		this(blockingFunction, true);
 	}
 
+	/**
+	 * Adds record from left data source to bucket manager.
+	 * Actually just computes the value of blocking function and schedules the operation.
+	 * @param row
+	 * @throws IOException
+	 */
 	public void addToBucketLeftSource(DataRow row) throws IOException {
 		BufferItem item = new BufferItem();
 		item.row = row;
@@ -282,6 +411,12 @@ public class BucketManager {
 		}
 	}
 	
+	/**
+	 * Adds record from right data source to bucket manager.
+	 * Actually just computes the value of blocking function and schedules the operation.
+	 * @param row
+	 * @throws IOException
+	 */
 	public void addToBucketRightSource(DataRow row) throws IOException {
 		BufferItem item = new BufferItem();
 		item.row = row;
@@ -298,10 +433,15 @@ public class BucketManager {
 		}
 	}
 	
+	/**
+	 * The function reads next bucket. Has to be called after addingCompleted was called.
+	 * @return
+	 * @throws IOException
+	 * @throws RJException
+	 */
 	public synchronized DataRow[][] getBucket() throws IOException, RJException {
 		try {
 			if (completed ) {
-				//Log.log(getClass(), "Returning null from p1");
 				return null;
 			}
 			while (true) {
@@ -324,9 +464,9 @@ public class BucketManager {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		//Log.log(getClass(), "Returning null from p2");
 		return null;
 	}
+	
 	
 	private void resetRows(DataRow[][] bucket) {
 		for (int i = 0; i < bucket.length; i++) {
@@ -336,20 +476,25 @@ public class BucketManager {
 		}
 	}
 
+	/**
+	 * Requests the consumer thread to stop processing (e.g., when stopping working on the linkage)
+	 */
 	public void stopProcessing() {
 		stopped = true;
 	}
 	
+	/**
+	 * Indicates the fact that all the records have been added, and now it will be time to read.
+	 * May take some time as it waits for the consumer thread to being ready.
+	 * @throws IOException
+	 */
 	public void addingCompleted() throws IOException {
-		//System.out.println("Adding completed.");
 		done = true;
 		try {
 			counter.await();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		//System.out.println("Left: " + leftSize.get());
-		//System.out.println("Right: " + rightSize.get());
 	}
 
 	private DataRow[] getBucket(int id, Bucket b) {
@@ -360,6 +505,11 @@ public class BucketManager {
 		return (DataRow[]) bucket.toArray(new DataRow[] {});
 	}
 
+	/**
+	 * Closes the streams to cache files (called by the consumer)
+	 * @throws IOException
+	 * @throws RJException
+	 */
 	private void closeStreams() throws IOException, RJException {
 		if (dataInFile[0]) {
 			for (int i = 0; i < FILE_POOL; i++) {
@@ -373,8 +523,12 @@ public class BucketManager {
 		}
 	}
 	
+	/**
+	 * Cleans up after using bucket manager. Clears some maps from memory and closes/deletes temporary cache files.
+	 * @throws IOException
+	 * @throws RJException
+	 */
 	public void cleanup() throws IOException, RJException {
-		//System.out.println(getClass().getName() + ": Cleanup called.");
 		closeStreams();
 		if (file != null) {
 			for (int i = 0; i < file.length; i++) {
@@ -423,6 +577,15 @@ public class BucketManager {
 		dris.close();
 	}
 
+	/**
+	 * Called by the consumer thread. Adds the row to bucket, chooses destination file for the record (based on bucket) 
+	 * and possibly flushes data to external cache files if needed.
+	 * @param id
+	 * @param row
+	 * @param bucket
+	 * @return
+	 * @throws IOException
+	 */
 	private synchronized int addToBucket(int id, DataRow row, String bucket) throws IOException {
 		addedRows++;
 		sizes[id]++;
@@ -430,7 +593,6 @@ public class BucketManager {
 		if (bucket == null) {
 			return 0;
 		}
-		//System.out.println("Data: " + row.getData(blockingFactor[0][id]) + "   Bucket: " + buck[0]);
 		Bucket b = (Bucket)buckets.get(bucket); //new Bucket(new String[] {bucket});
 		if (b == null) {
 			b = new Bucket(new String[] {bucket});
@@ -463,17 +625,20 @@ public class BucketManager {
 		return poolId;
 	}
 
+	/**
+	 * Saves the data from memory into cache files.
+	 * @param id
+	 * @param force
+	 * @throws IOException
+	 */
 	private void trashIfNeeded(int id, boolean force) throws IOException {
-		if (sizes[id] > BLOCK_TASH_FACTOR || force) {
-			//System.out.println("Trashing to file");
+		if (sizes[id] > BLOCK_TRASH_FACTOR || force) {
 			
 			dataInFile[id] = true;
 			for (int i = 0; i < FILE_POOL; i++) {
 				bucketIterator[i] = null;
 				DataRow row = getNext(id, i);
 				if (row == null) {
-					//System.out.println("Not sure here....test it");
-					//this is just empty bucket... (no file data needs to be written)
 					continue;
 				}
 				if (dros[id][i] == null) {
@@ -509,15 +674,20 @@ public class BucketManager {
 	}
 
 	private OutputStream createOutputStream(File file) throws FileNotFoundException, IOException {
-		DeflaterOutputStream os = new DeflaterOutputStream(new FileOutputStream(file), new Deflater(Deflater.BEST_SPEED), 4096);
-		
-		return os;
+		return new DeflaterOutputStream(new FileOutputStream(file), new Deflater(Deflater.BEST_SPEED), 4096);
 	}
 
+	/**
+	 * The used hashing function
+	 * @return
+	 */
 	public BlockingFunction getHashingFunction() {
 		return this.blockingFunction;
 	}
 	
+	/**
+	 * Resets the bucket manager. The bucket manager will be able to accept new work...
+	 */
 	public void reset() {
 		if (thread != null) {
 			thread.interrupt();
@@ -528,8 +698,6 @@ public class BucketManager {
 			}
 		}
 		
-		//This caused a problem after reset when no trashing to files occurred. If added to fix.
-		//Initially, this cleanup removed extra records from deduplication mode
 		if (dataInFile[0]) {
 			for (int j = 0; j < blocks[0].length; j++) {
 				blocks[0][j].clear();
@@ -550,22 +718,30 @@ public class BucketManager {
 		thread = new BufferConsumer();
 		thread.setName("buckets-manager-thread");
 		thread.start();
-		
-		//System.out.println("Reset called");
 	}
 	
+	/**
+	 * Not so nice, but makes sure the temporary data is deleted, and memory cleaned.
+	 */
 	protected void finalize() throws Throwable {
-		
 		cleanup();	
 		Log.log(getClass(), "Temporary files with prefix " + filePrefix + " deleted.");
-		
 		super.finalize();
 	}
 	
+	/**
+	 * Gets number of buckets in the system.
+	 * @return
+	 */
 	public long getNumberOfBuckets() {
 		return bucktesToFileId.size();
 	}
 	
+	/**
+	 * Returns total number of comparisons that will have to be performed by 
+	 * BlockingJoin using this bucket manager - for progress reporting
+	 * @return
+	 */
 	public long getTotalNumberOfComparisons() {
 		long comps = 0;
 		for (Iterator keys = bucktesToFileId.keySet().iterator(); keys.hasNext();) {
@@ -575,6 +751,10 @@ public class BucketManager {
 		return comps;
 	}
 
+	/**
+	 * Gets number of rows added to the bucket manager - for statistical purposes.
+	 * @return
+	 */
 	public int getNumberOfRows() {
 		return addedRows ;
 	}

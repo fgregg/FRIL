@@ -36,32 +36,60 @@
 
 package cdc.impl.join.blocking;
 
+/**
+ * A simple class that represents bucket. The class stores information
+ * about hash code of the bucket (integer) and count of records in this
+ * bucket. The two counts are stored, one for each data source.
+ * @author Pawel Jurczyk
+ *
+ */
 public class Bucket {
 	
+	/**
+	 * The hash code of bucket
+	 */
 	private int hash;
+	
+	/**
+	 * The count of records in this bucket coming from left data source.
+	 */
 	private int leftRecords;
+	
+	/**
+	 * The count of records in this bucket coming from right data source.
+	 */
 	private int rightRecords;
 	
-//	//TODO tmp
-//	String[] b;
-	
+	/**
+	 * The constructor. It accept an array of strings that represent String hash codes,
+	 * and generates an integer hash code from that. 
+	 * @param bucket the hash codes represented as strings
+	 */
 	public Bucket(String[] bucket) {
-		StringBuffer buffer = new StringBuffer();
-		for (int i = 0; i < bucket.length; i++) {
-			buffer.append(bucket[i]);
+		hash = bucket[0].hashCode();
+		for (int i = 1; i < bucket.length; i++) {
+			hash = hash ^ bucket[i].hashCode();
 		}
-		//this.b = bucket;
-		hash = buffer.toString().hashCode();
 	}
 	
+	/**
+	 * Creates bucket for given hash code.
+	 * @param hash the hash code for this bucket
+	 */
 	public Bucket(int hash) {
 		this.hash = hash;
 	}
 	
+	/**
+	 * Returns the hash code of this bucket
+	 */
 	public int hashCode() {
 		return hash;
 	}
 	
+	/**
+	 * Compares two buckets. Two buckets are equal if they have the same hash codes.
+	 */
 	public boolean equals(Object arg0) {
 		if (!(arg0 instanceof Bucket)) {
 			return false;
@@ -69,18 +97,32 @@ public class Bucket {
 		return hash == ((Bucket)arg0).hash;
 	}
 	
+	/**
+	 * Increases count of records from left source in thus bucket.
+	 */
 	public void leftRecordAdded() {
 		leftRecords++;
 	}
 
+	/**
+	 * Returns the count of records from left source in this bucket
+	 * @return
+	 */
 	public int getLeftRowsCount() {
 		return leftRecords;
 	}
 	
+	/**
+	 * Increases count of records from right source in this bucket.
+	 */
 	public void rightRecordAdded() {
 		rightRecords++;
 	}
 	
+	/**
+	 * Returns the count of records from left source in this bucket
+	 * @return
+	 */
 	public int getRightRowsCount() {
 		return rightRecords;
 	}

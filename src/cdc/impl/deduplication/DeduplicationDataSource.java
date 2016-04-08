@@ -311,7 +311,9 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		}
 		
 		private void deduplicate(DataRow[] dataRows) throws IOException, RJException {
+			//the two arrays below can be combined into one (store special object)
 			List duplicates = new ArrayList();
+			List scores = new ArrayList();
 			for (int i = 0; i < dataRows.length; i++) {
 				if (dataRows[i] == null) {
 					continue;
@@ -321,9 +323,12 @@ public class DeduplicationDataSource extends AbstractDataSource {
 					if (dataRows[j] == null) {
 						continue;
 					}
-					if (duplicate(rowToSave, dataRows[j])) {
+					int acceptance = config.getAcceptanceLevel();
+					int score = duplicate(rowToSave, dataRows[j]);
+					if (score >= acceptance) {
 						updateRowToSaveWithEmptyData(rowToSave, dataRows[j]);
 						duplicates.add(dataRows[j]);
+						scores.add(new Integer(score));
 						dataRows[j] = null;
 						nDuplicates.incrementAndGet();
 					}
@@ -339,10 +344,11 @@ public class DeduplicationDataSource extends AbstractDataSource {
 					
 					synchronized (minusSaver) {
 						int id = duplicateId.incrementAndGet();
-						minusSaver.saveRow(extendRow(dataRows[i], id));
-						for (Iterator iterator = duplicates.iterator(); iterator.hasNext();) {
+						minusSaver.saveRow(extendRow(dataRows[i], id, 0));
+						for (Iterator iterator = duplicates.iterator(), it2 = scores.iterator(); iterator.hasNext() && it2.hasNext();) {
 							DataRow duplicate = (DataRow) iterator.next();
-							minusSaver.saveRow(extendRow(duplicate, id));
+							int score = ((Integer)it2.next()).intValue();
+							minusSaver.saveRow(extendRow(duplicate, id, score));
 						}
 					}
 				}
@@ -363,21 +369,23 @@ public class DeduplicationDataSource extends AbstractDataSource {
 			}
 		}
 
-		private DataRow extendRow(DataRow dataRow, int id) {
+		private DataRow extendRow(DataRow dataRow, int id, int score) {
 			DataCell[] oldCells = dataRow.getData();
-			DataCell[] cells = new DataCell[oldCells.length + 1];
+			DataCell[] cells = new DataCell[oldCells.length + 2];
 			cells[0] = new DataCell(DataColumnDefinition.TYPE_STRING, String.valueOf(id));
-			System.arraycopy(oldCells, 0, cells, 1, oldCells.length);
+			cells[1] = new DataCell(DataColumnDefinition.TYPE_STRING, String.valueOf(score));
+			System.arraycopy(oldCells, 0, cells, 2, oldCells.length);
 			if (model == null) {
 				DataColumnDefinition[] oldModel = dataRow.getRowModel();
-				model = new DataColumnDefinition[oldModel.length + 1];
+				model = new DataColumnDefinition[oldModel.length + 2];
 				model[0] = new DataColumnDefinition("Duplicate ID", DataColumnDefinition.TYPE_STRING, oldModel[0].getSourceName());
-				System.arraycopy(oldModel, 0, model, 1, oldModel.length);
+				model[1] = new DataColumnDefinition("Duplicate score", DataColumnDefinition.TYPE_STRING, oldModel[0].getSourceName());
+				System.arraycopy(oldModel, 0, model, 2, oldModel.length);
 			}
 			return new DataRow(model, cells);
 		}
 
-		private boolean duplicate(DataRow r1, DataRow r2) {
+		private int duplicate(DataRow r1, DataRow r2) {
 			DataColumnDefinition[] cols = config.getTestedColumns();
 			AbstractDistance[] distances = config.getTestCondition();
 			double[] emptyMatches = config.getEmptyMatchScore();
@@ -396,13 +404,16 @@ public class DeduplicationDataSource extends AbstractDataSource {
 				}
 				weightsToGo -= weights[i];
 				if (weightsToGo + sum < acceptance) {
-					return false;
-				} else if (sum >= acceptance) {
-					Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 3);
-					return true;
+					return sum;
 				}
+				//Below was removed as now we want to see the the full score of duplicates
+//				else if (sum >= acceptance) {
+//					Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 3);
+//					return true;
+//				}
 			}
-			return false;
+			return sum;
+			//return false;
 		}
 		
 		public void cancel() {

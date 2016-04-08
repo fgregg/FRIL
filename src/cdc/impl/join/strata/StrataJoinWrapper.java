@@ -292,6 +292,11 @@ public class StrataJoinWrapper extends AbstractJoin {
 	}
 	
 	public CountCache getCache(int cacheID) {
+		int active = activeJoin.get();
+		//This is really ugly hack, but strata join wrapper is not supprted any more...
+		if (active >= optimizedJoins.length) {
+			return optimizedJoins[optimizedJoins.length - 1].getCache(cacheID);
+		}
 		return optimizedJoins[activeJoin.get()].getCache(cacheID);
 	}
 
