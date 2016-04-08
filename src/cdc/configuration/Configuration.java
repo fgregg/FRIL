@@ -116,6 +116,10 @@ public class Configuration {
 		return new Configuration(DEFAULT_CONFIGURATION_FILE, false, null);
 	}
 	
+	public static Configuration getConfiguration(String configFile) throws RJException, IOException {
+		return new Configuration(configFile, false, null);
+	}
+	
 	public static Configuration getConfiguration(String configFile, boolean resetConfiguration) throws RJException, IOException {
 		return new Configuration(configFile, resetConfiguration, null);
 	}

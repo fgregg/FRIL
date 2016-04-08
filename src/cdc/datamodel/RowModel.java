@@ -51,7 +51,7 @@ public class RowModel {
 	private List columnsByName = new ArrayList();
 	private DataColumnDefinition[] columnsInt;
 	
-	public static RowModel getRowModel(DataColumnDefinition[] columns) {
+	public synchronized static RowModel getRowModel(DataColumnDefinition[] columns) {
 		String code = encode(columns);
 		RowModel model = (RowModel) models.get(code);
 		if (model == null) {

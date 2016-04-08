@@ -247,7 +247,7 @@ public abstract class AbstractDataSource extends SystemComponent {
 	}
 	
 	public void setFilterCondition(AtomicCondition[] condition) throws IOException, RJException {
-		System.out.println(getClass().getName() + " Setting filter: " + PrintUtils.printArray(condition));
+		//System.out.println(getClass().getName() + " Setting filter: " + PrintUtils.printArray(condition));
 		this.filter = condition;
 		//doReset();
 	}

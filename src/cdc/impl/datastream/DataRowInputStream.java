@@ -37,15 +37,13 @@
 package cdc.impl.datastream;
 
 import java.io.ByteArrayInputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.util.Map;
 
-import cdc.datamodel.DataCell;
 import cdc.datamodel.DataRow;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 
 public class DataRowInputStream {
 	
@@ -67,27 +65,7 @@ public class DataRowInputStream {
 			return null;
 		}
 		b = readGuaranteed(fromBytes(b));
-		try {
-			ByteArrayInputStream array = new ByteArrayInputStream(b);
-			ObjectInputStream ois = new ObjectInputStream(array);
-			try {
-				DataCell cells[] = new DataCell[header.getMetadataAsColumnsArray("columns").length];
-				for (int i = 0; i < cells.length; i++) {
-					Object val = ois.readObject();
-					int type = ois.readInt();
-					cells[i] = new DataCell(type, val);
-				}
-				DataRow row = new DataRow(header.getMetadataAsColumnsArray("columns"), cells, header.getSourceName());
-				if (ois.readBoolean()) {
-					row.setProperies((Map) ois.readObject());
-				}
-				return row;
-			} catch (ClassNotFoundException e) {
-				throw new RJException("Error reading input file", e);
-			}
-		} catch (EOFException e) {
-			return null;
-		}
+		return RowUtils.byteArrayToDataRow(b, header.getMetadataAsColumnsArray("columns"), header.getSourceName());
 	}
 	
 	private void readDataFileHeader() throws IOException, RJException {

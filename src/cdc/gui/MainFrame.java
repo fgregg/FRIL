@@ -101,7 +101,7 @@ public class MainFrame extends JFrame {
 	// private static final String[] cpusLabels = new String[] {"--", "1", "2",
 	// "4", "8+"};
 
-	private class GUILogSink implements LogSink {
+	private class GUILogSink extends LogSink {
 
 		private JTextArea log;
 

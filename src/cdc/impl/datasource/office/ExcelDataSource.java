@@ -150,6 +150,7 @@ public class ExcelDataSource extends AbstractDataSource {
 		workbook = null;
 		sheet = null;
 		evaluator = null;
+		filesOpen = false;
 	}
 
 	public AbstractDataSource copy() throws IOException, RJException {
@@ -175,9 +176,6 @@ public class ExcelDataSource extends AbstractDataSource {
 	}
 
 	protected DataRow nextRow() throws IOException, RJException {
-		if (closed) {
-			return null;
-		}
 		if (!filesOpen) {
 			openFile();
 		}

@@ -80,7 +80,7 @@ public class CSVDataSource extends AbstractDataSource {
 		super(sourceName, readDataModel(sourceName, Utils.getParam(params, PARAM_INPUT_FILE, true), Utils.getParam(params, PARAM_DELIM, true).charAt(0)), params);
 		inputFile = new File(Utils.getParam(params, PARAM_INPUT_FILE, true));
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(inputFile);
+		size = LineNumber.size(inputFile) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFile, 1);
 	}
@@ -89,7 +89,7 @@ public class CSVDataSource extends AbstractDataSource {
 		super(sourceName, model, params);
 		inputFile = new File(Utils.getParam(params, PARAM_INPUT_FILE, true));
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(inputFile);
+		size = LineNumber.size(inputFile) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFile, 1);
 	}
@@ -212,7 +212,7 @@ public class CSVDataSource extends AbstractDataSource {
 	}
 	
 	protected void finalize() throws Throwable {
-		System.out.println(getClass() + " finalize");
+		//System.out.println(getClass() + " finalize");
 		close();
 	}
 

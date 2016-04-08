@@ -47,6 +47,7 @@ public class Props {
 	public static final String PROPERTIES_FILE = "misc.properties";
 	
 	private static Properties properties;
+	private static boolean print = true;
 	
 	static {
 		properties = new Properties();
@@ -68,7 +69,9 @@ public class Props {
 	
 	private static String readProperty(String name) {
 		String prop = (String)properties.get(name);
-		System.out.println("Retrieved property: " + name + "=" + prop);
+		if (print) {
+			System.out.println("Retrieved property: " + name + "=" + prop);
+		}
 		return prop;
 	}
 	
@@ -107,5 +110,9 @@ public class Props {
 		} else {
 			return Boolean.parseBoolean(value);
 		}
+	}
+	
+	public static void disablePrinting() {
+		print = false;
 	}
 }

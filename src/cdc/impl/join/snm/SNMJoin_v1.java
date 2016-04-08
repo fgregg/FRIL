@@ -152,6 +152,9 @@ public class SNMJoin_v1 extends AbstractJoin {
 			DataColumnDefinition[] order = new DataColumnDefinition[cols.length];
 			for (int i = 0; i < order.length; i++) {
 				order[i] = source.getDataModel().getColumnByName(cols[i]);
+				if (order[i] == null) {
+					return null;
+				}
 			}
 			return order;
 		}
@@ -213,7 +216,13 @@ public class SNMJoin_v1 extends AbstractJoin {
 		if (workers == null) {
 			//getSourceA().reset();
 			//getSourceB().reset();
-			workers = new JoiningThread[CPUInfo.testNumberOfCPUs()];
+			
+			//int numberOfCPU = CPUInfo.testNumberOfCPUs();
+			
+			//TODO Need to fix the bug with workload division
+			int numberOfCPU = 1;
+			//Log.log(getClass(), "Warning: ", 1);
+			workers = new JoiningThread[numberOfCPU];
 			Log.log(getClass(), "Left data source size: " + getSourceA().size(), 1);
 			Log.log(getClass(), "Right data source size: " + getSourceB().size(), 1);
 			if (workers.length == 1) {
@@ -304,11 +313,17 @@ public class SNMJoin_v1 extends AbstractJoin {
 	
 	public boolean newSourceA(AbstractDataSource source) throws IOException, RJException {
 		DataColumnDefinition[] order = parseOrder(getProperty(PARAM_SORT_ORDER_A), source, getJoinCondition().getLeftJoinColumns());
+		if (order == null) {
+			return false;
+		}
 		return super.newSourceA(fixSource(source, order, getJoinCondition().getCompareFunctions(order, order)));
 	}
 
 	public boolean newSourceB(AbstractDataSource source) throws IOException, RJException {
 		DataColumnDefinition[] order = parseOrder(getProperty(PARAM_SORT_ORDER_B), source, getJoinCondition().getRightJoinColumns());
+		if (order == null) {
+			return false;
+		}
 		return super.newSourceB(fixSource(source, order, getJoinCondition().getCompareFunctions(order, order)));
 	}
 	

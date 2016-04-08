@@ -54,6 +54,7 @@ public class DataRow implements Externalizable {
 	private Map properties = null;
 	
 	public DataRow() {
+		System.out.println("Constructor!!!!!");
 	}
 	
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data) {
@@ -63,6 +64,7 @@ public class DataRow implements Externalizable {
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data, String sourceName) {
 		model = RowModel.getRowModel(rowModel);
 		cells = data;
+		//System.out.println("Setting data row: " + PrintUtils.printArray(data));
 		this.sourceName = sourceName;
 		if (rowModel.length != data.length) {
 			throw new RuntimeException("Row model has to have the same number of items as row cells number.");
@@ -70,6 +72,7 @@ public class DataRow implements Externalizable {
 	}
 	
 	public DataCell getData(DataColumnDefinition cell) {
+		//System.out.println("Getting data for cells (" + cell.getSourceName() + "): " + cells);
 		return cells[model.getCellId(cell)];
 	}
 	

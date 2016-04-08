@@ -22,6 +22,9 @@
         <pathelement location="lib/swingx_v0203.jar"/>
         <pathelement location="lib/xercesImpl.jar"/>
         <pathelement location="lib/xml-apis.jar"/>
+        <pathelement location="lib/rsyntaxtextarea.jar"/>
+        <pathelement location="lib/janino.jar"/>
+        <pathelement location="lib/junit-4.5.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -60,6 +63,9 @@
         </copy>
         <copy todir="build/config">
             <fileset dir="config"/>
+        </copy>
+        <copy todir="build/scripts">
+            <fileset dir="scripts"/>
         </copy>
         <copy todir="build">
             <fileset dir="run"/>

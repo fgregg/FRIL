@@ -36,6 +36,7 @@
 
 package cdc.utils;
 
-public interface LogSink {
-	public void log(String msg);
+public abstract class LogSink {
+	public abstract void log(String msg);
+	public void close() {};
 }

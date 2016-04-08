@@ -36,6 +36,11 @@
 
 package cdc.datamodel.converters;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.w3c.dom.Document;
@@ -44,15 +49,38 @@ import org.w3c.dom.Element;
 import cdc.components.SystemComponent;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.utils.Props;
+import cdc.utils.RJException;
 
 public abstract class AbstractColumnConverter extends SystemComponent {
+	
+	private static Map scripts = new HashMap();
 	
 	public AbstractColumnConverter(Map props) {
 		super(props);
 	}
 	//public abstract void updateName(String newName);
 	public abstract DataColumnDefinition[] getExpectedColumns();
-	public abstract DataCell[] convert(DataCell[] dataCells);
+	public abstract DataCell[] convert(DataCell[] dataCells) throws RJException;
 	public abstract DataColumnDefinition[] getOutputColumns();
 	public abstract void saveToXML(Document doc, Element rowModel);
+	
+	public static synchronized String getDefaultScript(Class class1) throws RuntimeException {
+		if (scripts.containsKey(class1.getName())) {
+			return (String) scripts.get(class1.getName());
+		}
+		String scriptFile = Props.getString("script-dir") + File.separator + class1.getName();
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(scriptFile));
+			String line;
+			StringBuffer script = new StringBuffer();
+			while ((line = reader.readLine()) != null) {
+				script.append(line).append("\n");
+			}
+			scripts.put(class1.getName(), line = script.toString());
+			return line;
+		} catch (IOException e) {
+			throw new RuntimeException("Converter script file not found: " + scriptFile + ". Make sure the configuration of script directory is correct.");
+		}
+	}
 }

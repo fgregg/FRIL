@@ -113,8 +113,8 @@ public class NestedLoopJoin extends AbstractJoin {
 		
 		try {
 			main: while (true) {
-				calculateProgress();
 				DataRow row = (DataRow) buffer.poll(100, TimeUnit.MILLISECONDS);
+				calculateProgress();
 				if (row != null) {
 					return row;
 				} else if (isCancelled()) {
@@ -190,7 +190,7 @@ public class NestedLoopJoin extends AbstractJoin {
 	}
 
 	protected void finalize() throws Throwable {
-		System.out.println(getClass() + " finalize");
+		//System.out.println(getClass() + " finalize");
 		close();
 	}
 	

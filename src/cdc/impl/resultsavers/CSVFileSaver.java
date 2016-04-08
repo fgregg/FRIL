@@ -59,6 +59,8 @@ import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.paramspanel.FileChoosingPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.impl.join.strata.StrataJoinWrapper;
+import cdc.utils.Log;
+import cdc.utils.PrintUtils;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -147,6 +149,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 			printer.writeNext(header);
 		}
 		DataCell[] cells = row.getData();
+		//System.out.println("Cells were in row (" + row.hashCode() + "):" + PrintUtils.printArray(cells));
 		String[] strRow = new String[cells.length + 1 + (stratum != null ? 1 : 0)];
 		for (int i = 0; i < strRow.length - 1 - (stratum != null ? 1 : 0); i++) {
 			strRow[i] = cells[i].getValue().toString();
@@ -167,7 +170,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 	}
 
 	public void close() throws IOException {
-		System.out.println("Close in CSV saver for file " + file);
+		Log.log(getClass(), "Close in CSV saver for file " + file);
 		if (closed) {
 			return;
 		}

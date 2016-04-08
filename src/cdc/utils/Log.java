@@ -36,6 +36,7 @@
 
 package cdc.utils;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -58,9 +59,45 @@ public class Log {
 	private static Map bufferedLevels = new HashMap();
 	private static List sinks = new ArrayList();
 	
-	private static final class PrintSink implements LogSink {
-		public void log(String msg) {
+	public static final class PrintSink extends LogSink {
+		public synchronized void log(String msg) {
 			System.out.println(msg);
+		}
+	}
+	
+	public static final class FileSink extends LogSink {
+		
+		BufferedOutputStream os;
+		
+		public FileSink(String file) {
+			try {
+				os = new BufferedOutputStream(new FileOutputStream(file));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		public synchronized void log(String msg) {
+			try {
+				if (os == null) {
+					System.out.println("Log skips writing to file (no stream): " + msg);
+				} else {
+					os.write(msg.getBytes());
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		public void close() {
+			try {
+				if (os != null) {
+					os.flush();
+					os.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -79,6 +116,18 @@ public class Log {
 			}
 		}
 		sinks.add(new PrintSink());
+		
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				System.out.println("Closing log.");
+				synchronized (sinks) {
+					for (Iterator iterator = sinks.iterator(); iterator.hasNext();) {
+						LogSink sink = (LogSink) iterator.next();
+						sink.close();
+					}
+				}
+			}
+		});
 	}
 	
 	public static int getLogLevel(Class class1) {
@@ -138,4 +187,10 @@ public class Log {
 	public static void saveProperties(Properties properties) throws FileNotFoundException, IOException {
 		properties.store(new FileOutputStream(LOG_PROPERTIES), null);
 	}
+	
+	public static void logToFile(String file) {
+		sinks.clear();
+		sinks.add(new FileSink(file));
+	}
+	
 }

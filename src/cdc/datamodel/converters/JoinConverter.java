@@ -41,6 +41,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Window;
 import java.beans.PropertyChangeEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,10 +58,15 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.codehaus.janino.CompileException;
+import org.codehaus.janino.ScriptEvaluator;
+import org.codehaus.janino.Parser.ParseException;
+import org.codehaus.janino.Scanner.ScanException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -68,6 +74,7 @@ import cdc.components.AbstractDataSource;
 import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.datamodel.converters.ui.ScriptPanel;
 import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.datasource.JDataSource;
@@ -109,20 +116,26 @@ public class JoinConverter extends AbstractColumnConverter {
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
 		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
+		private ScriptPanel scriptPanel;
 		
-		public Object generateSystemComponent() {
+		public Object generateSystemComponent() throws RJException {
 			Object[] selected = columnsList.getSelectedValues();
 			DataColumnDefinition[] cols = new DataColumnDefinition[selected.length + 1];
 			for (int i = 0; i < selected.length; i++) {
 				cols[i + 1] = (DataColumnDefinition)selected[i];
 			}
 			cols[0] = column;
-			return new JoinConverter(paramsPanel.getParameterValue(PARAM_OUT_NAME), cols, paramsPanel.getParams());
+			Map props = paramsPanel.getParams();
+			props.put(PARAM_SCRIPT, scriptPanel.getScript ());
+			return new JoinConverter(paramsPanel.getParameterValue(PARAM_OUT_NAME), cols, props);
 		}
 
 		public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 			
 			columnsList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			
+			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(JoinConverter.class), 
+					String.class, new String[] {"columns", "connector"}, new Class[] {String[].class, String.class});
 			
 			String[] defaults = new String[] {null, seps[0]};
 			if (getRestoredParam(PARAM_OUT_NAME) != null) {
@@ -130,6 +143,9 @@ public class JoinConverter extends AbstractColumnConverter {
 			}
 			if (getRestoredParam(PARAM_COUPLER) != null) {
 				defaults[1] = getRestoredParam(PARAM_COUPLER);
+			}
+			if (getRestoredParam(PARAM_SCRIPT) != null) {
+				scriptPanel.setScript(getRestoredParam(PARAM_SCRIPT));
 			}
 			
 			Map creators = new HashMap();
@@ -213,7 +229,13 @@ public class JoinConverter extends AbstractColumnConverter {
 			}
 			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
 			
-			return panel;
+			JTabbedPane tabs = new JTabbedPane();
+			tabs.addTab("Configuration", panel);
+			tabs.addTab("Converter script (advanced)", scriptPanel);
+			
+			JPanel mainPanel = new JPanel(new BorderLayout());
+			mainPanel.add(tabs, BorderLayout.CENTER);
+			return mainPanel;
 		}
 
 		public String toString() {
@@ -236,13 +258,16 @@ public class JoinConverter extends AbstractColumnConverter {
 
 	private static final String PARAM_OUT_NAME = "out-name";
 	private static final String PARAM_COUPLER = "coupler-param";
+	private static final String PARAM_SCRIPT = "script";
 	private static final String DEFAULT_COUPLER = " ";
 	
 	private DataColumnDefinition[] columns;
 	private DataColumnDefinition[] outFormat;
 	private String coupler = DEFAULT_COUPLER;
 	
-	public JoinConverter(String name, DataColumnDefinition[] columns, Map props) {
+	private ScriptEvaluator scriptEvaluator;
+	
+	public JoinConverter(String name, DataColumnDefinition[] columns, Map props) throws RJException {
 		super(props);
 		this.columns = columns;
 		this.outFormat = new DataColumnDefinition[] {new ConverterColumnWrapper(name, columns[0].getColumnType(), columns[0].getSourceName())};
@@ -252,6 +277,18 @@ public class JoinConverter extends AbstractColumnConverter {
 				coupler = "";
 			}
 		}
+		try {
+			if (props.get(PARAM_SCRIPT) == null) {
+				props.put(PARAM_SCRIPT, AbstractColumnConverter.getDefaultScript(JoinConverter.class));
+			}
+			scriptEvaluator = new ScriptEvaluator((String)props.get(PARAM_SCRIPT), String.class, new String[] {"columns", "connector"}, new Class[] {String[].class, String.class});
+		} catch (CompileException e) {
+			throw new RJException("Compilation exception for script", e);
+		} catch (ParseException e) {
+			throw new RJException("Parse exception for script", e);
+		} catch (ScanException e) {
+			throw new RJException("Scan exception for script", e);
+		}
 		Log.log(getClass(), "Converter created - joined columns: " + PrintUtils.printArray(columns), 2);
 	}
 	
@@ -260,15 +297,23 @@ public class JoinConverter extends AbstractColumnConverter {
 //		outFormat = new DataColumnDefinition[] {new DataColumnDefinition(newName, outFormat[0].getColumnType(), outFormat[0].getSourceName())};
 //	}
 
-	public DataCell[] convert(DataCell[] dataCells) {
-		StringBuffer buffer = new StringBuffer();
-		for (int i = 0; i < dataCells.length; i++) {
-			if (i > 0) {
-				buffer.append(coupler);
-			}
-			buffer.append(dataCells[i].getValue());
+	public DataCell[] convert(DataCell[] dataCells) throws RJException {
+//		StringBuffer buffer = new StringBuffer();
+//		for (int i = 0; i < dataCells.length; i++) {
+//			if (i > 0) {
+//				buffer.append(coupler);
+//			}
+//			buffer.append(dataCells[i].getValue());
+//		}
+		String[] cells = new String[dataCells.length];
+		for (int i = 0; i < cells.length; i++) {
+			cells[i] = dataCells[i].getValue().toString();
 		}
-		return new DataCell[] {new DataCell(dataCells[0].getValueType(), buffer.toString())};
+		try {
+			return new DataCell[] {new DataCell(dataCells[0].getValueType(), scriptEvaluator.evaluate(new Object[] {cells, coupler}))};
+		} catch (InvocationTargetException e) {
+			throw new RJException("Error when executing converter script", e);
+		}
 	}
 	
 	public DataColumnDefinition[] getExpectedColumns() {

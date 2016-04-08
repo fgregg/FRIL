@@ -60,8 +60,6 @@ import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.converters.ui.ScriptPanel;
-import cdc.datamodel.converters.ui.TrimConverterField;
-import cdc.datamodel.converters.ui.TrimConverterFieldCreator;
 import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.datasource.JDataSource;
@@ -75,20 +73,18 @@ import cdc.utils.Log;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
-public class TrimConverter extends AbstractColumnConverter {
+public class AppendConverter extends AbstractColumnConverter {
 	
 	public static class TrimVisibleComponent extends GUIVisibleComponent {
 
-		private static final String PARAM_END = "end";
-		private static final String PARAM_FRONT = "front";
 		private static final String PARAM_OUT_NAME = "out-name";
 		private DataColumnDefinition column;
 		private ParamsPanel panel;
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
-		private ScriptPanel scriptPanel;
 		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
-	
+		private ScriptPanel scriptPanel;
+		
 		private static class CreatorName extends DefaultParamPanelFieldCreator {
 			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 				ParamPanelField field = super.create(parent, param, label, defaultValue);
@@ -98,78 +94,36 @@ public class TrimConverter extends AbstractColumnConverter {
 		}
 		
 		public Object generateSystemComponent() throws RJException {
-			
-			Map properties = new HashMap();
-			properties.put(PROPERTY_FRONT_TRIM, "-1");
-			properties.put(PROPERTY_LEAVE_FIRST, "-1");
-			properties.put(PROPERTY_END_TRIM, "-1");
-			properties.put(PROPERTY_LEAVE_LAST, "-1");
-			
-			String f = panel.getParameterValue(PARAM_FRONT);
-			String e = panel.getParameterValue(PARAM_END);
-			String[] fSplit = f.split(",");
-			String[] eSplit = e.split(",");
-			
-			if (fSplit[0].equals("1")) {
-				if (fSplit[1].equals(TrimConverterField.OPTION_CUT + "")) {
-					properties.put(PROPERTY_FRONT_TRIM, fSplit[2]);
-				} else {
-					properties.put(PROPERTY_LEAVE_FIRST, fSplit[2]);
-				}
-			} 
-			if (eSplit[0].equals("1")) {
-				if (eSplit[1].equals(TrimConverterField.OPTION_CUT + "")) {
-					properties.put(PROPERTY_END_TRIM, eSplit[2]);
-				} else {
-					properties.put(PROPERTY_LEAVE_LAST, eSplit[2]);
-				}
-			}
-			properties.put(PARAM_OUT_NAME, panel.getParameterValue(PARAM_OUT_NAME));
-			properties.put(PARAM_SCRIPT, scriptPanel.getScript());
-			return new TrimConverter(panel.getParameterValue(PARAM_OUT_NAME), properties, column);
+			Map props = panel.getParams();
+			props.put(PARAM_SCRIPT, scriptPanel.getScript());
+			return new AppendConverter(panel.getParameterValue(PARAM_OUT_NAME), props, column);
 		}
 
 		public JPanel getConfigurationPanel(Object[] inParams, int sizeX, int sizeY) {
 			
-			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(TrimConverter.class), String.class, 
-					new String[] {"column", "trimFront", "trimEnd", "leaveFront", "leaveEnd"}, 
-					new Class[] {String.class, Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE});
+			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(AppendConverter.class), 
+					String.class, new String[] {"column", "appendFront", "appendEnd"}, new Class[] {String.class, String.class, String.class});
 			
-			String[] defs = new String[] {null, "0,1,0", "0,1,0"};
+			String[] defs = new String[] {null, "", ""};
 			if (getRestoredParam(PARAM_OUT_NAME) != null) {
 				defs[0] = getRestoredParam(PARAM_OUT_NAME);
 			}
-			if (getRestoredParam(PROPERTY_FRONT_TRIM) != null) {
-				if (!getRestoredParam(PROPERTY_FRONT_TRIM).equals("-1") || !getRestoredParam(PROPERTY_LEAVE_FIRST).equals("-1")) {
-					String param = "1,";
-					if (!getRestoredParam(PROPERTY_FRONT_TRIM).equals("-1")) {
-						param += TrimConverterField.OPTION_CUT + "," + getRestoredParam(PROPERTY_FRONT_TRIM);
-					} else {
-						param += TrimConverterField.OPTION_LEAVE + "," + getRestoredParam(PROPERTY_LEAVE_FIRST);
-					}
-					defs[1] = param;
-				}
+			if (getRestoredParam(PROPERTY_APPEND_FRONT) != null) {
+				defs[1] = getRestoredParam(PROPERTY_APPEND_FRONT);
 			}
-			if (getRestoredParam(PROPERTY_END_TRIM) != null) {
-				if (!getRestoredParam(PROPERTY_END_TRIM).equals("-1") || !getRestoredParam(PROPERTY_LEAVE_LAST).equals("-1")) {
-					String param = "1,";
-					if (!getRestoredParam(PROPERTY_END_TRIM).equals("-1")) {
-						param += TrimConverterField.OPTION_CUT + "," + getRestoredParam(PROPERTY_END_TRIM);
-					} else {
-						param += TrimConverterField.OPTION_LEAVE + "," + getRestoredParam(PROPERTY_LEAVE_LAST);
-					}
-					defs[2] = param;
-				}
+			if (getRestoredParam(PROPERTY_APPEND_END) != null) {
+				defs[2] = getRestoredParam(PROPERTY_APPEND_END);
 			}
 			if (getRestoredParam(PARAM_SCRIPT) != null) {
 				scriptPanel.setScript(getRestoredParam(PARAM_SCRIPT));
 			}
+			
 			Map creators = new HashMap();
-			creators.put(PARAM_FRONT, new TrimConverterFieldCreator(propertyListener));
-			creators.put(PARAM_END, new TrimConverterFieldCreator(propertyListener));
+			creators.put(PROPERTY_APPEND_FRONT, new CreatorName());
+			creators.put(PROPERTY_APPEND_END, new CreatorName());
 			creators.put(PARAM_OUT_NAME, new CreatorName());
-			panel = new ParamsPanel(new String[] {PARAM_OUT_NAME, PARAM_FRONT, PARAM_END}, 
-					new String[] {"Output attribute name", "Modify front of string", "Modify end of string"}, 
+			panel = new ParamsPanel(new String[] {PARAM_OUT_NAME, PROPERTY_APPEND_FRONT, PROPERTY_APPEND_END}, 
+					new String[] {"Output attribute name", "Append to the front of string", "Append to the end of string"}, 
 					defs, creators);
 			
 			Map validators = new HashMap();
@@ -203,64 +157,49 @@ public class TrimConverter extends AbstractColumnConverter {
 		}
 
 		public String toString() {
-			return "Trim converter";
+			return "Append converter";
 		}
 		
 		public Class getProducedComponentClass() {
-			return TrimConverter.class;
+			return AppendConverter.class;
 		}
 
 		public boolean validate(JDialog dialog) {
 			return panel.doValidate();
 		}
-
 	}
 
-	public static final String PROPERTY_FRONT_TRIM = "trim-front";
-	public static final String PROPERTY_END_TRIM = "trim-end";
-	
-	public static final String PROPERTY_LEAVE_LAST = "substring-end";
-	public static final String PROPERTY_LEAVE_FIRST = "substring-front";
-	
+	public static final String PROPERTY_APPEND_FRONT = "front";
+	public static final String PROPERTY_APPEND_END = "end";
 	private static final String PARAM_SCRIPT = "script";
 	
 	
 	private DataColumnDefinition[] in;
 	private DataColumnDefinition[] out;
-	private int trimFront = -1;
-	private int trimEnd = -1;
-	
-	private int leaveFront = -1;
-	private int leaveEnd = -1;
+	private String appendFront = "";
+	private String appendEnd = "";
 	
 	private ScriptEvaluator scriptEvaluator;
 	
-	public TrimConverter(String columnName, Map props, DataColumnDefinition column) throws RJException {
+	public AppendConverter(String columnName, Map props, DataColumnDefinition column) throws RJException {
 		super(props);
 		out = new DataColumnDefinition[1];
 		out[0] = new ConverterColumnWrapper(columnName, DataColumnDefinition.TYPE_STRING, column.getSourceName());
 		this.in = new DataColumnDefinition[] {column};
 		props.put(TrimVisibleComponent.PARAM_OUT_NAME, columnName);
-		if (props.containsKey(PROPERTY_FRONT_TRIM)) {
-			trimFront = Integer.parseInt((String)props.get(PROPERTY_FRONT_TRIM));
+		appendFront = (String) props.get(PROPERTY_APPEND_FRONT);
+		if (appendFront == null) {
+			appendFront = "";
 		}
-		if (props.containsKey(PROPERTY_END_TRIM)) {
-			trimEnd = Integer.parseInt((String)props.get(PROPERTY_END_TRIM));
+		appendEnd = (String) props.get(PROPERTY_APPEND_END);
+		if (appendEnd == null) {
+			appendEnd = "";
 		}
-		if (props.containsKey(PROPERTY_LEAVE_FIRST)) {
-			leaveFront = Integer.parseInt((String)props.get(PROPERTY_LEAVE_FIRST));
-		}
-		if (props.containsKey(PROPERTY_LEAVE_LAST)) {
-			leaveEnd = Integer.parseInt((String)props.get(PROPERTY_LEAVE_LAST));
-		}
-		
 		try {
 			if (props.get(PARAM_SCRIPT) == null) {
-				props.put(PARAM_SCRIPT, AbstractColumnConverter.getDefaultScript(TrimConverter.class));
+				props.put(PARAM_SCRIPT, AbstractColumnConverter.getDefaultScript(AppendConverter.class));
 			}
-			scriptEvaluator = new ScriptEvaluator((String)props.get(PARAM_SCRIPT), String.class, 
-					new String[] {"column", "trimFront", "trimEnd", "leaveFront", "leaveEnd"}, 
-					new Class[] {String.class, Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE});
+			scriptEvaluator = new ScriptEvaluator((String)props.get(PARAM_SCRIPT), String.class, new String[] {"column", "appendFront", "appendEnd"}, new Class[] {String.class, String.class, String.class});
 		} catch (CompileException e) {
 			throw new RJException("Compilation exception for script", e);
 		} catch (ParseException e) {
@@ -269,26 +208,19 @@ public class TrimConverter extends AbstractColumnConverter {
 			throw new RJException("Scan exception for script", e);
 		}
 		
-		Log.log(this.getClass(), "Converter created - trim-front=" + 
-				trimFront + ", trim-end=" + trimEnd + ", substring-front=" + leaveFront + 
-				", substring-end=" + leaveEnd, 2);
+		Log.log(this.getClass(), "Converter created - front=" + appendFront + ", end=" + appendEnd, 2);
 	}
-	
-//	public void updateName(String newName) {
-//		setName(newName);
-//		out = new DataColumnDefinition[] {new DataColumnDefinition(newName, out[0].getColumnType(), out[0].getSourceName())};
-//	}
 
 	public DataCell[] convert(DataCell[] dataCells) throws RJException {
-		String val = (String) dataCells[0].getValue();
-		Log.log(this.getClass(), "Before trim converter: " + val, 3);
+		String col = dataCells[0].getValue().toString();
+		Log.log(this.getClass(), "Before converting: " + col, 3);
 		try {
-			val = (String) scriptEvaluator.evaluate(new Object[] {val, new Integer(trimFront), new Integer(trimEnd), new Integer(leaveFront), new Integer(leaveEnd)});
+			String val = (String) scriptEvaluator.evaluate(new Object[] {col, appendFront, appendEnd});
+			Log.log(this.getClass(), "After converting: " + val, 3);
+			return new DataCell[] {new DataCell(dataCells[0].getValueType(), val)};
 		} catch (InvocationTargetException e) {
 			throw new RJException("Error when executing converter script", e);
 		}
-		Log.log(this.getClass(), "After trim converter: " + val, 3);
-		return new DataCell[] {new DataCell(dataCells[0].getValueType(), val)};
 	}
 
 	public DataColumnDefinition[] getExpectedColumns() {
@@ -316,7 +248,7 @@ public class TrimConverter extends AbstractColumnConverter {
 		Element paramsNode = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
 		Map params = Configuration.parseParams(paramsNode);
 		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(columnName);
-		return new TrimConverter(name, params, column);
+		return new AppendConverter(name, params, column);
 	}
 	
 	public static GUIVisibleComponent getGUIVisibleComponent() {
@@ -324,7 +256,7 @@ public class TrimConverter extends AbstractColumnConverter {
 	}
 	
 	public String toString() {
-		return "Trim converter";
+		return "Append converter";
 	}
 
 	public void saveToXML(Document doc, Element conv) {

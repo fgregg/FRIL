@@ -46,6 +46,16 @@ import cdc.utils.RJException;
 
 public class Main {
 	
+	private Configuration join;
+	
+	public Main(String configFile) throws RJException, IOException {
+		join = Configuration.getConfiguration(configFile);
+	}
+	
+	public int runJoin() throws RJException, IOException {
+		return startJoin(join.getJoin(), join.getResultsSavers());
+	}
+	
 	public static void main(String[] args) throws IOException, RJException {
 		
 		//testSortingSource();
@@ -56,14 +66,15 @@ public class Main {
 		
 		AbstractJoin join = configuration.getJoin();
 
-		startJoin(join, configuration.getResultsSavers());
-		
+		long t1 = System.currentTimeMillis();
+		int n = startJoin(join, configuration.getResultsSavers());
+		long t2 = System.currentTimeMillis();
+		System.out.println("\n" + join + ": Algorithm produced " + n + " joined tuples. Elapsed time: " + (t2 - t1) + "ms.");
 	}
 
-	private static void startJoin(AbstractJoin join, AbstractResultsSaver[] abstractResultsSavers) throws IOException, RJException {
+	private static int startJoin(AbstractJoin join, AbstractResultsSaver[] abstractResultsSavers) throws IOException, RJException {
 		int n = 0;
 		DataRow row;
-		long t1 = System.currentTimeMillis();
 		while ((row = join.joinNext()) != null) {
 			n++;
 			if (n % 1000 == 0) System.out.print(".");
@@ -72,13 +83,19 @@ public class Main {
 				abstractResultsSavers[i].saveRow(row);
 			}
 		}
-		long t2 = System.currentTimeMillis();
 		for (int i = 0; i < abstractResultsSavers.length; i++) {
 			abstractResultsSavers[i].close();
 		}
-		join.close();
-		System.out.println("\n" + join + ": Algorithm produced " + n + " joined tuples. Elapsed time: " + (t2 - t1) + "ms.");
+		return n;
 	}
 
+	public int rerun() throws IOException, RJException {
+		join.getJoin().reset();
+		return startJoin(join.getJoin(), join.getResultsSavers());
+	}
+	
+	public void close() throws IOException, RJException {
+		join.getJoin().close();
+	}
 	
 }

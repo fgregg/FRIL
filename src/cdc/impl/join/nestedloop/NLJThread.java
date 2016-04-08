@@ -87,6 +87,7 @@ public class NLJThread extends Thread {
 							if ((eval = connector.getJoinCondition().conditionSatisfied(rowA[i], rowB[j])).isSatisfied()) {
 								rowA[i].setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 								DataRow row = RowUtils.buildMergedRow(rowA[i], rowB[j], connector.getOutColumns());
+								//System.out.println("Merged row: (" + row.hashCode() + ") " + PrintUtils.printArray(row.getData()));
 								if (connector.getLogLevel() >= 3) {
 									Log.log(NestedLoopJoin.class, "Row joined: " + row, 4);
 								}
@@ -113,7 +114,7 @@ public class NLJThread extends Thread {
 						} else {
 							connector.notifyTrashingJoined(rowA[i]);
 						}
-						rowA[i].discard();
+						//rowA[i].discard();
 					}
 					if (connector.isCancelled() || stopped) {
 						break main;

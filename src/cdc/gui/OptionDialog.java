@@ -36,10 +36,11 @@
 
 package cdc.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -67,24 +68,44 @@ public class OptionDialog extends JDialog {
 	private List internalListeners = new ArrayList();
 	private JPanel mainPanel;
 	
+	private int n = 0;
+	private JPanel visiblePanel;
+	
 	public OptionDialog(Window parent, String title) {
 		super(parent, title);
 		setModal(true);
-		this.getContentPane().setLayout(new BorderLayout());
+		setMainLayout();
 		addButtons();
 	}
 	
+	private GridBagConstraints getGtidBagConstraints() {
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = n++;
+		c.weightx = 1;
+		return c;
+	}
+
 	public OptionDialog(JFrame parent, String title) {
 		super(parent, title, true);
-		this.getContentPane().setLayout(new BorderLayout());
+		setMainLayout();
 		addButtons();
 	}
 
 	public OptionDialog(JDialog parent, String title) {
 		super(parent, title, true);
-		this.getContentPane().setLayout(new BorderLayout());
+		setMainLayout();
 		addButtons();
 		super.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+	}
+	
+	private void setMainLayout() {
+		getContentPane().setLayout(new GridBagLayout());
+		visiblePanel = new JPanel(new GridBagLayout());
+		GridBagConstraints c = getGtidBagConstraints();
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		getContentPane().add(visiblePanel, c);
 	}
 	
 	public void addOptionDialogListener(DialogListener listener) {
@@ -129,12 +150,20 @@ public class OptionDialog extends JDialog {
 		});
 		panel.add(ok);
 		panel.add(cancel);
-		this.getContentPane().add(panel, BorderLayout.SOUTH);
+		GridBagConstraints c = getGtidBagConstraints();
+		this.getContentPane().add(panel, c);
 	}
 
 	public void setMainPanel(JPanel panel) {
-		this.mainPanel = panel;
-		this.getContentPane().add(panel, BorderLayout.CENTER);
+		mainPanel = panel;
+		visiblePanel.removeAll();
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 1;
+		visiblePanel.add(panel, c);
 	}
 	
 	private void checkValidators(JComponent panel) {

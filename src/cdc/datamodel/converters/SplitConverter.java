@@ -36,14 +36,21 @@
 
 package cdc.datamodel.converters;
 
+import java.awt.BorderLayout;
 import java.awt.Window;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 
+import org.codehaus.janino.CompileException;
+import org.codehaus.janino.ScriptEvaluator;
+import org.codehaus.janino.Parser.ParseException;
+import org.codehaus.janino.Scanner.ScanException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -51,6 +58,7 @@ import cdc.components.AbstractDataSource;
 import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.datamodel.converters.ui.ScriptPanel;
 import cdc.datamodel.converters.ui.SplitNamesFieldCreator;
 import cdc.datamodel.converters.ui.SplitNamesValidator;
 import cdc.gui.Configs;
@@ -90,19 +98,28 @@ public class SplitConverter extends AbstractColumnConverter {
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
 		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
+		private ScriptPanel scriptPanel;
 		
-		public Object generateSystemComponent() {
-			return new SplitConverter(panel.getParameterValue(PARAM_COL_NAME), panel.getParams(), column);
+		public Object generateSystemComponent() throws RJException {
+			Map params = panel.getParams();
+			params.put(PARAM_SCRIPT, scriptPanel.getScript());
+			return new SplitConverter(panel.getParameterValue(PARAM_COL_NAME), params, column);
 		}
 
 		public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 			
+			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(SplitConverter.class), 
+					String[].class, new String[] {"column", "splitStr", "outSize"}, new Class[] {String.class, String.class, Integer.TYPE});
+				
 			String[] def = new String[] {"out_1,out_2", DEFAULT_SPLIT};
 			if (getRestoredParam(PARAM_COL_NAME) != null) {
 				def[0] = getRestoredParam(PARAM_COL_NAME);
 			}
 			if (getRestoredParam(PARAM_SPLIT) != null) {
 				def[1] = getRestoredParam(PARAM_SPLIT);
+			}
+			if (getRestoredParam(PARAM_SCRIPT) != null) {
+				scriptPanel.setScript(getRestoredParam(PARAM_SCRIPT));
 			}
 			
 			Map listeners = new HashMap();
@@ -135,7 +152,13 @@ public class SplitConverter extends AbstractColumnConverter {
 			
 			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
 			
-			return panel;
+			JTabbedPane tabs = new JTabbedPane();
+			tabs.addTab("Configuration", panel);
+			tabs.addTab("Converter script (advanced)", scriptPanel);
+			
+			JPanel mainPanel = new JPanel(new BorderLayout());
+			mainPanel.add(tabs, BorderLayout.CENTER);
+			return mainPanel;
 		}
 
 		public String toString() {
@@ -154,6 +177,7 @@ public class SplitConverter extends AbstractColumnConverter {
 
 	public static final String PARAM_SPLIT = "split";
 	public static final String PARAM_SIZE = "size";
+	private static final String PARAM_SCRIPT = "script";
 	public static final String DEFAULT_SPLIT = " ";
 	
 	private static final int logLevel = Log.getLogLevel(SplitConverter.class);
@@ -162,7 +186,9 @@ public class SplitConverter extends AbstractColumnConverter {
 	private DataColumnDefinition[] out;
 	private String split;
 	
-	public SplitConverter(String columnName, Map params, DataColumnDefinition inputColumn) {
+	private ScriptEvaluator scriptEvaluator;
+	
+	public SplitConverter(String columnName, Map params, DataColumnDefinition inputColumn) throws RJException {
 		super(params);
 		
 		split = DEFAULT_SPLIT;
@@ -191,32 +217,44 @@ public class SplitConverter extends AbstractColumnConverter {
 			out[i] = new ConverterColumnWrapper(names[i], DataColumnDefinition.TYPE_STRING, inputColumn.getSourceName());
 		}
 		
+		try {
+			if (params.get(PARAM_SCRIPT) == null) {
+				params.put(PARAM_SCRIPT, AbstractColumnConverter.getDefaultScript(SplitConverter.class));
+			}
+			scriptEvaluator = new ScriptEvaluator((String)params.get(PARAM_SCRIPT), String[].class, new String[] {"column", "splitStr", "outSize"}, new Class[] {String.class, String.class, Integer.TYPE});
+		} catch (CompileException e) {
+			throw new RJException("Compilation exception for script", e);
+		} catch (ParseException e) {
+			throw new RJException("Parse exception for script", e);
+		} catch (ScanException e) {
+			throw new RJException("Scan exception for script", e);
+		}
+		
 		Log.log(getClass(), "Converter created, split='" + split + "', out columns = " + PrintUtils.printArray(out), 1);
 		
 	}
 
-	public DataCell[] convert(DataCell[] dataCells) {
+	public DataCell[] convert(DataCell[] dataCells) throws RJException {
 		String value = (String)dataCells[0].getValue();
-		String[] afterSplit = value.split(split);
-		DataCell[] outCells = new DataCell[out.length];
-		for (int i = 0; i < outCells.length; i++) {
-			if (afterSplit.length > i) {
-				outCells[i] = new DataCell(out[i].getColumnType(), afterSplit[i]);
-			} else {
-				outCells[i] = new DataCell(out[i].getColumnType(), "");
+		
+		try {
+			
+			String[] out = (String[]) scriptEvaluator.evaluate(new Object[] {value, split, new Integer(this.out.length)});
+			
+			DataCell[] outCells = new DataCell[out.length];
+			for (int i = 0; i < outCells.length; i++) {
+				outCells[i] = new DataCell(this.out[i].getColumnType(), out[i]);
 			}
-		}
-		if (outCells.length < afterSplit.length) {
-			for (int i = outCells.length; i < afterSplit.length; i++) {
-				outCells[outCells.length - 1] = new DataCell(out[outCells.length - 1].getColumnType(), outCells[outCells.length - 1].getValue() + split + afterSplit[i]);
+			
+			if (logLevel >= 2) {
+				Log.log(getClass(), "Converted " + value + " -> " + PrintUtils.printArray(out), 2);
 			}
+			return outCells;
+			
+		} catch (InvocationTargetException e) {
+			throw new RJException("Error when executing converter script", e);
 		}
 		
-		if (logLevel >= 2) {
-			Log.log(getClass(), "Converted " + value + " -> " + PrintUtils.printArray(afterSplit), 2);
-		}
-		
-		return outCells;
 	}
 
 	public DataColumnDefinition[] getExpectedColumns() {

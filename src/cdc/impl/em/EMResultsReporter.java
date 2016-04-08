@@ -59,7 +59,7 @@ public class EMResultsReporter extends JDialog {
 
 	private static final int MAX_LINES = Props.getInteger("em-max-visible-rows");
 	
-	private class GUILogSink implements LogSink {
+	private class GUILogSink extends LogSink {
 		
 		private JTextArea log;
 		

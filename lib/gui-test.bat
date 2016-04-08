@@ -1,1 +1,0 @@
-java -cp secondstring-20060615.jar;jwf-1.0.1.jar com/wcohen/ss/WizardUI

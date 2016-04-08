@@ -36,6 +36,12 @@
 
 package cdc.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,6 +83,10 @@ public class RowUtils {
 //		}
 //		return true;
 //	}
+	
+	public static int compareRows(DataRow rowA, DataRow rowB, DataColumnDefinition[] sourceAJoinCols, DataColumnDefinition[] sourceBJoinCols) {
+		return compareRows(rowA, rowB, sourceAJoinCols, sourceBJoinCols, null);
+	}
 	
 	public static int compareRows(DataRow rowA, DataRow rowB, DataColumnDefinition[] sourceAJoinCols, DataColumnDefinition[] sourceBJoinCols, CompareFunctionInterface[] function) {
 		if (function == null) {
@@ -153,6 +163,49 @@ public class RowUtils {
 			}
 		}
 		return false;
+	}
+	
+	public static byte[] rowToByteArray(DataRow row, DataColumnDefinition[] rowModel) throws IOException {
+		ByteArrayOutputStream array = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(array);
+		for (int i = 0; i < rowModel.length; i++) {
+			DataCell cell = row.getData(rowModel[i]);
+			oos.writeObject(cell.getValue());
+			oos.writeInt(cell.getValueType());
+		}
+		if (row.getProperties() != null) {
+			oos.writeBoolean(true);
+			oos.writeObject(row.getProperties());
+		} else {
+			oos.writeBoolean(false);
+		}
+		oos.flush();
+		byte[] bytes = array.toByteArray();
+		return bytes;
+	}
+		
+	public static DataRow byteArrayToDataRow(byte[] b, DataColumnDefinition[] columns, String sourceName) throws IOException, RJException {
+		try {
+			ByteArrayInputStream array = new ByteArrayInputStream(b);
+			ObjectInputStream ois = new ObjectInputStream(array);
+			try {
+				DataCell cells[] = new DataCell[columns.length];
+				for (int i = 0; i < cells.length; i++) {
+					Object val = ois.readObject();
+					int type = ois.readInt();
+					cells[i] = new DataCell(type, val);
+				}
+				DataRow row = new DataRow(columns, cells, sourceName);
+				if (ois.readBoolean()) {
+					row.setProperies((Map) ois.readObject());
+				}
+				return row;
+			} catch (ClassNotFoundException e) {
+				throw new RJException("Error reading input file", e);
+			}
+		} catch (EOFException e) {
+			return null;
+		}
 	}
 
 }

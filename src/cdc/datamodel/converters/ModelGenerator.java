@@ -48,6 +48,7 @@ import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.utils.Log;
 import cdc.utils.PrintUtils;
+import cdc.utils.RJException;
 
 public class ModelGenerator {
 	
@@ -142,7 +143,7 @@ public class ModelGenerator {
 		return outputFormat;
 	}
 	
-	public DataCell[] generateOutputRow(DataCell[] cells) {
+	public DataCell[] generateOutputRow(DataCell[] cells) throws RJException {
 		Map row = new HashMap();
 		for (int i = 0; i < inputFormat.length; i++) {
 			row.put(inputFormat[i], cells[i]);

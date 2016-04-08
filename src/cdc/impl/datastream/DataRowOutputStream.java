@@ -41,9 +41,9 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
-import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.utils.RowUtils;
 
 public class DataRowOutputStream {
 	
@@ -69,22 +69,8 @@ public class DataRowOutputStream {
 			headerWritten = true;
 			writeDataFileHeader();
 		}
-		ByteArrayOutputStream array = new ByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream(array);
 		DataColumnDefinition[] rowModel = header.getMetadataAsColumnsArray("columns");
-		for (int i = 0; i < rowModel.length; i++) {
-			DataCell cell = row.getData(rowModel[i]);
-			oos.writeObject(cell.getValue());
-			oos.writeInt(cell.getValueType());
-		}
-		if (row.getProperties() != null) {
-			oos.writeBoolean(true);
-			oos.writeObject(row.getProperties());
-		} else {
-			oos.writeBoolean(false);
-		}
-		oos.flush();
-		byte[] bytes = array.toByteArray();
+		byte[] bytes = RowUtils.rowToByteArray(row, rowModel);
 		stream.write(toBytes(bytes.length));
 		stream.write(bytes);
 	}

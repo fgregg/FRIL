@@ -220,7 +220,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 	}
 	
 	protected void finalize() throws Throwable {
-		System.out.println(getClass() + " finalize");
+		//System.out.println(getClass() + " finalize");
 		close();
 	}
 	

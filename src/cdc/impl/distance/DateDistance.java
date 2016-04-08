@@ -449,11 +449,11 @@ public class DateDistance extends AbstractDistance {
 	
 	private double getDistanceRange(double val1, double val2, double[] range) {
 		double diff = Math.abs(val1 - val2);
-		if (diff > range[0] && val1 > val2) {
+		if (diff > range[0] && val1 < val2) {
 			return 0;
-		} else if (diff > range[1] && val1 < val2) {
+		} else if (diff > range[1] && val1 > val2) {
 			return 0;
-		} else if (val1 > val2) {
+		} else if (val1 < val2) {
 			if (range[0] == 0) {
 				return val1 == val2 ? 100: 0;
 			}

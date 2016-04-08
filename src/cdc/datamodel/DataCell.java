@@ -128,4 +128,8 @@ public class DataCell implements Comparable, Serializable {
 		//columnName = null;
 		parentRow = null;
 	}
+
+	public void setValue(Object value) {
+		this.value = value;
+	}
 }

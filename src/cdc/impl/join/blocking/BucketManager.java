@@ -338,7 +338,7 @@ public class BucketManager {
 	}
 	
 	public void cleanup() throws IOException, RJException {
-		System.out.println(getClass().getName() + ": Cleanup called.");
+		//System.out.println(getClass().getName() + ": Cleanup called.");
 		closeStreams();
 		if (file != null) {
 			for (int i = 0; i < file.length; i++) {

@@ -43,6 +43,7 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -54,7 +55,12 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 
+import org.codehaus.janino.CompileException;
+import org.codehaus.janino.ScriptEvaluator;
+import org.codehaus.janino.Parser.ParseException;
+import org.codehaus.janino.Scanner.ScanException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -62,6 +68,7 @@ import cdc.components.AbstractDataSource;
 import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.datamodel.converters.ui.ScriptPanel;
 import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.MainFrame;
@@ -80,6 +87,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 	public static final String PROP_RULE_PREFIX = "replace";
 	public static final String PROP_RULE_SUBS = "new-string";
 	public static final String PROP_OUT_NAME = "out-column";
+	private static final String PARAM_SCRIPT = "script";
 	
 	private static class VisibleComponent extends GUIVisibleComponent {
 		
@@ -90,6 +98,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		private TablePanel table;
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener;
+		private ScriptPanel scriptPanel;
 		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
 		
 		public Object generateSystemComponent() throws RJException, IOException {
@@ -100,12 +109,17 @@ public class ReplaceConverter extends AbstractColumnConverter {
 				props.put(PROP_RULE_SUBS + (i + 1), ((Object[])rows[i])[1]);
 			}
 			props.put(PROP_OUT_NAME, params.getParameterValue(PROP_OUT_NAME));
+			props.put(PARAM_SCRIPT, scriptPanel.getScript());
 			return new ReplaceConverter(params.getParameterValue(PROP_OUT_NAME), props, column);
 		}
 
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
 			
 			this.column = (DataColumnDefinition) objects[0];
+			
+			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(ReplaceConverter.class), String.class, 
+					new String[] {"column", "lookFor", "replaceWith"}, 
+					new Class[] {String.class, String[].class, String[].class});
 			
 			String[] defaults = new String[] {getRestoredParam(PROP_OUT_NAME)};
 			int n = 1;
@@ -116,6 +130,9 @@ public class ReplaceConverter extends AbstractColumnConverter {
 				}
 				regs.add(new Object[] {getRestoredParam(PROP_RULE_PREFIX + n), getRestoredParam(PROP_RULE_SUBS + n)});
 				n++;
+			}
+			if (getRestoredParam(PARAM_SCRIPT) != null) {
+				scriptPanel.setScript(getRestoredParam(PARAM_SCRIPT));
 			}
 			
 			params = new ParamsPanel(new String[] {PROP_OUT_NAME}, new String[] {"Output attribute name"}, defaults);
@@ -186,8 +203,13 @@ public class ReplaceConverter extends AbstractColumnConverter {
 			
 			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
 			
+			JTabbedPane tabs = new JTabbedPane();
+			tabs.addTab("Configuration", panel);
+			tabs.addTab("Converter script (advanced)", scriptPanel);
 			
-			return panel;
+			JPanel mainPanel = new JPanel(new BorderLayout());
+			mainPanel.add(tabs, BorderLayout.CENTER);
+			return mainPanel;
 		}
 
 		public Class getProducedComponentClass() {
@@ -217,6 +239,8 @@ public class ReplaceConverter extends AbstractColumnConverter {
 	private DataColumnDefinition[] in;
 	private DataColumnDefinition[] out;
 	
+	private ScriptEvaluator scriptEvaluator;
+	
 	public ReplaceConverter(String columnName, Map props, DataColumnDefinition in) throws RJException {
 		super(props);
 		this.in = new DataColumnDefinition[] {in};
@@ -242,14 +266,31 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		} while (true);
 		this.rules = (String[]) rules.toArray(new String[] {});
 		this.subs = (String[]) newStrings.toArray(new String[] {});
+		
+		try {
+			if (props.get(PARAM_SCRIPT) == null) {
+				props.put(PARAM_SCRIPT, AbstractColumnConverter.getDefaultScript(ReplaceConverter.class));
+			}
+			scriptEvaluator = new ScriptEvaluator((String)props.get(PARAM_SCRIPT), String.class, 
+					new String[] {"column", "lookFor", "replaceWith"}, 
+					new Class[] {String.class, String[].class, String[].class});
+		} catch (CompileException e) {
+			throw new RJException("Compilation exception for script", e);
+		} catch (ParseException e) {
+			throw new RJException("Parse exception for script", e);
+		} catch (ScanException e) {
+			throw new RJException("Scan exception for script", e);
+		}
 	}
 
-	public DataCell[] convert(DataCell[] dataCells) {
-		String str = dataCells[0].getValue().toString();
-		for (int i = 0; i < rules.length; i++) {
-			str = str.replaceAll(rules[i], subs[i]);
+	public DataCell[] convert(DataCell[] dataCells) throws RJException {
+		String val = dataCells[0].getValue().toString();
+		try {
+			val = (String)scriptEvaluator.evaluate(new Object[] {val, rules, subs});
+		} catch (InvocationTargetException e) {
+			throw new RJException("Error when executing converter script", e);
 		}
-		return new DataCell[] {new DataCell(dataCells[0].getValueType(), str)};
+		return new DataCell[] {new DataCell(dataCells[0].getValueType(), val)};
 	}
 
 	public DataColumnDefinition[] getExpectedColumns() {
