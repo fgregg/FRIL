@@ -73,7 +73,7 @@ public class CSVConfigurationPanel extends GUIVisibleComponent {
 		creators.put(CSVDataSource.PARAM_DELIM, new SeparatorPanelFieldCreator(seps, labels, 2, 3));
 		
 		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, CSVDataSource.PARAM_INPUT_FILE, CSVDataSource.PARAM_DELIM};
-		String[] defaults = new String[] {"csv-source", "", ";"};
+		String[] defaults = new String[] {"csv-source", "", ","};
 		for (int i = 0; i < defaults.length; i++) {
 			if (getRestoredParam(availableparams[i]) != null) {
 				defaults[i] = getRestoredParam(availableparams[i]);

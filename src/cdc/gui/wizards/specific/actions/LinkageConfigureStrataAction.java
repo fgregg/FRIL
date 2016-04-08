@@ -49,6 +49,7 @@ import javax.swing.JRadioButton;
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.gui.MainFrame;
+import cdc.gui.components.dialogs.OneTimeTipDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
 import cdc.gui.wizards.specific.actions.strata.StrataChooser;
@@ -57,6 +58,15 @@ import cdc.impl.join.strata.StrataJoinWrapper;
 
 public class LinkageConfigureStrataAction extends WizardAction {
 
+	public static final String STRATIFICATION_ENABLED = "STRATIFICATION_ENABLED";
+	public static final String MESSAGE = "Using the data stratificaton is discouraged at this time.\n" +
+										 "If you use it, some options of FRIL will be disabled (e.g.,\n" +
+										 "results desuplication). If you need to use different linkage\n" +
+										 "conditions for different records, you can enable filtering\n" +
+										 "in the data sources instead and run linkage a few times using\n" +
+										 "different configurations (different filter and linkage condition" +
+										 "configurations).";
+	
 	private JRadioButton strataOff = new JRadioButton("Do not stratify data", true);
 	private JRadioButton strataOn = new JRadioButton("Stratify data");
 	private JPanel strataPanel;
@@ -76,6 +86,7 @@ public class LinkageConfigureStrataAction extends WizardAction {
 			public void actionPerformed(ActionEvent arg0) {
 				if (((JRadioButton)arg0.getSource()).isSelected()) {
 					strataConfiguration.setEnabled(true);
+					OneTimeTipDialog.showInfoDialogIfNeeded(STRATIFICATION_ENABLED, MESSAGE);
 				}
 			}
 		});
@@ -147,6 +158,7 @@ public class LinkageConfigureStrataAction extends WizardAction {
 			DataStratum[] strata = ((StrataJoinWrapper)join).getStrata();
 			strataConfiguration.restoreStrata(strata);
 			strataConfiguration.setEnabled(true);
+			OneTimeTipDialog.showInfoDialogIfNeeded(STRATIFICATION_ENABLED, MESSAGE);
 		} else {
 			strataOff.setSelected(true);
 		}

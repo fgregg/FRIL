@@ -68,11 +68,12 @@ public abstract class AbstractJoin extends SystemComponent {
 	public static final String PROPERTY_SRCB_ID = "id-b";
 	public static final String PROPERTY_JOINED = "was-joined";
 	public static final String PROPERTY_MANUAL_REVIEW = "manual";
-	public static final String PROPERTY_MANUAL_REVIEW_CNT = "in-review-cnt";
 	
 	public static final String PROPERTY_RECORD_SRCA = "rec-a";
 	public static final String PROPERTY_RECORD_SRCB = "rec-b";
-	public static final String PROPERTY_JOIN_MULTIPLICITY = "j-times";
+	
+	public static final int PROPERTY_MANUAL_REVIEW_CNT = 0;
+	public static final int PROPERTY_JOIN_MULTIPLICITY = 1;
 	
 	
 	private AbstractDataSource sourceA;
@@ -97,6 +98,8 @@ public abstract class AbstractJoin extends SystemComponent {
 	private JoinStatisticalData statsListener;
 	
 	private List manualDecisions = new ArrayList();
+	
+	private CountCache[] caches = {new CountCache(), new CountCache()};
 
 	public AbstractJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition condition, DataColumnDefinition[] outColumns, Map params) throws RJException {
 		super(params);
@@ -295,10 +298,14 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 	}
 	
+	public CountCache getCache(int cacheID) {
+		return caches[cacheID];
+	}
 	
 	public void close() throws IOException, RJException {
 		doClose();
 		closeListeners();
+		resetCache();
 	}
 	
 	public void closeListeners() throws RJException {
@@ -334,8 +341,15 @@ public abstract class AbstractJoin extends SystemComponent {
 		manualDecisions.clear();
 		doReset(deep);
 		enableJoinStatistics();
+		resetCache();
 	}
 	
+	private void resetCache() {
+		for (int i = 0; i < caches.length; i++) {
+			caches[i].reset();
+		}
+	}
+
 	public void reset() throws IOException, RJException {
 		reset(false);
 	}
@@ -379,9 +393,9 @@ public abstract class AbstractJoin extends SystemComponent {
 			for (Iterator iterator = manualDecisions.iterator(); iterator.hasNext();) {
 				ManualDecision decision = (ManualDecision) iterator.next();
 				if (decision.isAccepted()) {
-					RowUtils.linkageManuallyAccepted(decision.getRow());
+					RowUtils.linkageManuallyAccepted(this, decision.getRow());
 				} else {
-					RowUtils.linkageManuallyRejected(decision.getRow());
+					RowUtils.linkageManuallyRejected(this, decision.getRow());
 				}
 				dealWithManualDecision(decision);
 			}
@@ -394,24 +408,14 @@ public abstract class AbstractJoin extends SystemComponent {
 		DataRow rowA = (DataRow) row.getObjectProperty(PROPERTY_RECORD_SRCA);
 		DataRow rowB = (DataRow) row.getObjectProperty(PROPERTY_RECORD_SRCB);
 		if (!decision.isAccepted()) {
-			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(rowA)) {
+			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(this, rowA)) {
 				notifyTrashingNotJoined(rowA);
 			}
-			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(rowB)) {
+			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(this, rowB)) {
 				notifyTrashingNotJoined(rowB);
 			}
 		}
 	}
-
-//	This was really not used, and only caused some issues...
-//	public DataRow[] joinNext(int size) throws IOException, RJException {
-//		DataRow[] rows  = doJoinNext(size);
-//		if (rows == null) {
-//			closeListeners();
-//		}
-//		AbstractDataSource.requestStop(false);
-//		return rows;
-//	}
 	
 	protected abstract void doClose() throws IOException, RJException;
 	protected abstract void doReset(boolean deep) throws IOException, RJException;

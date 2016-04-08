@@ -155,12 +155,12 @@ public class JoiningThread extends Thread {
 		
 		//The below was added on 07/28/09 - fixed missing record in minus file.
 		if (nextA != null) {
-			if (RowUtils.shouldReportTrashingNotJoined(nextA)) {
+			if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), nextA)) {
 				connector.notifyTrashingNotJoined(nextA);
 			}
 		}
 		if (nextB != null) {
-			if (RowUtils.shouldReportTrashingNotJoined(nextB)) {
+			if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), nextB)) {
 				connector.notifyTrashingNotJoined(nextB);
 			}
 		}
@@ -170,7 +170,7 @@ public class JoiningThread extends Thread {
 			if (first) {
 				Log.log(getClass(), "First leftover in " + sourceA.getSourceName() + ": " + row, 2);
 			}
-			if (RowUtils.shouldReportTrashingNotJoined(row)) {
+			if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), row)) {
 				connector.notifyTrashingNotJoined(row);
 			}
 			n++;
@@ -185,7 +185,7 @@ public class JoiningThread extends Thread {
 			if (first) {
 				Log.log(getClass(), "First leftover in " + sourceB.getSourceName() + ": " + row, 2);
 			}
-			if (RowUtils.shouldReportTrashingNotJoined(row)) {
+			if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), row)) {
 				connector.notifyTrashingNotJoined(row);
 			}
 			n++;
@@ -286,7 +286,7 @@ public class JoiningThread extends Thread {
 			Log.log(getClass(), "Row2: " + row2Projected, 3);
 			EvaluatedCondition eval;
 			if ((eval = connector.getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-				DataRow joined = RowUtils.buildMergedRow(rowA, rowB, connector.getOutColumns(), eval);
+				DataRow joined = RowUtils.buildMergedRow(connector.getJoin(), rowA, rowB, connector.getOutColumns(), eval);
 				if (connector.isAnyJoinListenerRegistered()) {
 					connector.notifyJoined(rowA, rowB, joined);
 				}
@@ -412,7 +412,7 @@ public class JoiningThread extends Thread {
 			if (disposed.getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 				connector.notifyTrashingJoined(disposed);
 			} else {
-				if (RowUtils.shouldReportTrashingNotJoined(disposed)) {
+				if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), disposed)) {
 					connector.notifyTrashingNotJoined(disposed);
 				}
 			}

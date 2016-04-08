@@ -52,9 +52,9 @@ public class DataRowInputStream {
 	private DataFileHeader header;
 	private CacheInterface cache;
 	
-	public DataRowInputStream(CacheInterface cache, InputStream stream) throws IOException, RJException {
+	public DataRowInputStream(/*CacheInterface cache, */InputStream stream) throws IOException, RJException {
 		this.stream = stream;
-		this.cache = cache;
+		//this.cache = cache;
 		readDataFileHeader();
 	}
 	

@@ -58,6 +58,8 @@ import cdc.components.AbstractResultsSaver;
 import cdc.components.LinkageSummary;
 import cdc.configuration.ConfiguredSystem;
 import cdc.gui.MainFrame;
+import cdc.gui.SavedConfigManager;
+import cdc.impl.MainApp;
 import cdc.impl.deduplication.DeduplicationDataSource;
 import cdc.impl.resultsavers.DeduplicatingResultsSaver;
 
@@ -349,22 +351,41 @@ public class Utils {
 		}
 		return -1;
 	}
-
+	
 	public static Reader openTextFileForReading(String filePath) throws IOException {
+		return openTextFileForReading(filePath, false);
+	}
+
+	public static File resolvePath(String filePath, boolean relativePaths) throws IOException {
+		File f = new File(filePath);
+		if (relativePaths) {
+			//Try to look for file in few places
+			if (MainApp.main instanceof MainFrame) {
+				String recentPath = MainFrame.main.getPersistentParam(SavedConfigManager.PERSISTENT_PARAM_RECENT_PATH);
+				if (!f.exists() && recentPath != null) {
+					f = new File(recentPath + File.separator + filePath);
+				}
+			}
+		}
+		return f;
+	}
+	
+	public static Reader openTextFileForReading(String filePath, boolean relativePaths) throws IOException {
 		String[] parsedFile = parseFilePath(filePath);
-		File f = new File(parsedFile[0]);
+		File f = resolvePath(parsedFile[0], relativePaths);
+		
 		Charset encoding = DEFAULT_ENCODING.getCharset();
 		if (parsedFile.length > 1) {
 			encoding = getEncodingForName(parsedFile[1]).getCharset();
 		}
 		
 		//Some encoding is used, will read that format
-		Log.log(Utils.class, "File " + f.getName() + " encoding identifed: " + encoding);
+		Log.log(Utils.class, "File " + f.getAbsolutePath() + " encoding identifed: " + encoding, 2);
 		FileInputStream in = new FileInputStream(f);
 		long header = getHeaderLen(in, encoding);
 		in.close();
 		in = new FileInputStream(f);
-		Log.log(Utils.class, "Header length was determined to be " + header + " byte(s).");
+		Log.log(Utils.class, "Header length was determined to be " + header + " byte(s).", 3);
 		in.skip(header);
 		InputStreamReader inputStreamReader = new InputStreamReader(in, encoding);
 		return inputStreamReader;

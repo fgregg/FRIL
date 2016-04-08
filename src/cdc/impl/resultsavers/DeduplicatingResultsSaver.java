@@ -57,13 +57,12 @@ import cdc.gui.components.linkagesanalysis.dialog.DecisionListener;
 import cdc.impl.MainApp;
 import cdc.impl.datasource.wrappers.ExternallySortingDataSource;
 import cdc.impl.datasource.wrappers.SortedData;
-import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
-import cdc.impl.datasource.wrappers.propertiescache.InMemoryCache;
 import cdc.utils.CPUInfo;
 import cdc.utils.CompareFunctionInterface;
 import cdc.utils.Log;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 import cdc.utils.comparators.StringComparator;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -97,21 +96,12 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		}
 	}
 	
-	private CacheInterface getCache() {
-		if (cache == null) {
-			cache = new InMemoryCache();
-		}
-		return cache;
-	}
-	
 	private int activePhase = 0;
 	private DataColumnDefinition[] sortPhases;
 	private boolean deleteDuplicates = false;
 	private boolean askBeforeDeleting = false;
 	private volatile RJException rjExc = null;
 	private volatile IOException ioExc = null;
-	
-	private CacheInterface cache;
 	
 	private int duplicatesCnt = 0;
 	private int savedCnt = 0;
@@ -160,7 +150,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		for (int i = 0; i < savers.length; i++) {
 			savers[i].close();
 		}
-		getCache().trash();
+		//getCache().trash();
 	}
 
 	private void doDeduplication() throws IOException, RJException {
@@ -173,7 +163,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		while (activePhase <= sortPhases.length) {
 			Log.log(getClass(), "Results deduplication, phase " + activePhase + " out of " + sortPhases.length);
 			if (activePhase < sortPhases.length) {
-				nextPhaseData = new SortedData(getCache(), RESULTS_DEDUPE_BUFFER, DEDUPE_SRC, new DataColumnDefinition[] {sortPhases[activePhase]}, comps);
+				nextPhaseData = new SortedData(RESULTS_DEDUPE_BUFFER, DEDUPE_SRC, new DataColumnDefinition[] {sortPhases[activePhase]}, comps);
 				writer = new SortedDataDataWriter(nextPhaseData);
 			} else {
 				writer = new ResultsSaverDataWriter();
@@ -233,9 +223,6 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		if (data != null) {
 			data.cleanup();
 		}
-		if (cache != null) {
-			cache.trash();
-		}
 		activePhase = 0;
 		data = null;
 		duplicatesCnt = 0;
@@ -251,7 +238,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 
 	public void saveRow(DataRow row) throws RJException, IOException {
 		if (data == null) {
-			data = new SortedData(getCache(), RESULTS_DEDUPE_BUFFER, DEDUPE_SRC, new DataColumnDefinition[] {sortPhases[activePhase++]}, comps);
+			data = new SortedData(RESULTS_DEDUPE_BUFFER, DEDUPE_SRC, new DataColumnDefinition[] {sortPhases[activePhase++]}, comps);
 		}
 		addedCnt++;
 		data.addRow(row);
@@ -399,12 +386,15 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 	}
 
 	private boolean decrementAndCheck(DataRow row) {
-		Integer cnt = (Integer) row.getObjectProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
-		if (cnt.intValue() == 1) {
-			return false;
-		}
-		row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, new Integer(cnt.intValue() - 1));
-		return true;
+		AbstractJoin join = MainApp.main.getConfiguredSystem().getJoin();
+		return RowUtils.decrement(join, row, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY) != 0;
+		
+//		Integer cnt = (Integer) row.getObjectProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+//		if (cnt.intValue() == 1) {
+//			return false;
+//		}
+//		row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, new Integer(cnt.intValue() - 1));
+//		return true;
 	}
 
 	private boolean isTheSameKey(DataRow r1, DataRow r2, DataColumnDefinition sortedKey) {

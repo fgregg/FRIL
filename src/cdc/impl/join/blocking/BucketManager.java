@@ -404,7 +404,7 @@ public class BucketManager {
 	private void readBucketsFromFile(int id) throws FileNotFoundException, IOException, RJException {
 		DataRowInputStream dris;
 		try {
-			dris = new DataRowInputStream(null, createInputStream(file[id][usedFilesFromPool[id]]));
+			dris = new DataRowInputStream(createInputStream(file[id][usedFilesFromPool[id]]));
 		} catch (FileNotFoundException e) {
 			System.out.println("File " + file[id][usedFilesFromPool[id]].getAbsolutePath() + " has not been found.");
 			return;
@@ -477,7 +477,7 @@ public class BucketManager {
 					continue;
 				}
 				if (dros[id][i] == null) {
-					dros[id][i] = new DataRowOutputStream(null, row.getSourceName(), row.getRowModel(), createOutputStream(file[id][i]));
+					dros[id][i] = new DataRowOutputStream(row.getSourceName(), row.getRowModel(), createOutputStream(file[id][i]));
 				}
 				do {
 					dros[id][i].writeDataRow(row);

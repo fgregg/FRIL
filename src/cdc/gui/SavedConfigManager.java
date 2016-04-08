@@ -49,11 +49,11 @@ import cdc.utils.Log;
 
 public class SavedConfigManager {
 	
-	private static final String UNNAMED_BACKUP_SUFFIX = ".xml~~";
-	private static final String PERSISTENT_PARAM_RECENT_CONFIG = "recent-config";
-	private static final String PERSISTENT_PARAM_RECENT_BACKUP_CONFIG = "recent-backup-config";
-	private static final String CONFIG_DIR = "./config";
-	private static final String PERSISTENT_PARAM_RECENT_PATH = "recent-path";
+	public static final String UNNAMED_BACKUP_SUFFIX = ".xml~~";
+	public static final String PERSISTENT_PARAM_RECENT_CONFIG = "recent-config";
+	public static final String PERSISTENT_PARAM_RECENT_BACKUP_CONFIG = "recent-backup-config";
+	public static final String CONFIG_DIR = "./config";
+	public static final String PERSISTENT_PARAM_RECENT_PATH = "recent-path";
 	
 	//Indication of read configuration
 	private boolean configurationRead = false;

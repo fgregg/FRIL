@@ -43,7 +43,7 @@ import cdc.utils.StringUtils;
 
 public class DataCell implements Comparable, Serializable {
 	
-	private DataRow parentRow;
+	//private DataRow parentRow;
 	private Object value;
 	private int type;
 	
@@ -121,7 +121,8 @@ public class DataCell implements Comparable, Serializable {
 	}
 	
 	public String toFullString() {
-		return "Cell(source=" + parentRow.getSourceName() + ",value='" + value + "')";	
+		//return "Cell(source=" + parentRow.getSourceName() + ",value='" + value + "')";	
+		return toString();
 	}
 
 //	public void discard() {

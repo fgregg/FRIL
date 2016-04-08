@@ -37,7 +37,6 @@
 package cdc.impl.datasource.text;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -81,7 +80,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 	
 	private void checkFile(String fileName) throws RJException, IOException {
 		this.filePath = fileName;
-		size  = LineNumber.size(new File(Utils.parseFilePath(fileName)[0]));
+		size  = LineNumber.size(Utils.parseFilePath(fileName)[0]);
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 	}
 
@@ -101,7 +100,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		int index = 0;
 		List columns = new ArrayList();
 		try {
-			BufferedReader reader = new BufferedReader(Utils.openTextFileForReading(schemaFile));
+			BufferedReader reader = new BufferedReader(Utils.openTextFileForReading(schemaFile, true));
 			String schemaLine = null;
 			while ((schemaLine = reader.readLine()) != null && (schemaLine = schemaLine.trim()) != "") {
 				schemaLine = schemaLine.replaceAll("  ", " ");
@@ -132,7 +131,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 			closed = false;
 		}
 		if (this.isReader == null) {
-			this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath));
+			this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath, true));
 		}
 	}
 	
@@ -199,7 +198,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		if (this.isReader != null) {
 			this.isReader.close();
 		}
-		this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath));
+		this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath, true));
 	}
 
 	public Node saveToXML() {

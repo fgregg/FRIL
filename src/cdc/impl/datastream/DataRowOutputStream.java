@@ -53,11 +53,11 @@ public class DataRowOutputStream {
 	private CacheInterface cache;
 	private boolean headerWritten = false;
 	
-	public DataRowOutputStream(CacheInterface cache, String name, DataColumnDefinition[] rowModel, OutputStream stream) {
+	public DataRowOutputStream(/*CacheInterface cache, */String name, DataColumnDefinition[] rowModel, OutputStream stream) {
 		header = new DataFileHeader(name);
 		header.addMetadata("columns", rowModel);
 		this.stream = stream;
-		this.cache = cache;
+		//this.cache = cache;
 	}
 	
 	public void addHeaderMetadata(String metadata, Object value) {

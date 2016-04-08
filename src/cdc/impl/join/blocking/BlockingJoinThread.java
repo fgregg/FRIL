@@ -119,7 +119,7 @@ public class BlockingJoinThread extends Thread {
 					DataRow rowB = activeBucket[1][index2];
 					EvaluatedCondition eval;
 					if ((eval = join.getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, join.getOutColumns(), eval);
+						DataRow joined = RowUtils.buildMergedRow(join.getJoin(), rowA, rowB, join.getOutColumns(), eval);
 						if (join.isAnyJoinListenerRegistered()) {
 							join.notifyJoined(rowA, rowB, joined);
 						}
@@ -140,14 +140,14 @@ public class BlockingJoinThread extends Thread {
 				index2 = 0;
 				if (activeBucket[0][index1].getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 					join.notifyTrashingJoined(activeBucket[0][index1]);
-				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[0][index1])) {
+				} else if (RowUtils.shouldReportTrashingNotJoined(join.getJoin(), activeBucket[0][index1])) {
 					join.notifyTrashingNotJoined(activeBucket[0][index1]);
 				}
 			}
 			for (index2=0; index2 < activeBucket[1].length; index2++) {
 				if (activeBucket[1][index2].getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 					join.notifyTrashingJoined(activeBucket[1][index2]);
-				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[1][index2])) {
+				} else if (RowUtils.shouldReportTrashingNotJoined(join.getJoin(), activeBucket[1][index2])) {
 					join.notifyTrashingNotJoined(activeBucket[1][index2]);
 				}
 			}

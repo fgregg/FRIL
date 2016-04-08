@@ -50,6 +50,7 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.AtomicCondition;
+import cdc.components.CountCache;
 import cdc.components.JoinListener;
 import cdc.components.LinkageSummary;
 import cdc.configuration.Configuration;
@@ -288,6 +289,10 @@ public class StrataJoinWrapper extends AbstractJoin {
 
 	public boolean isSameJoinConfigs() {
 		return sameJoinConfigs;
+	}
+	
+	public CountCache getCache(int cacheID) {
+		return optimizedJoins[activeJoin.get()].getCache(cacheID);
 	}
 
 	public void saveToXML(Document doc, Element node) {

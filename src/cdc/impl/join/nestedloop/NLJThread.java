@@ -88,7 +88,7 @@ public class NLJThread extends Thread {
 							Log.log(NestedLoopJoin.class, "Inner loop starts", 4);
 							EvaluatedCondition eval;
 							if ((eval = connector.getJoinCondition().conditionSatisfied(rowA[i], rowB[j])).isSatisfied()) {
-								DataRow row = RowUtils.buildMergedRow(rowA[i], rowB[j], connector.getOutColumns(), eval);
+								DataRow row = RowUtils.buildMergedRow(connector.getJoin(), rowA[i], rowB[j], connector.getOutColumns(), eval);
 								if (connector.getLogLevel() >= 3) {
 									Log.log(NestedLoopJoin.class, "Row joined: " + row, 4);
 								}
@@ -112,7 +112,7 @@ public class NLJThread extends Thread {
 				}
 				
 				for (int i = 0; i < rowA.length; i++) {
-					if (RowUtils.shouldReportTrashingNotJoined(rowA[i])) {
+					if (RowUtils.shouldReportTrashingNotJoined(connector.getJoin(), rowA[i])) {
 						connector.notifyTrashingNotJoined(rowA[i]);
 					}
 				}

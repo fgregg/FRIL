@@ -1,11 +1,22 @@
-Version 2.0 (current)
+Version 2.1 (current)
 
-IMPORTANT: If your linkage produces large number of linkages (>80,000 or so),
-and if you are enablind results desuplication (in either available form),
-make sure to increase the memory available for FRIL. Go to FAQ section of the
-webpage for instructions.
+IMPORTANT: If your linkage works on large number of records with large number
+of columns or if you are enablind results desuplication (in either available 
+form), you may need to increase the memory available for FRIL. Go to FAQ 
+section of the webpage for instructions.
+
 
 Latest features:
+New feature: Dynamic analysis tables show tooltips with full string value
+Fix: Close window button works in dynamic analysis windows
+Update: By default, all attributes used in FRIL will be saved into output file
+Update: FRIL attempts to search for file with data in a few locations
+Update: Greatly reduced memory consumption when results deduplication is used
+Update: General memory-oriented optimization
+
+
+
+Version 2.0:
 1. New feature: Information in status bar about linkage results
 2. New feature: User can turn on linkage summary (click on icon in status bar)
 3. New feature: When reading text files (CSV, plain text), file encoding is recognized
@@ -18,7 +29,6 @@ Latest features:
 9. Update: Automated support of JDBC drivers. New drivers should be placede in
                 jdbc directory (see FAQ on FRIL webpage for details).
 10.Results viewer shows row numbers
-
 
 Version 1.0 patch7:
 1. New feature: Street address distance

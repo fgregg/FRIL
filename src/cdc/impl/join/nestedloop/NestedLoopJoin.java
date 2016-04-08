@@ -90,6 +90,9 @@ public class NestedLoopJoin extends AbstractJoin {
 		public void notifyTrashingJoined(DataRow dataRow) throws RJException {
 			NestedLoopJoin.this.notifyTrashingJoined(dataRow);
 		}
+		public AbstractJoin getJoin() {
+			return NestedLoopJoin.this;
+		}
 	}
 	
 	private NLJThread[] workers;

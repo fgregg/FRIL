@@ -38,6 +38,7 @@ package cdc.gui.components.dynamicanalysis;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Window;
@@ -51,6 +52,7 @@ import java.lang.reflect.InvocationTargetException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -164,11 +166,19 @@ public class DynamicAnalysisFrame extends JDialog {
 		this.renderer = renderer;
 		//setAlwaysOnTop(true);
 		setSize(400, 300);
-		setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		//setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		//Rectangle location = parent.getBounds();
 		//setLocation(location.x + location.width, location.y);
 		
-		compMatrix = new JTable();
+		compMatrix = new JTable() {
+			public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+				Component c = super.prepareRenderer(renderer, row, column);
+				if (c instanceof JComponent) {
+					((JComponent) c).setToolTipText(String.valueOf(getValueAt(row, column)));
+				}
+				return c;
+			}
+		};
 		compMatrix.setEnabled(false);
 		compMatrix.setAutoCreateRowSorter(true);
 		compMatrix.getTableHeader().setReorderingAllowed(false);

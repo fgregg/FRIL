@@ -38,7 +38,6 @@ package cdc.impl.datasource.text;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
@@ -79,7 +78,7 @@ public class CSVDataSource extends AbstractDataSource {
 		super(sourceName, readDataModel(sourceName, Utils.getParam(params, PARAM_INPUT_FILE, true), Utils.getParam(params, PARAM_DELIM, true).charAt(0)), params);
 		inputFilePath = Utils.getParam(params, PARAM_INPUT_FILE, true);
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(new File(Utils.parseFilePath(inputFilePath)[0])) - 1;
+		size = LineNumber.size(Utils.parseFilePath(inputFilePath)[0]) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFilePath, 1);
 	}
@@ -88,7 +87,7 @@ public class CSVDataSource extends AbstractDataSource {
 		super(sourceName, model, params);
 		inputFilePath = Utils.getParam(params, PARAM_INPUT_FILE, true);
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(new File(Utils.parseFilePath(inputFilePath)[0])) - 1;
+		size = LineNumber.size(Utils.parseFilePath(inputFilePath)[0]) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFilePath, 1);
 	}
@@ -96,7 +95,7 @@ public class CSVDataSource extends AbstractDataSource {
 	private void doOpenFile() throws IOException, RJException {
 		Log.log(CSVDataSource.class, "Opening input file", 2);
 		//parser = new CSVReader(new BufferedReader(new FileReader(inputFile)), delim);
-		parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath)), delim);
+		parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath, true)), delim);
 		opened = true;
 		//skip the first, header line
 		parser.readNext();
@@ -182,7 +181,7 @@ public class CSVDataSource extends AbstractDataSource {
 		Log.log(CSVDataSource.class, "Resetting data source", 2);
 		if (parser != null) {
 			parser.close();
-			parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath)), delim);
+			parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath, true)), delim);
 			parser.readNext();
 		}
 	}
@@ -197,7 +196,7 @@ public class CSVDataSource extends AbstractDataSource {
 	
 	public static final DataColumnDefinition[] readDataModel(String sourceName, String fileName, char delim) throws IOException, RJException {
 		Log.log(CSVDataSource.class, "Reading data model", 1);
-		CSVReader parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(fileName)), delim);
+		CSVReader parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(fileName, true)), delim);
 		//skip the first, header line
 		String[] csvRow = parser.readNext();
 		Log.log(CSVDataSource.class, "Row retrieved from csv: " + PrintUtils.printArray(csvRow), 2);

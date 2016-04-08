@@ -52,10 +52,13 @@ public class DataRow implements Externalizable {
 	private int recordId;
 	private DataCell[] cells;
 	private transient RowModel model;
-	private String hashString;
 	
+	//private String hashString;
 	
 	private Map properties = null;
+
+	private boolean firstHashCode = true;
+	private int hashCode = 0;
 	
 	public synchronized static final int getId() {
 		return id++;
@@ -119,17 +122,25 @@ public class DataRow implements Externalizable {
 	}
 	
 	public int hashCode() {
-		if (hashString == null) {
-			StringBuffer buffer = new StringBuffer();
-			for (int i = 0; i < cells.length; i++) {
-				buffer.append(cells[i].hashCode());
-				if (i != 0) {
-					buffer.append("_");
-				}
+		if (firstHashCode) {
+			firstHashCode = false;
+			hashCode = cells[0].hashCode();
+			for (int j = 1; j < cells.length; j++) {
+				hashCode = hashCode ^ cells[j].hashCode();
 			}
-			hashString = buffer.toString();
 		}
-		return hashString.hashCode();
+//		if (hashString == null) {
+//			StringBuffer buffer = new StringBuffer();
+//			for (int i = 0; i < cells.length; i++) {
+//				buffer.append(cells[i].hashCode());
+//				if (i != 0) {
+//					buffer.append("_");
+//				}
+//			}
+//			hashString = buffer.toString();
+//		}
+//		return hashString.hashCode();
+		return hashCode;
 	}
 	
 	public String toString() {
@@ -154,20 +165,10 @@ public class DataRow implements Externalizable {
 	public String toString(DataColumnDefinition[] outFormatter) {
 		return this.toString(outFormatter, true);
 	}
-
-//	public void discard() {
-//		for (int i = 0; i < cells.length; i++) {
-//			cells[i].discard();
-//		}
-//		cells = null;
-//		model = null;
-//		sourceName = null;
-//		hashString = null;
-//	}
 	
 	public void setProperty(String name, Object value) {
 		if (properties == null) {
-			properties = new HashMap();
+			properties = new HashMap(8);
 		}
 		properties.put(name, value);
 	}

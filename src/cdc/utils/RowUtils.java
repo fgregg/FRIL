@@ -61,7 +61,7 @@ import cdc.impl.join.strata.StrataJoinWrapper;
 
 public class RowUtils {
 	
-	public static DataRow buildMergedRow(DataRow rowA, DataRow rowB, DataColumnDefinition[] outModel, EvaluatedCondition eval) {
+	public static DataRow buildMergedRow(AbstractJoin join, DataRow rowA, DataRow rowB, DataColumnDefinition[] outModel, EvaluatedCondition eval) {
 		DataCell[] data = new DataCell[outModel.length];
 		for (int i = 0; i < data.length; i++) {
 			if (rowA.getSourceName().equals(outModel[i].getSourceName())) {
@@ -75,7 +75,7 @@ public class RowUtils {
 		
 		//Create the actual record
 		DataRow row = new DataRow(outModel, data);
-		Map props = new HashMap();
+		Map props = new HashMap(8);
 		row.setProperies(props);
 		
 		//Now we will set some properties of the newly created joined record
@@ -85,10 +85,10 @@ public class RowUtils {
 		if (eval.isManualReview()) {
 			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW, "true");
 			synchronized (rowA) {
-				increment(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+				increment(join, rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 			}
 			synchronized (rowB) {
-				increment(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+				increment(join, rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 			}
 		} else {
 			synchronized (rowA) {
@@ -118,10 +118,10 @@ public class RowUtils {
 		
 		//Below is to be able to save minus after deduplication
 		synchronized (rowA) {
-			increment(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			increment(join, rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
 		}
 		synchronized (rowB) {
-			increment(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			increment(join, rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
 		}
 		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCA, rowA);
 		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCB, rowB);
@@ -129,35 +129,35 @@ public class RowUtils {
 		return row;
 	}
 	
-	public static void linkageManuallyRejected(DataRow row) {
+	public static void linkageManuallyRejected(AbstractJoin join, DataRow row) {
 		DataRow rowA = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCA);
 		DataRow rowB = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
 		synchronized (rowA) {
-			decrement(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
-			decrement(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			decrement(join, rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			decrement(join, rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 		}
 		synchronized (rowB) {
-			decrement(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
-			decrement(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			decrement(join, rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			decrement(join, rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 		}
 	}
 	
-	public static void linkageManuallyAccepted(DataRow row) {
+	public static void linkageManuallyAccepted(AbstractJoin join, DataRow row) {
 		DataRow rowA = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCA);
 		DataRow rowB = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
 		synchronized (rowA) {
-			decrement(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			decrement(join, rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 			rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 		}
 		synchronized (rowB) {
-			decrement(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			decrement(join, rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
 			rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 		}
 	}
 	
-	public static boolean shouldReportTrashingNotJoined(DataRow dataRow) {
+	public static boolean shouldReportTrashingNotJoined(AbstractJoin join, DataRow dataRow) {
 		synchronized (dataRow) {
-			if (dataRow.getProperty(AbstractJoin.PROPERTY_JOINED) == null && getValue(dataRow, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0) {
+			if (dataRow.getProperty(AbstractJoin.PROPERTY_JOINED) == null && getValue(join, dataRow, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0) {
 				return true;
 			} else {
 				return false;
@@ -165,40 +165,23 @@ public class RowUtils {
 		}
 	}
 	
-	public static boolean shouldReportTrashingNotJoinedAfterManualReview(DataRow row) {
+	public static boolean shouldReportTrashingNotJoinedAfterManualReview(AbstractJoin join, DataRow row) {
 		synchronized (row) {
-			return getValue(row, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0 && getValue(row, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY) == 0;
+			return getValue(join, row, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0 && getValue(join, row, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY) == 0;
 		}
 	}
 
 	
-	private static void increment(DataRow row, String prop) {
-		Integer cnt = (Integer) row.getObjectProperty(prop);
-		if (cnt == null) {
-			cnt = new Integer(1);
-			row.setProperty(prop, cnt);
-		} else {
-			row.setProperty(prop, new Integer(cnt.intValue() + 1));
-		}
+	private static void increment(AbstractJoin join, DataRow row, int cacheId) {
+		join.getCache(cacheId).increment(row.getRecordId());
 	}
 	
-	private static int decrement(DataRow row, String prop) {
-		Integer cnt = (Integer) row.getObjectProperty(prop);
-		if (cnt != null) {
-			int newVal = cnt.intValue() - 1;
-			row.setProperty(prop, new Integer(newVal));
-			return newVal;
-		}
-		return 0;
+	public static int decrement(AbstractJoin join, DataRow row, int cacheId) {
+		return join.getCache(cacheId).decrement(row.getRecordId());
 	}
 	
-	private static int getValue(DataRow row, String prop) {
-		Integer cnt = (Integer)row.getObjectProperty(prop);
-		if (cnt == null) {
-			return 0;
-		} else {
-			return cnt.intValue();
-		}
+	public static int getValue(AbstractJoin join, DataRow row, int cacheId) {
+		return join.getCache(cacheId).get(row.getRecordId());
 	}
 	
 	public static void resetRow(DataRow row) {
@@ -206,9 +189,9 @@ public class RowUtils {
 			return;
 		}
 		synchronized (row) {
-			row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, null);
+			//row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, null);
 			row.setProperty(AbstractJoin.PROPERTY_JOINED, null);
-			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT, null);
+			//row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT, null);
 			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW, null);
 			row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, null);
 		}
@@ -349,7 +332,7 @@ public class RowUtils {
 				DataRow row = new DataRow(columns, cells, sourceName);
 				if (ois.readBoolean()) {
 					int size = ois.readInt();
-					Map props = new HashMap();
+					Map props = new HashMap(8);
 					for (int i = 0; i < size; i++) {
 						 Object key = ois.readObject();
 						 Object val = ois.readObject();

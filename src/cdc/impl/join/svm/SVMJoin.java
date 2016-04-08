@@ -275,7 +275,7 @@ public class SVMJoin extends AbstractJoin {
 								continue loop;
 							}
 						}
-						DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, 100));
+						DataRow outRow = RowUtils.buildMergedRow(this, bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, 100));
 						index1++;
 						return outRow;
 					}
@@ -334,7 +334,7 @@ public class SVMJoin extends AbstractJoin {
 						if (cls == 1) {
 							//match
 							//System.out.println(probabilities[0] + "  " + probabilities[1] + "  " + cls + " clsId=" + clsId);
-							DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(probabilities[clsId] * 100)));
+							DataRow outRow = RowUtils.buildMergedRow(this, bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(probabilities[clsId] * 100)));
 							//outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(probabilities[clsId] * 100)));
 							index1++;
 							return outRow;
@@ -344,7 +344,7 @@ public class SVMJoin extends AbstractJoin {
 				if (bucket[0][index0].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(bucket[0][index0]);
 				} else {
-					if (RowUtils.shouldReportTrashingNotJoined(bucket[0][index0])) {
+					if (RowUtils.shouldReportTrashingNotJoined(this, bucket[0][index0])) {
 						notifyTrashingNotJoined(bucket[0][index0]);
 					}
 				}
@@ -353,7 +353,7 @@ public class SVMJoin extends AbstractJoin {
 				if (bucket[1][i].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(bucket[1][i]);
 				} else {
-					if (RowUtils.shouldReportTrashingNotJoined(bucket[1][i])) {
+					if (RowUtils.shouldReportTrashingNotJoined(this, bucket[1][i])) {
 						notifyTrashingNotJoined(bucket[1][i]);
 					}
 				}
@@ -422,7 +422,7 @@ public class SVMJoin extends AbstractJoin {
 		for (Iterator iterator = Xm.getOrderedValuesIterator(); iterator.hasNext();) {
 			Object[] entry = (Object[]) iterator.next();
 			DataRow[] match = (DataRow[]) entry[0];
-			DataRow outRow = RowUtils.buildMergedRow(match[0], match[1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(((Double)entry[2]).doubleValue() * 100)));
+			DataRow outRow = RowUtils.buildMergedRow(this, match[0], match[1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(((Double)entry[2]).doubleValue() * 100)));
 			//outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(((Double)entry[2]).doubleValue() * 100)));
 			markComparedRecords(match[0], match[1], true);
 			bufferedMatches.add(outRow);
@@ -544,7 +544,7 @@ public class SVMJoin extends AbstractJoin {
 						classes.add(new Double(1));
 						list.add(vector);
 						//this is a match - we should return this result.
-						DataRow outRow = RowUtils.buildMergedRow(bucket[0][i], bucket[1][j], getOutColumns(), new EvaluatedCondition(true, false, 100));
+						DataRow outRow = RowUtils.buildMergedRow(this, bucket[0][i], bucket[1][j], getOutColumns(), new EvaluatedCondition(true, false, 100));
 						//TODO: Should this really be 100% confidence?
 						//outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
 						bufferedMatches.add(outRow);
@@ -620,7 +620,7 @@ public class SVMJoin extends AbstractJoin {
 			classes.add(new Double(1));
 			list.add(vector);
 			//this is a match - we should return this result.
-			DataRow outRow = RowUtils.buildMergedRow(row[0], row[1], getOutColumns(), new EvaluatedCondition(true, false, 100));
+			DataRow outRow = RowUtils.buildMergedRow(this, row[0], row[1], getOutColumns(), new EvaluatedCondition(true, false, 100));
 			//outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
 			bufferedMatches.add(outRow);
 			markComparedRecords(row[0], row[1], true);

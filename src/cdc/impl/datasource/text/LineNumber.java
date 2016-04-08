@@ -37,28 +37,21 @@
 package cdc.impl.datasource.text;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.RandomAccessFile;
 
+import cdc.utils.Utils;
+
 public class LineNumber {
 
-	public static int size(File inputFile) throws IOException {
-		RandomAccessFile randFile = new RandomAccessFile(inputFile, "r");
+	public static int size(String inputFile) throws IOException {
+		RandomAccessFile randFile = new RandomAccessFile(Utils.resolvePath(Utils.parseFilePath(inputFile)[0], true), "r");
 		long byteSize = randFile.length();
 		randFile.close();
-		LineNumberReader lineReader = new LineNumberReader(new BufferedReader(new FileReader(inputFile)));
+		LineNumberReader lineReader = new LineNumberReader(new BufferedReader(Utils.openTextFileForReading(inputFile, true)));
 		lineReader.skip(byteSize);
 		return lineReader.getLineNumber();
-	}
-	
-	public static void main(String[] args) throws IOException {
-		long t1 = System.currentTimeMillis();
-		System.out.println("Size: " + size(new File("data-sample/data-88000.csv")));
-		long t2 = System.currentTimeMillis();
-		System.out.println("Time: " + (t2-t1));
 	}
 
 }

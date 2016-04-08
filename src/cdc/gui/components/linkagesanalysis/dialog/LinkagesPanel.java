@@ -47,6 +47,7 @@ import java.util.EventObject;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -103,9 +104,18 @@ public class LinkagesPanel extends JPanel {
 			public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
 				Component r = super.prepareRenderer(renderer, row, column);
 				prepareBackground(r, row, column);
+				if (r instanceof JComponent) {
+					((JComponent) r).setToolTipText(null);
+				}
 				if (visibleLinkages && ((firstColumnCreator != null && column == 1) || (firstColumnCreator == null && column == 0))) {
 					r.setFont(getFont().deriveFont(Font.BOLD).deriveFont(r.getFont().getSize() + 2.0F));
 					((JLabel)r).setHorizontalAlignment(JLabel.CENTER);
+				} else {
+					int[] visible = model.visibleRowAndColumn(row, column);
+					Object val = getValueAt(visible[0], visible[1]);
+					if (r instanceof JComponent && val != null) {
+						((JComponent) r).setToolTipText(String.valueOf(val));
+					}
 				}
 				if (rollOverIndex != -1) {
 					if (model.spannedRowsAndColumns(row, column)[0] == 1 && visibleLinkages) {

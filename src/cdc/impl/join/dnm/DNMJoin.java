@@ -182,7 +182,7 @@ public class DNMJoin extends AbstractJoin {
 					DataRow rowB = activeBucket[1][index2];
 					EvaluatedCondition eval;
 					if ((eval = getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, getOutColumns(), eval);
+						DataRow joined = RowUtils.buildMergedRow(this, rowA, rowB, getOutColumns(), eval);
 						if (isAnyJoinListenerRegistered()) {
 							notifyJoined(rowA, rowB, joined);
 						}
@@ -201,7 +201,7 @@ public class DNMJoin extends AbstractJoin {
 				index2 = 0;
 				if (activeBucket[0][index1].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(activeBucket[0][index1]);
-				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[0][index1])) {
+				} else if (RowUtils.shouldReportTrashingNotJoined(this, activeBucket[0][index1])) {
 					notifyTrashingNotJoined(activeBucket[0][index1]);
 				}
 			}
@@ -209,7 +209,7 @@ public class DNMJoin extends AbstractJoin {
 			for (index2=0; index2 < activeBucket[1].length; index2++) {
 				if (activeBucket[1][index2].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(activeBucket[1][index2]);
-				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[1][index2])) {
+				} else if (RowUtils.shouldReportTrashingNotJoined(this, activeBucket[1][index2])) {
 					notifyTrashingNotJoined(activeBucket[1][index2]);
 				}
 			}

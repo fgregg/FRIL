@@ -99,6 +99,10 @@ public class BlockingJoin extends AbstractJoin {
 		public void notifyTrashingNotJoined(DataRow dataRow) throws RJException {
 			BlockingJoin.this.notifyTrashingNotJoined(dataRow);
 		}
+
+		public AbstractJoin getJoin() {
+			return BlockingJoin.this;
+		}
 		
 	}
 	

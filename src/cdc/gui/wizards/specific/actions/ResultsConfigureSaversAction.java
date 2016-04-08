@@ -70,6 +70,7 @@ import cdc.gui.components.table.TablePanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
+import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.impl.resultsavers.DeduplicatingResultsSaver;
 import cdc.impl.resultsavers.ResultSaversGroup;
 import cdc.utils.GuiUtils;
@@ -206,6 +207,14 @@ public class ResultsConfigureSaversAction extends WizardAction {
 		
 		prepareDeduplication(deduplication);
 		prepareConflictResolving(conflicts);
+		
+		if (MainFrame.main.getConfiguredSystem().getJoin() instanceof StrataJoinWrapper) {
+			dedupeBoth.setEnabled(false);
+			dedupeLeft.setEnabled(false);
+			dedupeRight.setEnabled(false);
+			noDedupe.setEnabled(true);
+			updateSelection();
+		}
 		
 		JPanel buffer = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();

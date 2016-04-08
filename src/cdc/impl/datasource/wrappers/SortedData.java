@@ -56,7 +56,6 @@ import java.util.zip.GZIPOutputStream;
 
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
-import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
 import cdc.impl.datastream.DataRowInputStream;
 import cdc.impl.datastream.DataRowOutputStream;
 import cdc.utils.CPUInfo;
@@ -111,7 +110,7 @@ public class SortedData {
 	private volatile boolean fileUsed = false;
 	private volatile boolean interrupted = false;
 	
-	private CacheInterface cache;
+	//private CacheInterface cache;
 	
 	public SortedData(int bufferSize, String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
 		this.sourceName = sourceName;
@@ -122,15 +121,15 @@ public class SortedData {
 		this.comparator = new RowComparator(functions, orderBy);
 	}
 	
-	public SortedData(CacheInterface propsCache, int bufferSize, String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
-		this.sourceName = sourceName;
-		this.orderBy = orderBy;
-		this.functions = functions;
-		this.cache = propsCache;
-		this.BUFFER_SIZE = bufferSize;
-		this.buffer = new DataRow[BUFFER_SIZE];
-		this.comparator = new RowComparator(functions, orderBy);
-	}
+//	public SortedData(CacheInterface propsCache, int bufferSize, String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
+//		this.sourceName = sourceName;
+//		this.orderBy = orderBy;
+//		this.functions = functions;
+//		this.cache = propsCache;
+//		this.BUFFER_SIZE = bufferSize;
+//		this.buffer = new DataRow[BUFFER_SIZE];
+//		this.comparator = new RowComparator(functions, orderBy);
+//	}
 	
 	public SortedData(String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
 		this.sourceName = sourceName;
@@ -200,7 +199,7 @@ public class SortedData {
 				firstTime = false;
 				inputs = new ArrayList();
 				for (int i = 0; i < files.size(); i++) {
-					DataRowInputStream is = new DataRowInputStream(cache, createInputStream((File) files.get(i)));
+					DataRowInputStream is = new DataRowInputStream(createInputStream((File) files.get(i)));
 					ActiveInput input = new ActiveInput();
 					input.is = is;
 					input.row = is.readDataRow();
@@ -269,7 +268,7 @@ public class SortedData {
 		File f = Utils.createBufferFile(this);
 		files.add(f);
 		f.deleteOnExit();
-		DataRowOutputStream oos = new DataRowOutputStream(cache, sourceName, rowModel, createOutputStream(f));
+		DataRowOutputStream oos = new DataRowOutputStream(sourceName, rowModel, createOutputStream(f));
 		oos.addHeaderMetadata("order-by", orderBy);
 		//oos.addHeaderMetadata("functions", functions);
 		for (int i = 0; i < position; i++) {
@@ -322,7 +321,7 @@ public class SortedData {
 //			} catch (IOException e) {
 //				e.printStackTrace();
 //			}
-			cache = null;
+			//cache = null;
 			for (Iterator iterator = inputs.iterator(); iterator.hasNext();) {
 				ActiveInput input = (ActiveInput) iterator.next();
 				try {

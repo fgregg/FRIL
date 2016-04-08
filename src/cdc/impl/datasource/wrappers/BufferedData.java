@@ -90,7 +90,7 @@ public class BufferedData {
 	
 	public BufferedData(File f) throws FileNotFoundException, IOException, RJException {
 		file = f;
-		is = new DataRowInputStream(null, SortedData.createInputStream(file));
+		is = new DataRowInputStream(SortedData.createInputStream(file));
 		sourceName = is.getHeader().dataSourceName;
 	}
 	
@@ -198,7 +198,7 @@ public class BufferedData {
 		if (bufferPosition == BUFFER_SIZE) {
 			//need to flush to file
 			if (os == null) {
-				os = new DataRowOutputStream(null, sourceName, row.getRowModel(), SortedData.createOutputStream(file));
+				os = new DataRowOutputStream(sourceName, row.getRowModel(), SortedData.createOutputStream(file));
 				os.addHeaderMetadata("complete", "true");
 				os.addHeaderMetadata("order-by", orderBy);
 				os.addHeaderMetadata("size", new Long(size));
@@ -233,7 +233,7 @@ public class BufferedData {
 			writeBuffer();
 			os.close();
 			os = null;
-			is = new DataRowInputStream(null, SortedData.createInputStream(file));
+			is = new DataRowInputStream(SortedData.createInputStream(file));
 		}
 	}
 
@@ -254,7 +254,7 @@ public class BufferedData {
 		if (is != null) {
 			//the case of file being used...
 			that.file = file;
-			that.is = new DataRowInputStream(null, SortedData.createInputStream(file));
+			that.is = new DataRowInputStream(SortedData.createInputStream(file));
 			that.sourceName = that.is.getHeader().dataSourceName;
 		} else {
 			//the case of data in memory...
@@ -295,7 +295,7 @@ public class BufferedData {
 	public void reset() throws IOException, RJException {
 		if (is != null) {
 			is.close();
-			is = new DataRowInputStream(null, SortedData.createInputStream(file));
+			is = new DataRowInputStream(SortedData.createInputStream(file));
 		} else {
 			readNext = 0;
 		}

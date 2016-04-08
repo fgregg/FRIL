@@ -176,6 +176,7 @@ public class LinkageConfigureConditionsAction extends WizardAction {
 		rightSourceAction = right;
 		this.strataChooser = joinStratificationConfiguration;
 		createTable();
+		fillInDefaultValues();
 	}
 	
 	public LinkageConfigureConditionsAction(AbstractDataSource sourceA, AbstractDataSource sourceB, LinkageConfigureStrataAction joinStratificationConfiguration) {
@@ -183,6 +184,18 @@ public class LinkageConfigureConditionsAction extends WizardAction {
 		this.sourceB = sourceB;
 		this.strataChooser = joinStratificationConfiguration;
 		createTable();
+		fillInDefaultValues();
+	}
+
+	private void fillInDefaultValues() {
+		addCols(sourceA.getDataModel().getOutputFormat());
+		addCols(sourceB.getDataModel().getOutputFormat());
+	}
+
+	private void addCols(DataColumnDefinition[] outputFormat) {
+		for (int i = 0; i < outputFormat.length; i++) {
+			tablePanel.addRow(new DataColumnDefinition[] {outputFormat[i]});
+		}
 	}
 
 	private void createTable() {

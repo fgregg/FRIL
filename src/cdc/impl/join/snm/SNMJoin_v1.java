@@ -118,6 +118,10 @@ public class SNMJoin_v1 extends AbstractJoin {
 			return functions;
 		}
 
+		public AbstractJoin getJoin() {
+			return SNMJoin_v1.this;
+		}
+
 	}
 
 	private Object mutex = new Object();
@@ -331,11 +335,11 @@ public class SNMJoin_v1 extends AbstractJoin {
 		return new SNMGUIVisibleComponent();
 	}
 	
-	protected void finalize() throws Throwable {
-		System.out.println(getClass() + " finalize");
-		//close();
-		super.finalize();
-	}
+//	protected void finalize() throws Throwable {
+//		System.out.println(getClass() + " finalize");
+//		//close();
+//		super.finalize();
+//	}
 	
 	public boolean newSourceA(AbstractDataSource source) throws IOException, RJException {
 		DataColumnDefinition[] order = parseOrder(getProperty(PARAM_SORT_ORDER_A), source, getJoinCondition().getLeftJoinColumns());

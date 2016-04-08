@@ -158,7 +158,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		for (int i = 0; i < files.length; i++) {
 			File f = new File(files[i]);
 			try {
-				DataRowInputStream is = new DataRowInputStream(null, SortedData.createInputStream(f));
+				DataRowInputStream is = new DataRowInputStream(SortedData.createInputStream(f));
 				DataFileHeader header = is.getHeader();
 				if (isValid(header, parentSource, orderBy)) {
 					Log.log(getClass(), "Using buffered data " + f.getName(), 1);
