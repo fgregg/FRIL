@@ -1,4 +1,4 @@
-Version 2.1 (current)
+Version 2.1.1 (current)
 
 IMPORTANT: If your linkage works on large number of records with large number
 of columns or if you are enablind results desuplication (in either available 
@@ -14,6 +14,8 @@ Update: FRIL attempts to search for file with data in a few locations
 Update: Greatly reduced memory consumption when results deduplication is used
 Update: General memory-oriented optimization
 
+The only difference between versions 2.1 and 2.1.1 is that the latter
+uses a new version of openscv library used to read CSV files.
 
 
 Version 2.0:
