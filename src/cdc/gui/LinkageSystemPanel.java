@@ -121,6 +121,7 @@ public class LinkageSystemPanel extends SystemPanel {
 				checkSystemStatus();
 				MainFrame.main.autosaveIfNeeded();
 				//altered = true;
+				viewResultsButton.setEnabled(false);
 			}
 			wizard = null;
 		}
@@ -156,6 +157,7 @@ public class LinkageSystemPanel extends SystemPanel {
 				checkSystemStatus();
 				MainFrame.main.autosaveIfNeeded();
 				//altered = true;
+				viewResultsButton.setEnabled(false);
 			}
 			wizard = null;
 		}
@@ -176,6 +178,7 @@ public class LinkageSystemPanel extends SystemPanel {
 						configured(joinButton, statJoinLabel);
 						//altered = true;
 						MainFrame.main.autosaveIfNeeded();
+						viewResultsButton.setEnabled(false);
 					}
 				} catch (RJException ex) {
 					JXErrorDialog.showDialog(MainFrame.main, "Error", ex);

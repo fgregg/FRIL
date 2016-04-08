@@ -73,6 +73,9 @@ public class OneTimeTipDialog extends JDialog {
 	public static final String MEMORY_DIALOG = "There might be insufficient memory available for Java.\n \nConsider changing the value of parameter Xmx in startup\nscript (the file you used to start FRIL).";
 	public static final String MEMORY = "memory-message";
 	
+	public static final String NOT_SAVED_COMPARED_COLUMNS_DIALOG = "Some columns that are used in the linkage condition are\nnot saved into the results file.\nThese columns will not be visible in the results viewer.";
+	public static final String NOT_SAVED_COMPARED_COLUMNS = "not-saved-compared-columns";
+	
 	private JButton button;
 	private JCheckBox notShowCheck;
 	

@@ -127,14 +127,23 @@ public class LinkageResultsAnalysisProvider implements ThreadCreatorInterface {
 	}
 
 	private DataColumnDefinition[][] removeNotAvailableColumns(DataColumnDefinition[][] compared, DataColumnDefinition[][] model) {
+		
 		List lList = new ArrayList();
 		List rList = new ArrayList();
+		boolean warning = false;
 		for (int i = 0; i < compared[0].length; i++) {
 			if (isAvailable(compared[0][i], model[0]) && isAvailable(compared[1][i], model[1])) {
 				lList.add(compared[0][i]);
 				rList.add(compared[1][i]);
+			} else {
+				warning  = true;
 			}
 		}
+		
+		if (warning) {
+			OneTimeTipDialog.showInfoDialogIfNeeded("Warning: not saved columns", OneTimeTipDialog.NOT_SAVED_COMPARED_COLUMNS, OneTimeTipDialog.NOT_SAVED_COMPARED_COLUMNS_DIALOG);
+		}
+		
 		return new DataColumnDefinition[][] {(DataColumnDefinition[]) lList.toArray(new DataColumnDefinition[] {}), (DataColumnDefinition[]) rList.toArray(new DataColumnDefinition[] {})};
 	}
 	

@@ -271,13 +271,15 @@ public class EditDistance extends AbstractStringDistance {
 		EditDistance ed = new EditDistance(props);
 		System.out.println(ed.distance("90021", "99021"));
 		
-		System.out.println(ed.distance("A", "A") + " == 1");
-		System.out.println(ed.distance("A", "B") + " == 0");
-		System.out.println(ed.distance("ADAM", "ADAMS") + " == 0.5");
-		System.out.println(ed.distance("SADAM", "ADAM") + " == 0.5");
-		System.out.println(ed.distance("JACOB DOBBS", "JAKOB HOBBS") + " == 0.59");
-		System.out.println(ed.distance("JASPER CISNEROS", "ADEN CISNEROS") + " == 0.17");
-		System.out.println(ed.distance("BREANNA ROBISON", "BRENNA ROBINSON") + " == 0.83");
+		System.out.println(ed.distance("Adam Smith", "Smith Adam"));
+		
+		//System.out.println(ed.distance("A", "A") + " == 1");
+		//System.out.println(ed.distance("A", "B") + " == 0");
+		//System.out.println(ed.distance("ADAM", "ADAMS") + " == 0.5");
+		//System.out.println(ed.distance("SADAM", "ADAM") + " == 0.5");
+		//System.out.println(ed.distance("JACOB DOBBS", "JAKOB HOBBS") + " == 0.59");
+		//System.out.println(ed.distance("JASPER CISNEROS", "ADEN CISNEROS") + " == 0.17");
+		//System.out.println(ed.distance("BREANNA ROBISON", "BRENNA ROBINSON") + " == 0.83");
 		
 		//ÒAÓ	ÒAÓ	0	0.1	0.3	1
 		//ÒAÓ	ÒBÓ	1	0.1	0.3	0
