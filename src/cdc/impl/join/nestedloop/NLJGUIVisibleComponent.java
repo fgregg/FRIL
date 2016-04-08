@@ -79,7 +79,7 @@ public class NLJGUIVisibleComponent extends GUIVisibleComponent {
 
 	public String toString() {
 		// TODO Auto-generated method stub
-		return "Nested loop join";
+		return "Nested loop join (naive)";
 	}
 
 	public boolean validate(JDialog dialog) {

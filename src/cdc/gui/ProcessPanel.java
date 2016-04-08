@@ -110,6 +110,8 @@ public class ProcessPanel extends JPanel {
 	
 	private SystemPanel systemPanel;
 	
+	private JoinThread thread;
+	
 	private SummaryWindow activeSummaryWindow = null;
 	
 	private DetailsActionListener detailsListener;
@@ -127,7 +129,7 @@ public class ProcessPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				progressReporter = new ProgressDialog(MainFrame.main, "Joining records...");
 				JoinInfoPanel infoPanel = new JoinInfoPanel(progressReporter);
-				JoinThread thread = new JoinThread(system, infoPanel);
+				thread = new JoinThread(system, infoPanel);
 				progressReporter.setInfoPanel(infoPanel);
 				progressReporter.addCancelListener(new CancelThreadListener(thread));
 				if (detailsListener != null) {
@@ -193,6 +195,10 @@ public class ProcessPanel extends JPanel {
 		if (activeSummaryWindow != null && activeSummaryWindow.isVisible()) {
 			activeSummaryWindow.setCurrentSystem(system);
 		}
+	}
+	
+	public void appendSummaryMessage(String msg) {
+		thread.appendSummaryMessage(msg);
 	}
 	
 }

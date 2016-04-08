@@ -1,0 +1,68 @@
+Version 1.0 patch3 (current):
+1. Added Jaro-Winkler distance support
+2. Added deduplication of linkage results (options in results savers config)
+3. Added autorecovery of unsaved configuration if application crashes
+4. Added option to open configuration of other datasource (datasource configuration)
+5. New feature in Tools menu - deduplicate file
+6. Improved Performance/memory management
+7. Improved GUI organization
+
+Version 1.0 patch2:
+1. Fixed bug in Q-Grams distance (calculation of score could give wrong results for some cases)
+2. Fixed bug in SNM (reporting of not joined records could omit some data)
+3. Fixed bug in removing many list entries at once using "minus" button
+4. Improved linkage optimization and memory management
+5. Improved support for dynamic analysis
+6. Improved multiple sheets support in Excel data source
+
+Version 1.0 patch1:
+1. New feature: script editor in converters
+2. Bugfixes: Nested Loops, Sorted Neighborhood Method
+3. Bugfixes: User interface (join/data source configuration)
+4. Bugfixes: Excel data source
+5. Bugfixes: Date Distance - after and before ranges were switched
+   WARNING: If you used this distance you might need to revise your configuration
+
+Version 1.0
+1. Improved cancel responsivity (for load configuration)
+2. New Feature: Support for multicore architectures
+3. Improved progress bars (real progress is shown)
+4. Improved memory management
+5. New Feature: Excel files support
+6. New Feature: Window for configuration JDBC connection
+7. New Feature: Configuration window for properties
+8. New Feature: Linkage histogram
+9. Corrected SNM method (e.g. when date distance is chosen, data is sorted based on dates comparison)
+10. Minor bugfixes
+11. New Feature: Data source deduplication
+
+Version: 0.6
+1. Feature of copy join between strata
+2. Info on strata name in saved results
+3. 'Add all columns' feature in configuration of data source
+5. 'Rename column' feature in configuration of data source
+6. Various bugs in user interface fixed
+
+Version: 0.5
+1. Split converter now supports more than one split character
+2. Feature of 'Edit converter' in datasource configuration
+3. New converter: Replace converter
+4. Fixed not-joined summary (saving in the same directory as result, saving only column names)
+5. Revised numeric and date distance functions
+6. Feature of 'Edit result saver'
+7. New feature: multi-level converters
+8. New feature: Data stratification
+9. Moved to Java 1.6 (better memory management)
+10. Order selection in SNM method now moved to last step of wizard
+11. Updated feature: New progress window
+12. Updated feature: Configuration loading and join preparation are separated now
+13. Minor bugfixes across the application
+
+Version: 0.3
+1. Limit on number of iterations in EM
+2. New features in numeric distance
+3. Added support for distance between dates/time
+4. Improved sampling in "Show examples" when adding condition
+5. Added information on errors when dynamic analysis is used
+6. Fixed bug: dynamic analysis window did not close when switching between different distance functions
+7. Corrected minor bugs in user interface

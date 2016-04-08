@@ -36,8 +36,9 @@
 
 package cdc.gui.wizards.specific;
 
+import java.awt.Window;
+
 import javax.swing.JComponent;
-import javax.swing.JFrame;
 
 import cdc.components.AbstractDataSource;
 import cdc.gui.Configs;
@@ -51,9 +52,9 @@ import cdc.impl.deduplication.DeduplicationConfig;
 public class DataSourceWizard {
 	
 	private static String[] steps = new String[] {
-		"Data source configuration (step 1 of 3)",
-		"Data source fields (step 2 of 3)",
-		"Data de-duplication (step 3 of 3)"
+		"Dedupe data source configuration (step 1 of 3)",
+		"Dedupe data source fields (step 2 of 3)",
+		"Dedupe configuration (step 3 of 3)"
 	};
 	
 	private AbstractWizard wizard;
@@ -62,10 +63,10 @@ public class DataSourceWizard {
 	private ChooseSourceFieldsAction sourceFieldsAction;
 	private DataSourceDeduplication sourceDeduplication;
 	
-	public DataSourceWizard(JFrame parent, AbstractDataSource source, JComponent component, String defaultName) {
+	public DataSourceWizard(int id, Window parent, AbstractDataSource source, JComponent component, String defaultName) {
 		
 		sourceAction = new ChooseSourceAction(defaultName);
-		sourceFieldsAction = new ChooseSourceFieldsAction(sourceAction);
+		sourceFieldsAction = new ChooseSourceFieldsAction(id, sourceAction);
 		sourceDeduplication = new DataSourceDeduplication(sourceAction, source);
 		sourceAction.setDataSource(source);
 		
@@ -96,5 +97,9 @@ public class DataSourceWizard {
 		sourceFieldsAction.dispose();
 		sourceAction = null;
 		sourceFieldsAction = null;
+	}
+
+	public void bringToFront() {
+		wizard.toFront();
 	}
 }

@@ -315,6 +315,18 @@ public class TrimConverter extends AbstractColumnConverter {
 		String columnName = DOMUtils.getAttribute(element, "column");
 		Element paramsNode = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
 		Map params = Configuration.parseParams(paramsNode);
+		if (!params.containsKey(PROPERTY_END_TRIM)) {
+			params.put(PROPERTY_END_TRIM, "-1");
+		}
+		if (!params.containsKey(PROPERTY_LEAVE_LAST)) {
+			params.put(PROPERTY_LEAVE_LAST, "-1");
+		}
+		if (!params.containsKey(PROPERTY_FRONT_TRIM)) {
+			params.put(PROPERTY_FRONT_TRIM, "-1");
+		}
+		if (!params.containsKey(PROPERTY_LEAVE_FIRST)) {
+			params.put(PROPERTY_LEAVE_FIRST, "-1");
+		}
 		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(columnName);
 		return new TrimConverter(name, params, column);
 	}

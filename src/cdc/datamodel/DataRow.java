@@ -47,18 +47,22 @@ public class DataRow implements Externalizable {
 	
 	private String sourceName;
 	
+	private int recordId;
 	private DataCell[] cells;
 	private transient RowModel model;
 	private String hashString;
 	
+	
 	private Map properties = null;
 	
 	public DataRow() {
-		System.out.println("Constructor!!!!!");
+		//System.out.println("Constructor!!!!!");
+		this.recordId = super.hashCode();
 	}
 	
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data) {
 		this(rowModel, data, "Unknown data source");
+		this.recordId = super.hashCode();
 	}
 	
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data, String sourceName) {
@@ -66,13 +70,16 @@ public class DataRow implements Externalizable {
 		cells = data;
 		//System.out.println("Setting data row: " + PrintUtils.printArray(data));
 		this.sourceName = sourceName;
+		this.recordId = super.hashCode();
 		if (rowModel.length != data.length) {
 			throw new RuntimeException("Row model has to have the same number of items as row cells number.");
 		}
 	}
 	
 	public DataCell getData(DataColumnDefinition cell) {
-		//System.out.println("Getting data for cells (" + cell.getSourceName() + "): " + cells);
+		if (cell instanceof PropertyBasedColumn) {
+			return new DataCell(DataColumnDefinition.TYPE_STRING, getProperty(((PropertyBasedColumn)cell).getColumnName()));
+		}
 		return cells[model.getCellId(cell)];
 	}
 	
@@ -174,6 +181,10 @@ public class DataRow implements Externalizable {
 	
 	public void setProperies(Map props) {
 		this.properties = props;
+	}
+	
+	public int getRecordId() {
+		return recordId;
 	}
 
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

@@ -38,58 +38,36 @@ package cdc.gui;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import cdc.configuration.ConfiguredSystem;
+import cdc.components.AbstractDataSource;
+import cdc.components.AbstractResultsSaver;
 import cdc.datamodel.DataRow;
-import cdc.gui.components.progress.JoinInfoPanel;
+import cdc.gui.components.progress.DedupeInfoPanel;
 import cdc.gui.external.JXErrorDialog;
+import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 
-public class JoinThread extends StoppableThread {
-	
-	private class PollingThread extends Thread {
-		JoinInfoPanel panel;
-		private ConfiguredSystem system;
-		public PollingThread(JoinInfoPanel panel, ConfiguredSystem system) {
-			this.panel = panel;
-			this.system = system;
-		}
-		public void run() {
-			while (JoinThread.this.info != null) {
-				try {
-					SwingUtilities.invokeAndWait(new Runnable() {
-						public void run() {
-							panel.getProgressBar().setValue(system.getJoin().getProgress());
-						}
-					});
-					sleep(20);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
-			}
-			this.panel = null;
-			this.system = null;
-		}
-	}
+public class DeduplicationThread extends StoppableThread {
 	
 	//private Animation animation;
-	private volatile JoinInfoPanel info;
-	private ConfiguredSystem system;
+	private volatile DedupeInfoPanel info;
+	private AbstractDataSource source;
+	private String fileLocation;
 	private volatile boolean stopped = false;
 	private long t1;
 	private long t2;
 	private int n;
-	private StringBuilder summaryMessage = new StringBuilder();
 	
-	public JoinThread(ConfiguredSystem system, JoinInfoPanel info) {
-		this.system = system;
+	public DeduplicationThread(AbstractDataSource source, String resultsFile, DedupeInfoPanel info) {
+		this.source = source;
 		this.info = info;
+		this.fileLocation = resultsFile;
 	}
 	
 	public void run() {
@@ -98,84 +76,79 @@ public class JoinThread extends StoppableThread {
 		//JFrame frame = null;
 		try {
 			
+			sleep(1000);
+			
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
-					info.getProgressBar().setIndeterminate(!system.getJoin().isProgressSupported());
+					info.getProgressBar().setIndeterminate(false);
 				}
 			});
 			
 			System.gc();
 			
-			system.getJoin().reset();
-			if (system.getJoin().isProgressSupported()) {
-				new PollingThread(info, system).start();
-			}
-			system.getResultSaver().reset();
+			source = source.getPreprocessedDataSource();
+			
+			Map props = new HashMap();
+			props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileLocation);
+			AbstractResultsSaver saver = new CSVFileSaver(props);
 			
 			t1 = System.currentTimeMillis();
-			while ((row = system.getJoin().joinNext()) != null) {
+			while ((row = source.getNextRow()) != null) {
 				n++;
-				system.getResultSaver().saveRow(row);
-				SwingUtilities.invokeAndWait(new Runnable() {
-					public void run() {
-						info.incrementJoined();
-					}
-				});
+				saver.saveRow(row);
 				if (stopped) {
 					break;
 				}
 				
 			}
-			system.getResultSaver().flush();
 			t2 = System.currentTimeMillis();
-			system.getResultSaver().close();
-			system.getJoin().closeListeners();
-			//system.getJoin().close();
+			saver.flush();
+			saver.close();
 			
-			Log.log(getClass(), system.getJoin() + ": Algorithm produced " + n + " joined tuples. Elapsed time: " + (t2 - t1) + "ms.", 1);
+			Log.log(getClass(), "Deduplication completed. Elapsed time: " + (t2 - t1) + "ms.", 1);
 			closeProgress();
 			//animation.stopAnimation();
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
 					if (stopped) {
-						Log.log(getClass(), "JOIN was cancelled", 1);
-						JOptionPane.showMessageDialog(MainFrame.main, "Join cancelled by user\nNumber of joined records: " + n + getMessage() + "\nLinkage process interrupted after " + (t2-t1) + "ms");
+						Log.log(getClass(), "Deduplication was cancelled", 1);
+						JOptionPane.showMessageDialog(MainFrame.main, "Deduplication was cancelled.\nTime: " + (t2-t1) + "ms");
 					} else {
-						JOptionPane.showMessageDialog(MainFrame.main, "Join successfully completed :)\nNumber of joined records: " + n + getMessage() + "\nLinkage process took " + (t2-t1) + "ms");
+						JOptionPane.showMessageDialog(MainFrame.main, "Deduplication complete." + "\nProcess took " + (t2-t1) + "ms");
 					}
 				}
-
 			});
 			
 		} catch (RJException e) {
-			JXErrorDialog.showDialog(MainFrame.main, "Error while joining data", e);
+			JXErrorDialog.showDialog(MainFrame.main, "Error while deduplicating data", e);
 			closeProgress();
 		} catch (IOException e) {
-			JXErrorDialog.showDialog(MainFrame.main, "Error while joining data", e);
+			JXErrorDialog.showDialog(MainFrame.main, "Error while deduplicating data", e);
 			closeProgress();
 		} catch (Exception e) {
-			JXErrorDialog.showDialog(MainFrame.main, "Error while joining data", e);
+			JXErrorDialog.showDialog(MainFrame.main, "Error while deduplicating data", e);
 			closeProgress();
+		} finally {
+			try {
+				source.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
 		}
 		
-		system.getJoin().setCancelled(false);
 		info = null;
-		system = null;
+		source = null;
 	}
 
-	private String getMessage() {
-		if (summaryMessage.length() != 0) {
-			return "\n" + summaryMessage.toString();
-		} else {
-			return "";
-		}
-	}
 
 	private void closeProgress() {
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
-					info.joinCompleted();
+					info.dedupeCompleted();
 				}
 			});
 		} catch (InterruptedException e) {
@@ -187,12 +160,7 @@ public class JoinThread extends StoppableThread {
 
 	public void scheduleStop() {
 		this.stopped = true;
-		this.system.getJoin().setCancelled(true);
 		//this.interrupt();
-	}
-
-	public void appendSummaryMessage(String msg) {
-		summaryMessage.append(msg);
 	}
 	
 }

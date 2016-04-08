@@ -22,10 +22,17 @@ public class DataSourceDeduplication extends WizardAction {
 	private AbstractWizard activeWizard;
 	private JCheckBox dedupOn;
 	private AbstractDataSource originalDataSource;
+	private boolean enabled = true;
 	
 	public DataSourceDeduplication(ChooseSourceAction sourceAction, AbstractDataSource originalDataSource) {
 		this.sourceAction = sourceAction;
 		this.originalDataSource = originalDataSource;
+	}
+
+	public DataSourceDeduplication(ChooseSourceAction sourceAction, AbstractDataSource originalDataSource, boolean enabled) {
+		this.sourceAction = sourceAction;
+		this.originalDataSource = originalDataSource;
+		this.enabled = enabled;
 	}
 	
 	public JPanel beginStep(AbstractWizard wizard) {
@@ -33,15 +40,21 @@ public class DataSourceDeduplication extends WizardAction {
 		JPanel mainPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		dedupOn = new JCheckBox("Perform de-duplication for the data source");
 		button = new JButton("Preferences");
-		if (originalDataSource != null && originalDataSource.getDeduplicationConfig() != null) {
-			config = originalDataSource.getDeduplicationConfig();
-			config.fixIfNeeded(sourceAction.getDataSource());
+		if (!enabled) {
+			dedupOn.setEnabled(false);
 			dedupOn.setSelected(true);
-			button.setEnabled(true);
-		} else {
 			config = new DeduplicationConfig(sourceAction.getDataSource());
-			dedupOn.setSelected(false);
-			button.setEnabled(false);
+		} else {
+			if (originalDataSource != null && originalDataSource.getDeduplicationConfig() != null) {
+				config = originalDataSource.getDeduplicationConfig();
+				config.fixIfNeeded(sourceAction.getDataSource());
+				dedupOn.setSelected(true);
+				button.setEnabled(true);
+			} else {
+				config = new DeduplicationConfig(sourceAction.getDataSource());
+				dedupOn.setSelected(false);
+				button.setEnabled(false);
+			}
 		}
 		dedupOn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {

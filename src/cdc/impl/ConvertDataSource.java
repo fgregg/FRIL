@@ -39,6 +39,7 @@ public class ConvertDataSource {
 		Map props = new HashMap();
 		props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, outFile);
 		props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+		props.put(CSVFileSaver.SAVE_CONFIDENCE, "false");
 		AbstractResultsSaver saver = new CSVFileSaver(props);
 		DataRow row;
 		while ((row = source.getNextRow()) != null) {

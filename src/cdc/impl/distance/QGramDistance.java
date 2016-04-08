@@ -232,17 +232,6 @@ public class QGramDistance extends AbstractStringDistance {
 		this.qgram = qgram;
 	}
 	
-	public boolean distanceSatisfied(DataCell cell1, DataCell cell2) {
-		
-		int maxDistance = (int)Math.round((((Map)gramsS1.get()).size() + ((Map)gramsS2.get()).size()) * APPROVE);
-		int distance = distanceInt(cell1, cell2);
-		
-		((Map)gramsS1.get()).clear();
-		((Map)gramsS2.get()).clear();
-		
-		return distance < maxDistance;
-	}
-	
 	private int measureDistance(Map gramsS1, Map gramsS2) {
 		int diff = 0;
 		if (logLevel >= 3) {

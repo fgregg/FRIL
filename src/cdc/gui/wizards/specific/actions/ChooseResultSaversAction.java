@@ -36,42 +36,76 @@
 
 package cdc.gui.wizards.specific.actions;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
+import javax.swing.ButtonGroup;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.JSeparator;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 
 import cdc.components.AbstractResultsSaver;
 import cdc.gui.DialogListener;
 import cdc.gui.GUIVisibleComponent;
+import cdc.gui.MainFrame;
 import cdc.gui.OptionDialog;
+import cdc.gui.components.table.TablePanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
+import cdc.impl.resultsavers.DeduplicatingResultsSaver;
+import cdc.impl.resultsavers.ResultSaversGroup;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
 
 public class ChooseResultSaversAction extends WizardAction {
+	
+	class RadioSelector implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			updateSelection();
+		}
+	}
+	
+	private static final String resolve = "<html><font color=\"#%s\">When two different records are linked with the same record from other file and have the same match score:</html>";
+	private static final String dedupeParam = "deduplication";
+	private static final String dedupeLeftConfig = "left";
+	private static final String dedupeRightConfig = "right";
+	private static final String dedupeBothConfig = "both";
+	private static final String resolveParam = "delete-duplicates";
+	
+	private TablePanel table;
+	
+	private JRadioButton noDedupe;
+	private JRadioButton dedupeLeft;
+	private JRadioButton dedupeRight;
+	private JRadioButton dedupeBoth;
+	
+	private JLabel resolveLabel;
+	private JRadioButton resolveDelete;
+	private JRadioButton resolveDoNothing;
+	
+	private JComponent separator;
 
-	private JPanel buffer;
-	private DefaultListModel saversModel = new DefaultListModel();
-	private JList saversList = new JList(saversModel);
 	private AbstractWizard parent;
 	
 	private class NewSaverPanel extends JPanel implements DialogListener {
@@ -135,132 +169,221 @@ public class ChooseResultSaversAction extends WizardAction {
 		}
 
 		public void windowClosing(JDialog parent) {
-			// TODO Auto-generated method stub
-			
 		}
 		
 	}
 	
-	private class ButtonEnablerListener implements ListSelectionListener {
-		private JButton button;
-		public ButtonEnablerListener(JButton button) {
-			this.button = button;
-		}
-		public void valueChanged(ListSelectionEvent e) {
-			if (e.getFirstIndex() != -1) {
-				button.setEnabled(true);
-			} else {
-				button.setEnabled(false);
-			}
-		}
-	}
-	
 	public JPanel beginStep(AbstractWizard wizard) {
-		wizard.getMainPanel().setLayout(new BoxLayout(wizard.getMainPanel(), BoxLayout.LINE_AXIS));
+		//wizard.getMainPanel().setLayout(new BoxLayout(wizard.getMainPanel(), BoxLayout.LINE_AXIS));
 		parent = wizard;
-		if (buffer == null) {			
-			
-			JButton remOut = new JButton("Remove selected");
-			remOut.setPreferredSize(new Dimension(120, 20));
-			remOut.setEnabled(false);
-			remOut.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					Object[] selected = saversList.getSelectedValues();
-					saversList.clearSelection();
-					for (int i = 0; i < selected.length; i++) {
-						saversModel.removeElement(selected[i]);
-					}
-					((JButton)e.getSource()).setEnabled(false);
+		
+		table = new TablePanel(new String[] {"Result saver type", "Parameters"}, true);
+		table.setBorder(BorderFactory.createTitledBorder("Results savers"));
+		table.addAddButtonListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				OptionDialog newSaver = new OptionDialog(parent, "New results saver");
+				NewSaverPanel panel = new NewSaverPanel(newSaver, null);
+				newSaver.setMainPanel(panel);
+				if (newSaver.getResult() == OptionDialog.RESULT_OK) {
+					AbstractResultsSaver saver = panel.getConfiguredSaver();
+					table.addRow(new Object[] {saver, saver.getProperties()});
 				}
-			});
-			JButton add = new JButton("Create new...");
-			add.setPreferredSize(new Dimension(120, 20));
-			add.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					OptionDialog dialog = new OptionDialog(parent, "New results saver");
-					NewSaverPanel panel = new NewSaverPanel(dialog, null);
-					dialog.setMainPanel(panel);
-					dialog.setLocationRelativeTo((JButton)e.getSource());
-					dialog.addOptionDialogListener(panel);
-					if (dialog.getResult() == OptionDialog.RESULT_OK) {
-						saversModel.addElement(panel.getConfiguredSaver());
-					}
+			}
+		});
+		table.addEditButtonListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				OptionDialog newSaver = new OptionDialog(parent, "Edit results saver");
+				NewSaverPanel panel = new NewSaverPanel(newSaver, (AbstractResultsSaver)((Object[])table.getSelectedRows()[0])[0]);
+				newSaver.setMainPanel(panel);
+				if (newSaver.getResult() == OptionDialog.RESULT_OK) {
+					AbstractResultsSaver saver = panel.getConfiguredSaver();
+					table.replaceRow(table.getSelectedRowId()[0], new Object[] {saver, saver.getProperties()});
 				}
-			});
-			JButton edit = new JButton("Edit");
-			edit.setPreferredSize(new Dimension(120, 20));
-			edit.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					OptionDialog dialog = new OptionDialog(parent, "Edit results saver");
-					DefaultListModel model = (DefaultListModel) saversList.getModel();
-					int selected = saversList.getSelectedIndex();
-					NewSaverPanel panel = new NewSaverPanel(dialog, (AbstractResultsSaver) model.elementAt(selected));
-					dialog.setMainPanel(panel);
-					dialog.setLocationRelativeTo((JButton)e.getSource());
-					dialog.addOptionDialogListener(panel);
-					if (dialog.getResult() == OptionDialog.RESULT_OK) {
-						model.add(selected, panel.getConfiguredSaver());
-						model.remove(selected + 1);
-					}
-				}
-			});
-			edit.setEnabled(false);
-			
-			JPanel panelButtons = new JPanel();
-			panelButtons.setLayout(new GridLayout(3, 1, 10, 0));
-			panelButtons.setPreferredSize(new Dimension(140, 60));
-			panelButtons.add(add);
-			panelButtons.add(edit);
-			panelButtons.add(remOut);
-			JScrollPane listScrollPane = new JScrollPane(saversList);
-	        listScrollPane.setPreferredSize(new Dimension(420, 200));
-			JPanel savers = new JPanel(new FlowLayout());
-			savers.setPreferredSize(new Dimension(620, 250));
-			savers.setBorder(BorderFactory.createTitledBorder("Current results savers"));
-			savers.add(panelButtons);
-			savers.add(listScrollPane);
-			saversList.addListSelectionListener(new ButtonEnablerListener(remOut));
-			saversList.addListSelectionListener(new ButtonEnablerListener(edit));
-			
-			buffer = new JPanel();
-			buffer.add(savers);
-		}
+			}
+		});
+		
+		JPanel deduplication = new JPanel();
+		deduplication.setBorder(BorderFactory.createTitledBorder("Results deduplication"));
+		
+		prepareDeduplication(deduplication);
+		
+		JPanel buffer = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		buffer.add(table, c);
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 1;
+		c.weightx = 1;
+		c.weighty = 0;
+		c.fill = GridBagConstraints.BOTH;
+		buffer.add(deduplication, c);
+		
 		return buffer;
 	}
 
+	private void prepareDeduplication(JPanel deduplication) {
+		String s1 = MainFrame.main.getSystem().getSourceA().getSourceName();
+		String s2 = MainFrame.main.getSystem().getSourceB().getSourceName();;
+		noDedupe = new JRadioButton("No deduplication");
+		dedupeLeft = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s1, s2}));
+		dedupeRight = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s2, s1}));
+		dedupeBoth = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s' and ", new Object[] {s1, s2}) + 
+				String.format("every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s2, s1}));
+		
+		ButtonGroup group = new ButtonGroup();
+		group.add(noDedupe);
+		group.add(dedupeLeft);
+		group.add(dedupeRight);
+		group.add(dedupeBoth);
+		
+		resolveLabel = new JLabel();
+		resolveDoNothing = new JRadioButton("Do nothing.");
+		resolveDelete = new JRadioButton("Choose one linkage randomly and delete others.");
+		
+		ButtonGroup group1 = new ButtonGroup();
+		group1.add(resolveDoNothing);
+		group1.add(resolveDelete);
+		resolveDoNothing.setSelected(true);
+		resolveDelete.setEnabled(false);
+		resolveDoNothing.setEnabled(false);
+		resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
+		
+		noDedupe.addActionListener(new RadioSelector());
+		dedupeLeft.addActionListener(new RadioSelector());
+		dedupeRight.addActionListener(new RadioSelector());
+		dedupeBoth.addActionListener(new RadioSelector());
+		noDedupe.setSelected(true);
+		
+		deduplication.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		deduplication.add(noDedupe, c);
+		c = new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		deduplication.add(dedupeLeft, c);
+		c = new GridBagConstraints(0, 2, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		deduplication.add(dedupeRight, c);
+		c = new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		deduplication.add(dedupeBoth, c);
+		dedupeBoth.setVerticalTextPosition(SwingConstants.TOP);
+		
+		separator = new JPanel(new BorderLayout());
+		separator.add(new JSeparator());
+		separator.setMinimumSize(new Dimension(10, 10));
+		c = new GridBagConstraints(0, 4, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		deduplication.add(separator, c);
+		
+		c = new GridBagConstraints(0, 5, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 20, 0, 20), 0, 0);
+		deduplication.add(resolveLabel, c);
+		c = new GridBagConstraints(0, 6, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 40, 0, 40), 0, 0);
+		deduplication.add(resolveDoNothing, c);
+		c = new GridBagConstraints(0, 7, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 40, 0, 40), 0, 0);
+		deduplication.add(resolveDelete, c);
+	}
+
+	private String getColor(JRadioButton label) {
+		Color c = UIManager.getColor(label.isEnabled() ? "Label.foreground" : "Label.disabledForeground");
+		c = c == null ? new Color(0,0,0) : c;
+		return pad(Integer.toHexString(c.getRed())) + pad(Integer.toHexString(c.getGreen())) + pad(Integer.toHexString(c.getBlue()));
+	}
+
+	private String pad(String hexString) {
+		return hexString.length() == 1 ? "0" + hexString : hexString;
+	}
+
 	public boolean endStep(AbstractWizard wizard) {
-		if (saversModel.getSize() == 0) {
-			JOptionPane.showMessageDialog(wizard, "At least one result saver is required.");
+		if (table.getRows().length == 0) {
+			JOptionPane.showMessageDialog(wizard, "At least one results saver is required.");
 			return false;
 		}
 		return true;
 	}
 
-	public AbstractResultsSaver[] getResultsSavers() {
-		AbstractResultsSaver[] cols = new AbstractResultsSaver[saversModel.size()];
+	public AbstractResultsSaver getResultsSaver() {
+		Object[] rows = table.getRows();
+		AbstractResultsSaver[] cols = new AbstractResultsSaver[rows.length];
 		for (int i = 0; i < cols.length; i++) {
-			cols[i] = (AbstractResultsSaver) saversModel.getElementAt(i);
+			cols[i] = (AbstractResultsSaver) ((Object[])rows[i])[0];
 		}
-		return cols;
+		if (noDedupe.isSelected()) {
+			return cols.length == 1 ? cols[0] : new ResultSaversGroup(cols);
+		}
+		try {
+			return new DeduplicatingResultsSaver(cols, getDedupeConfig());
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
-	public void setResultSavers(AbstractResultsSaver[] savers) {
+	private Map getDedupeConfig() {
+		Map map = new HashMap();
+		if (dedupeLeft.isSelected()) {
+			map.put(dedupeParam, dedupeLeftConfig);
+			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+		} else if (dedupeRight.isSelected()) {
+			map.put(dedupeParam, dedupeRightConfig);
+			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+		} else if (dedupeBoth.isSelected()) {
+			map.put(dedupeParam, dedupeBothConfig);
+			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+		}
+		return map;
+	}
+	
+	public void setResultSavers(AbstractResultsSaver savers) {
 		if (savers == null) return;
-		saversModel.removeAllElements();
-		for (int i = 0; i < savers.length; i++) {
-			saversModel.addElement(savers[i]);
+		table.removeAllRows();
+		
+		if (savers instanceof ResultSaversGroup) {
+			noDedupe.setSelected(true);
+			AbstractResultsSaver[] children = ((ResultSaversGroup)savers).getChildren();
+			for (int i = 0; i < children.length; i++) {
+				table.addRow(new Object[] {children[i], children[i].getProperties()});
+			}
+		} else if (savers instanceof DeduplicatingResultsSaver) {
+			Map props = ((DeduplicatingResultsSaver)savers).getProperties();
+			if (props.get(dedupeParam).equals(dedupeLeftConfig)) {
+				dedupeLeft.setSelected(true);
+			} else if (props.get(dedupeParam).equals(dedupeRightConfig)) {
+				dedupeRight.setSelected(true);
+			} else if (props.get(dedupeParam).equals(dedupeBothConfig)) {
+				dedupeBoth.setSelected(true);
+			} else {
+				noDedupe.setSelected(true);
+			}
+			if (props.get(resolveParam).equals("true")) {
+				resolveDelete.setSelected(true);
+			} else {
+				resolveDoNothing.setSelected(true);
+			}
+			updateSelection();
+			AbstractResultsSaver[] children = ((DeduplicatingResultsSaver)savers).getChildren();
+			for (int i = 0; i < children.length; i++) {
+				table.addRow(new Object[] {children[i], children[i].getProperties()});
+			}
+		} else {
+			table.addRow(new Object[] {savers, savers.getProperties()});
 		}
 	}
 	
-	public void setSize(int width, int height) {
-		new Exception().printStackTrace();
+	private void updateSelection() {
+		resolveDoNothing.setEnabled(!noDedupe.isSelected());
+		resolveDelete.setEnabled(!noDedupe.isSelected());
+		separator.setEnabled(!noDedupe.isSelected());
+		resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
 	}
 
 	public void dispose() {
-		parent = null;
-		saversModel = null;
-		saversList = null;
-		buffer = null;
+		table = null;
+	}
+
+	public void setSize(int width, int height) {
+		
 	}
 
 }
+

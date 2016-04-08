@@ -42,7 +42,7 @@ import cdc.datamodel.DataRow;
 import cdc.utils.Log;
 import cdc.utils.StringUtils;
 
-public class AtomicCondition {
+public class AtomicCondition implements Condition {
 
 	public static String[] conds = new String[] {"<=", "<", "==", "!=", ">", ">="};
 	

@@ -176,7 +176,7 @@ public class SVMGuiVisibleComponent extends GUIVisibleComponent {
 	}
 
 	public String toString() {
-		return "SVM test join";
+		return "SVM join (experimental)";
 	}
 	public Class getProducedComponentClass() {
 		return SVMJoin.class;

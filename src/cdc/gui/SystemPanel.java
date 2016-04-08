@@ -43,6 +43,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -84,6 +85,9 @@ public class SystemPanel extends JPanel {
 					}
 				} else if (result == JOptionPane.CANCEL_OPTION) {
 					return false;
+				} else {
+					//delete tmp config
+					MainFrame.main.deleteBackupConfig();
 				}
 			}
 			return true;
@@ -91,8 +95,13 @@ public class SystemPanel extends JPanel {
 	}
 	
 	private class SourceAButtonListener implements ActionListener {
+		private DataSourceWizard wizard = null;
 		public void actionPerformed(ActionEvent e) {
-			DataSourceWizard wizard = new DataSourceWizard(MainFrame.main, sourceA, SystemPanel.this, "sourceA");
+			if (wizard != null) {
+				wizard.bringToFront();
+				return;
+			}
+			wizard = new DataSourceWizard(0, MainFrame.main, sourceA, /*SystemPanel.this*/sourceAButton, "sourceA");
 			if (wizard.getResult() == AbstractWizard.RESULT_OK) {
 				sourceA = wizard.getConfiguredDataSource();
 				wizard.dispose();
@@ -113,14 +122,21 @@ public class SystemPanel extends JPanel {
 				}
 				updateSystem();
 				checkSystemStatus();
+				MainFrame.main.autosaveIfNeeded();
 				altered = true;
 			}
+			wizard = null;
 		}
 	}
 	
 	private class SourceBButtonListener implements ActionListener {
+		private DataSourceWizard wizard = null;
 		public void actionPerformed(ActionEvent e) {
-			DataSourceWizard wizard = new DataSourceWizard(MainFrame.main, sourceB, SystemPanel.this, "sourceB");
+			if (wizard != null) {
+				wizard.bringToFront();
+				return;
+			}
+			wizard = new DataSourceWizard(1, MainFrame.main, sourceB, /*SystemPanel.this*/sourceBButton, "sourceB");
 			if (wizard.getResult() == AbstractWizard.RESULT_OK) {
 				sourceB = wizard.getConfiguredDataSource();
 				wizard.dispose();
@@ -141,8 +157,10 @@ public class SystemPanel extends JPanel {
 				}
 				updateSystem();
 				checkSystemStatus();
+				MainFrame.main.autosaveIfNeeded();
 				altered = true;
 			}
+			wizard = null;
 		}
 	}
 	
@@ -160,6 +178,7 @@ public class SystemPanel extends JPanel {
 						updateSystem();
 						configured(joinButton, statJoinLabel);
 						altered = true;
+						MainFrame.main.autosaveIfNeeded();
 					}
 				} catch (RJException ex) {
 					JXErrorDialog.showDialog(MainFrame.main, "Error", ex);
@@ -173,11 +192,12 @@ public class SystemPanel extends JPanel {
 			ResultsSaversWizard wizard = new ResultsSaversWizard(MainFrame.main, SystemPanel.this);
 			wizard.loadConfig(resultSavers);
 			if (wizard.getResult() == AbstractWizard.RESULT_OK) {
-				resultSavers = wizard.getConfiguredResultSavers();
+				resultSavers = wizard.getConfiguredResultSaver();
 				wizard.dispose();
 				updateSystem();
 				configured(saversButton, statSaversLabel);
 				altered = true;
+				MainFrame.main.autosaveIfNeeded();
 			}
 		}
 	}
@@ -204,7 +224,7 @@ public class SystemPanel extends JPanel {
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
 	private AbstractJoin join;
-	private AbstractResultsSaver resultSavers[];
+	private AbstractResultsSaver resultSavers;
 	private ConfiguredSystem system;
 	
 	private ProcessPanel processPanel;
@@ -392,8 +412,8 @@ public class SystemPanel extends JPanel {
 			disable(sourceBButton, statSourceBLabel);
 		}
 		
-		this.resultSavers = system.getResultSavers();
-		if (this.resultSavers != null && this.resultSavers.length != 0) {
+		this.resultSavers = system.getResultSaver();
+		if (this.resultSavers != null) {
 			configured(saversButton, statSaversLabel);
 		} else {
 			disable(saversButton, statSaversLabel);
@@ -418,7 +438,7 @@ public class SystemPanel extends JPanel {
 	
 	private boolean checkSystemStatus() {
 		processPanel.setConfiguredSystem(getSystem());
-		if (join != null && sourceA != null && sourceB != null && resultSavers != null && resultSavers.length != 0) {
+		if (join != null && sourceA != null && sourceB != null && resultSavers != null) {
 			processPanel.setReady(true);
 			return true;
 		} else {
@@ -471,5 +491,21 @@ public class SystemPanel extends JPanel {
 		label.setText(STATUS_NOT_CONFIGURED);
 		//button.setText(BUTTON_LABEL_CREATE);
 		label.setForeground(Color.RED);
+	}
+
+	public void openRightDataSourceConfig(Window parent) {
+		sourceBButton.doClick();
+	}
+
+	public void openLeftDataSourceConfig(Window parent) {
+		sourceAButton.doClick();
+	}
+	
+	public ProcessPanel getProcessPanel() {
+		return processPanel;
+	}
+
+	public void setAltered(boolean b) {
+		altered = true;
 	}
 }

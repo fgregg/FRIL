@@ -45,7 +45,7 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.JoinListener;
 import cdc.datamodel.DataRow;
-import cdc.gui.MainFrame;
+import cdc.impl.MainApp;
 import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.RJException;
 import cdc.utils.StringUtils;
@@ -67,9 +67,9 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 		}
 		Map props = new HashMap();
 		if (!StringUtils.isNullOrEmpty(filePrefix)) {
-			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainFrame.main.getMinusDirectory() + File.separator + filePrefix + "-minus-" + source.getSourceName() + ".csv");
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainApp.main.getMinusDirectory() + File.separator + filePrefix + "-minus-" + source.getSourceName() + ".csv");
 		} else {
-			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainFrame.main.getMinusDirectory() + File.separator + "minus-" + source.getSourceName() + ".csv");
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainApp.main.getMinusDirectory() + File.separator + "minus-" + source.getSourceName() + ".csv");
 		}
 		props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
 		saver = new CSVFileSaver(props);

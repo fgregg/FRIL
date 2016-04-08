@@ -98,6 +98,7 @@ public class IncidentInfo {
         } else {
             if(errorException != null) {
             	if (errorException.getLocalizedMessage() != null) {
+            		//System.out.println("Reporting: " + errorException.getLocalizedMessage().substring(0, 1000));
             		this.basicErrorMessage = "<html>" + breakLines(errorException.getLocalizedMessage()) + "</html>";
             	}
             } else {
@@ -118,7 +119,7 @@ public class IncidentInfo {
 							breakLines(localizedMessage.substring(100));
 			} else {
 				return localizedMessage.substring(0, localizedMessage.indexOf(' ', 100)) + "<br>" + 
-							breakLines(localizedMessage.substring(localizedMessage.indexOf(' ', 100)));
+							breakLines(localizedMessage.substring(localizedMessage.indexOf(' ', 100)).trim());
 			}
 		} else {
 			return localizedMessage;

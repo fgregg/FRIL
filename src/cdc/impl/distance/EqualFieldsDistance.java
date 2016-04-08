@@ -92,10 +92,6 @@ public class EqualFieldsDistance extends AbstractDistance {
 		return cell1.equals(cell2);
 	}
 
-	public boolean distanceSatisfied(String str1, String str2) {
-		return str1.equals(str2);
-	}
-
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new EgualDistanceVisibleComponent();
 	}

@@ -61,6 +61,8 @@ import edu.emory.mathcs.util.xml.DOMUtils;
 public abstract class AbstractJoin extends SystemComponent {
 	
 	public static final String PROPERTY_CONFIDNCE = "join-confidence";
+	public static final String PROPERTY_SRCA_ID = "id-a";
+	public static final String PROPERTY_SRCB_ID = "id-b";
 	public static final String PROPERTY_JOINED = "was-joined";
 	
 	private AbstractDataSource sourceA;

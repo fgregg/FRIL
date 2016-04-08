@@ -39,7 +39,10 @@ package cdc.gui.components.paramspanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -144,9 +147,9 @@ public class SeparatorPanelField extends ParamPanelField {
 		}
 		
 		JPanel internalPanel = new JPanel();
-		internalPanel.setLayout(new GridLayout(x, y));
+		internalPanel.setLayout(new GridBagLayout());
 		for (int i = 0; i < separators.length - 1; i++) {
-			internalPanel.add(separators[i]);
+			internalPanel.add(separators[i], getConstant(i));
 		}
 		
 		if (otherEnabled) {
@@ -167,18 +170,22 @@ public class SeparatorPanelField extends ParamPanelField {
 				other.addKeyListener(new KeyListenerProxy(listener));
 			}
 		}
-		JPanel smallPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel smallPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		smallPanel.add(separators[separators.length - 1]);
 		if (otherEnabled) {
 			smallPanel.add(other);
 		}
-		internalPanel.add(smallPanel);
+		internalPanel.add(smallPanel, getConstant(separators.length - 1));
 		
 		panel.add(internalPanel);
 		
 		if (defaultValue != null) {
 			setValue(defaultValue);
 		}
+	}
+
+	private GridBagConstraints getConstant(int i) {
+		return new GridBagConstraints(i % 3, i / 3, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
 	}
 
 	public JComponent getComponentInputField() {

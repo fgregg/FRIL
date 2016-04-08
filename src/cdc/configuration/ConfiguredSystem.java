@@ -50,13 +50,13 @@ public class ConfiguredSystem {
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
 	private AbstractJoin join;
-	private AbstractResultsSaver[] resultSavers;
+	private AbstractResultsSaver resultSavers;
 	
-	public ConfiguredSystem(AbstractDataSource left, AbstractDataSource right, AbstractJoin join, AbstractResultsSaver[] resultSavers) {
+	public ConfiguredSystem(AbstractDataSource left, AbstractDataSource right, AbstractJoin join, AbstractResultsSaver resultSaver) {
 		this.sourceA = left;
 		this.sourceB = right;
 		this.join = join;
-		this.resultSavers = resultSavers;
+		this.resultSavers = resultSaver;
 		configuredSystem = this;
 	}
 
@@ -64,7 +64,7 @@ public class ConfiguredSystem {
 		return join;
 	}
 
-	public AbstractResultsSaver[] getResultSavers() {
+	public AbstractResultsSaver getResultSaver() {
 		return resultSavers;
 	}
 
@@ -99,7 +99,13 @@ public class ConfiguredSystem {
 			join = null;
 		}
 		if (resultSavers != null) {
-			resultSavers.clone();
+			try {
+				resultSavers.close();
+			} catch (RJException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			resultSavers = null;
 		}
 		if (sourceA != null) {

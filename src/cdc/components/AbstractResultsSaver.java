@@ -37,13 +37,16 @@
 package cdc.components;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.Map;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import cdc.configuration.Configuration;
 import cdc.datamodel.DataRow;
 import cdc.utils.RJException;
+import edu.emory.mathcs.util.xml.DOMUtils;
 
 public abstract class AbstractResultsSaver extends SystemComponent {
 	
@@ -54,6 +57,25 @@ public abstract class AbstractResultsSaver extends SystemComponent {
 	public abstract void saveRow(DataRow row) throws RJException, IOException;
 	public abstract void flush() throws IOException, RJException;
 	public abstract void close() throws IOException, RJException;
-	public abstract void saveToXML(Document doc, Element saver);
 	public abstract  void reset() throws IOException, RJException;
+	
+	public void saveToXML(Document doc, Element node) {
+		Configuration.appendParams(doc, node, getProperties());
+	}
+	
+	public static AbstractResultsSaver fromXML(Element node) throws RJException, IOException {
+		Element paramsElement = DOMUtils.getChildElement(node, Configuration.PARAMS_TAG);
+		Map params = Configuration.parseParams(paramsElement);
+		
+		String className = DOMUtils.getAttribute(node, Configuration.CLASS_ATTR);
+		
+		try {
+			Class clazz = Class.forName(className);
+			Constructor constructor = clazz.getConstructor(new Class[] {Map.class});
+			return (AbstractResultsSaver) constructor.newInstance(new Object[] {params});
+			
+		} catch (Exception e) {
+			throw new RJException("Error reading results saver configuration", e);
+		}
+	}
 }

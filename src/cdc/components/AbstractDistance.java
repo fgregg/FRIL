@@ -49,7 +49,6 @@ public abstract class AbstractDistance extends SystemComponent {
 		super(properties);
 	}
 	
-	public abstract boolean distanceSatisfied(DataCell cell1, DataCell cell2);
 	public abstract double distance(DataCell cellA, DataCell cellB);
 
 	public CompareFunctionInterface getCompareFunction(DataColumnDefinition colA, DataColumnDefinition colB) {

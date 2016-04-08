@@ -139,7 +139,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 				return false;
 			}
 		}
-		Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 1);
+		Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 2);
 		return true;
 	}
 	

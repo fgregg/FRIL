@@ -46,13 +46,9 @@ import java.util.Map;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
 import au.com.bytecode.opencsv.CSVWriter;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractResultsSaver;
-import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -61,13 +57,13 @@ import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.Log;
 import cdc.utils.RJException;
-import edu.emory.mathcs.util.xml.DOMUtils;
 
 public class CSVFileSaver extends AbstractResultsSaver {
 
 	public static final String DEFAULT_FILE = "results.csv";
 	public static final String OUTPUT_FILE_PROPERTY = "output-file";
-	public static final Object SAVE_SOURCE_NAME = "save-source-name";
+	public static final String SAVE_SOURCE_NAME = "save-source-name";
+	public static final String SAVE_CONFIDENCE = "save-confidence";
 	
 	private static class CSVFileSaverVisibleComponent extends GUIVisibleComponent {
 		
@@ -107,6 +103,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 	
 	private File file;
 	private CSVWriter printer;
+	private boolean saveConfidence = true;
 	private boolean closed = false;
 	private boolean saveSourceName = true;
 	
@@ -126,6 +123,9 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		if (file.exists()) {
 			file.delete();
 		}
+		if (properties.containsKey(SAVE_CONFIDENCE)) {
+			saveConfidence = properties.get(SAVE_CONFIDENCE).equals("true");
+		}
 	}
 	
 	public void saveRow(DataRow row) throws RJException, IOException {
@@ -133,8 +133,8 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		String stratum = row.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME);
 		if (printer == null) {
 			printer = new CSVWriter(new BufferedWriter(new FileWriter(file)));
-			String[] header = new String[row.getData().length + 1 + (stratum != null?1:0)];
-			for (int i = 0; i < header.length - 1 - (stratum != null?1:0); i++) {
+			String[] header = new String[row.getData().length + (saveConfidence ? 1 : 0) + (stratum != null?1:0)];
+			for (int i = 0; i < header.length - (stratum != null?1:0) - (saveConfidence ? 1 : 0); i++) {
 				if (saveSourceName) {
 					header[i] = row.getRowModel()[i].toString();
 				} else {
@@ -144,28 +144,30 @@ public class CSVFileSaver extends AbstractResultsSaver {
 			if (stratum != null) {
 				header[header.length - 2] = "Stratum name";
 			}
-			header[header.length - 1] = "Confidence";
+			if (saveConfidence) {
+				header[header.length - 1] = "Confidence";
+			}
 			printer.writeNext(header);
 		}
 		DataCell[] cells = row.getData();
 		//System.out.println("Cells were in row (" + row.hashCode() + "):" + PrintUtils.printArray(cells));
-		String[] strRow = new String[cells.length + 1 + (stratum != null ? 1 : 0)];
-		for (int i = 0; i < strRow.length - 1 - (stratum != null ? 1 : 0); i++) {
+		String[] strRow = new String[cells.length + (saveConfidence ? 1 : 0) + (stratum != null ? 1 : 0)];
+		for (int i = 0; i < strRow.length - (stratum != null ? 1 : 0) - (saveConfidence ? 1 : 0); i++) {
 			strRow[i] = cells[i].getValue().toString();
 		}
 		if (stratum != null) {
 			strRow[strRow.length - 2] = stratum;
 		}
-		strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
+		if (saveConfidence) {
+			strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
+		}
 		printer.writeNext(strRow);
-	}
-
-	public void saveToXML(Document doc, Element node) {
-		Configuration.appendParams(doc, node, getProperties());
 	}
 	
 	public void flush() throws IOException {
-		printer.flush();
+		if (printer != null) {
+			printer.flush();
+		}
 	}
 
 	public void close() throws IOException {
@@ -189,21 +191,22 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		closed = false;
 	}
 	
-	public static AbstractResultsSaver fromXML(Element element) throws RJException {
-		Element params = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
-		Map parameters = null;
-		if (params != null) {
-			parameters = Configuration.parseParams(params);
-		}
-		return new CSVFileSaver(parameters);
-	}
+	//Method moved to AbstractResultsSaver
+//	public static AbstractResultsSaver fromXML(Element element) throws RJException {
+//		Element params = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
+//		Map parameters = null;
+//		if (params != null) {
+//			parameters = Configuration.parseParams(params);
+//		}
+//		return new CSVFileSaver(parameters);
+//	}
 
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new CSVFileSaverVisibleComponent();
 	}
 	
 	public String toString() {
-		return "CSV results file saver " + getProperties();
+		return "CSV file saver";
 	}
 	
 	public String toHTMLString() {

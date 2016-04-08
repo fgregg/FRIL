@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +48,8 @@ import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 
+import org.apache.xml.serialize.OutputFormat;
+import org.apache.xml.serialize.XMLSerializer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -63,12 +64,9 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.converters.AbstractColumnConverter;
 import cdc.datamodel.converters.DummyConverter;
 import cdc.datamodel.converters.ModelGenerator;
+import cdc.impl.resultsavers.ResultSaversGroup;
 import cdc.utils.PrintUtils;
 import cdc.utils.RJException;
-
-import org.apache.xml.serialize.OutputFormat;
-import org.apache.xml.serialize.XMLSerializer;
-
 import edu.emory.mathcs.util.xml.DOMUtils;
 
 public class Configuration {
@@ -106,7 +104,7 @@ public class Configuration {
 	private File config;
 	private AbstractDataSource[] sources = new AbstractDataSource[2];
 	private AbstractJoin join;
-	private List savers = new ArrayList();
+	private AbstractResultsSaver saver;
 	
 	private ConfiguredSystem system;
 	
@@ -154,8 +152,8 @@ public class Configuration {
 		return join;
 	}
 	
-	public AbstractResultsSaver[] getResultsSavers() {
-		return (AbstractResultsSaver[]) savers.toArray(new AbstractResultsSaver[] {});
+	public AbstractResultsSaver getResultsSaver() {
+		return saver;
 	}
 	
 	public void setDataSources(AbstractDataSource[] sources) {
@@ -166,9 +164,9 @@ public class Configuration {
 		this.join = join;
 	}
 	
-	public void addAbstractResultSavers(AbstractResultsSaver[] savers) {
-		this.savers.addAll(Arrays.asList(savers));
-	}
+//	public void addAbstractResultSavers(AbstractResultsSaver[] savers) {
+//		this.savers.addAll(Arrays.asList(savers));
+//	}
 	
 	private void readConfiguration() throws IOException, RJException {
 		try {
@@ -184,11 +182,7 @@ public class Configuration {
 				if (stopForced) {
 					break;
 				}
-				AbstractResultsSaver[] savers = null;
-				if (this.savers != null && !this.savers.isEmpty()) {
-					savers = (AbstractResultsSaver[])this.savers.toArray(new AbstractResultsSaver[] {});
-				}
-				system = new ConfiguredSystem(sources[0], sources[1], join, savers);
+				system = new ConfiguredSystem(sources[0], sources[1], join, saver);
 			}
 			//System.out.println("Configuration read done.");
 		} catch (SAXException e) {
@@ -226,6 +220,7 @@ public class Configuration {
 			} else if (nodeName.equals(RESULTS_SAVERS_TAG)) {
 				notifyBegin(phase = ConfigurationPhase.loadingResultSaversPhase);
 				NodeList list = child.getChildNodes();
+				List savers = new ArrayList();
 				for (int i = 0; i < list.getLength(); i++) {
 					Node saver = list.item(i);
 					if (saver.getNodeType() == Node.ELEMENT_NODE && saver.getNodeName().equals(RESULTS_SAVER_TAG)) {
@@ -237,6 +232,13 @@ public class Configuration {
 						Method fromXMLMethod = clazz.getMethod("fromXML", new Class[] {Element.class});
 						savers.add(fromXMLMethod.invoke(null, new Object[] {saver}));
 					}
+				}
+				if (savers.size() == 1) {
+					saver = (AbstractResultsSaver) savers.get(0);
+				} else {
+					//backward compatibility...
+					AbstractResultsSaver[] saversArr = (AbstractResultsSaver[]) savers.toArray(new AbstractResultsSaver[] {});
+					saver = new ResultSaversGroup(saversArr);
 				}
 				notifyEnd(ConfigurationPhase.loadingResultSaversPhase);
 			} else {
@@ -422,13 +424,11 @@ public class Configuration {
 			system.getJoin().saveToXML(doc, join);
 		}
 		
-		if (system.getResultSavers() != null && system.getResultSavers().length != 0) {
+		if (system.getResultSaver() != null) {
 			Element savers = DOMUtils.createChildElement(doc, mainElement, RESULTS_SAVERS_TAG);
-			for (int i = 0; i < system.getResultSavers().length; i++) {
-				Element saver = DOMUtils.createChildElement(doc, savers, RESULTS_SAVER_TAG);
-				DOMUtils.setAttribute(saver, CLASS_ATTR, system.getResultSavers()[i].getClass().getName());
-				system.getResultSavers()[i].saveToXML(doc, saver);
-			}
+			Element saver = DOMUtils.createChildElement(doc, savers, RESULTS_SAVER_TAG);
+			DOMUtils.setAttribute(saver, CLASS_ATTR, system.getResultSaver().getClass().getName());
+			system.getResultSaver().saveToXML(doc, saver);
 		}
 		
 		doc.appendChild(mainElement);

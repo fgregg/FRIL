@@ -42,8 +42,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -58,6 +60,15 @@ public class Log {
 	private static Properties levels = null;
 	private static Map bufferedLevels = new HashMap();
 	private static List sinks = new ArrayList();
+	
+	private static SimpleDateFormat format;
+	static {
+		String f = Props.getString("log-date-format");
+		if (f == null || f.isEmpty()) {
+			f = "hh:MM:ss";
+		}
+		format = new SimpleDateFormat(f);
+	}
 	
 	public static final class PrintSink extends LogSink {
 		public synchronized void log(String msg) {
@@ -157,7 +168,7 @@ public class Log {
 			synchronized (sinks) {
 				for (Iterator iterator = sinks.iterator(); iterator.hasNext();) {
 					LogSink sink = (LogSink) iterator.next();
-					sink.log(class1.getName() + ": " + string);
+					sink.log(getMessage(class1.getName(), string));
 				}
 			}
 		}
@@ -191,6 +202,16 @@ public class Log {
 	public static void logToFile(String file) {
 		sinks.clear();
 		sinks.add(new FileSink(file));
+	}
+	
+	private static String getMessage(String className, String string) {
+		Date d = new Date();
+		StringBuffer b = new StringBuffer();
+		b.append("[").append(format.format(d)).append("] ");
+		b.append(className);
+		b.append(": ");
+		b.append(string);
+		return b.toString();
 	}
 	
 }

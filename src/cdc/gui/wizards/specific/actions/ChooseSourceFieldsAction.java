@@ -50,6 +50,7 @@ import javax.swing.JScrollPane;
 
 import cdc.components.AbstractDataSource;
 import cdc.datamodel.converters.ModelGenerator;
+import cdc.gui.MainFrame;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.datasource.ui.LegendPanel;
 import cdc.gui.wizards.AbstractWizard;
@@ -94,9 +95,11 @@ public class ChooseSourceFieldsAction extends WizardAction {
 	private AbstractDataSource lastDataSource;
 	private JDataSource buffer;
 	private AbstractWizard parent;
+	private int id;
 	
-	public ChooseSourceFieldsAction(ChooseSourceAction sourceAction) {
+	public ChooseSourceFieldsAction(int id, ChooseSourceAction sourceAction) {
 		this.source = sourceAction;
+		this.id = id;
 	}
 	
 	public JPanel beginStep(AbstractWizard wizard) {
@@ -122,6 +125,22 @@ public class ChooseSourceFieldsAction extends WizardAction {
 			}
 		});
 		
+		JButton other = new JButton("Show other data source");
+		other.setPreferredSize(new Dimension(200, 20));
+		other.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					if (id == 0) {
+						MainFrame.main.getSystemPanel().openRightDataSourceConfig(parent);
+					} else if (id == 1) {
+						MainFrame.main.getSystemPanel().openLeftDataSourceConfig(parent);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
 		JButton legend = new JButton("Show legend");
 		legend.setPreferredSize(new Dimension(200, 20));
 		legend.addActionListener(new ActionListener() {
@@ -135,6 +154,9 @@ public class ChooseSourceFieldsAction extends WizardAction {
 		});
 		
 		stering.add(summary);
+		if (id != -1) {
+			stering.add(other);
+		}
 		stering.add(legend);
 		
 		JPanel panel = new JPanel();

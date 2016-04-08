@@ -38,12 +38,10 @@ package cdc.impl.resultsavers;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JDialog;
 import javax.swing.JPanel;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 import cdc.components.AbstractResultsSaver;
 import cdc.datamodel.DataRow;
@@ -55,7 +53,7 @@ public class ResultsPrinter extends AbstractResultsSaver {
 
 	private static class PrinterVisibleComponent extends GUIVisibleComponent {
 		public Object generateSystemComponent() throws RJException, IOException {
-			return new ResultsPrinter();
+			return new ResultsPrinter(new HashMap());
 		}
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
 			return new ParamsPanel();
@@ -72,16 +70,16 @@ public class ResultsPrinter extends AbstractResultsSaver {
 		
 	}
 	
-	public ResultsPrinter() {
-		super(new HashMap());
+	public ResultsPrinter(Map params) {
+		super(params);
 	}
 	
 	public void saveRow(DataRow row) {
 		System.out.println(row);
 	}
 
-	public void saveToXML(Document doc, Element node) {
-	}
+//	public void saveToXML(Document doc, Element node) {
+//	}
 
 	public void close() throws IOException, RJException {
 	}
@@ -89,9 +87,9 @@ public class ResultsPrinter extends AbstractResultsSaver {
 	public void flush() throws IOException, RJException {	
 	}
 
-	public static AbstractResultsSaver fromXML(Element element) {
-		return new ResultsPrinter();
-	}
+//	public static AbstractResultsSaver fromXML(Element element) {
+//		return new ResultsPrinter();
+//	}
 	
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new PrinterVisibleComponent();

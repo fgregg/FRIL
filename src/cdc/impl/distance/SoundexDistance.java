@@ -199,23 +199,6 @@ public class SoundexDistance extends AbstractStringDistance {
 		Log.log(getClass(), "Soundex size=" + this.size, 1);
 	}
 	
-	public boolean distanceSatisfied(DataCell cell1, DataCell cell2) {
-		
-		String s1 = cell1.getValue().toString();
-		String s2 = cell2.getValue().toString();
-		
-		String soundexS1 = encodeToSoundex(s1);
-		String soundexS2 = encodeToSoundex(s2);
-		
-		
-		if (logLevel >= 2) {
-			Log.log(EqualFieldsDistance.class, s1 + "=?=" + s2 + ": s1=" + soundexS1 + ", s2=" + soundexS2 + ", satisfied:" + distance.distanceSatisfied(soundexS1, soundexS2), 2);
-		}
-		
-		return distance.distanceSatisfied(soundexS1, soundexS2);
-	}
-	
-	
 	public String encodeToSoundex(String string) {
 		if (logLevel >= 2) {
 			Log.log(getClass(), "Encoding to soundex: '" + string + "'", 2);
@@ -284,7 +267,7 @@ public class SoundexDistance extends AbstractStringDistance {
 		
 		
 		if (logLevel >= 2) {
-			Log.log(EqualFieldsDistance.class, s1 + "=?=" + s2 + ": s1=" + soundexS1 + ", s2=" + soundexS2 + ", satisfied:" + distance.distanceSatisfied(soundexS1, soundexS2), 2);
+			Log.log(EqualFieldsDistance.class, s1 + "=?=" + s2 + ": s1=" + soundexS1 + ", s2=" + soundexS2 + ", distance:" + distance.distance(soundexS1, soundexS2), 2);
 		}
 		
 		return distance.distance(soundexS1, soundexS2);

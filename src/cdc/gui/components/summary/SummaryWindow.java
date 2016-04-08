@@ -151,7 +151,7 @@ public class SummaryWindow extends JDialog {
 		c.gridy = 7;
 		summaryPanel.add(resultSavers, c);
 		c.gridy = 8;
-		summaryPanel.add(createResultSaversSummary(system.getResultSavers()), c);
+		summaryPanel.add(createResultSaversSummary(system.getResultSaver()), c);
 		
 		JPanel layoutPanel = new JPanel(new BorderLayout());
 		layoutPanel.add(summaryPanel, BorderLayout.NORTH);
@@ -217,7 +217,7 @@ public class SummaryWindow extends JDialog {
 		return createTabbedPanel(DEFAULT_TAB, inner);
 	}
 	
-	private Component createResultSaversSummary(AbstractResultsSaver[] resultSavers) {
+	private Component createResultSaversSummary(AbstractResultsSaver resultSavers) {
 		JPanel inner = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -230,19 +230,20 @@ public class SummaryWindow extends JDialog {
 			StringBuilder b = new StringBuilder();
 			b.append(HTMLUtils.getHTMLHeader());
 			b.append("Registered result savers:<br>");
-			String[][] table = new String[resultSavers.length + 1][2];
-			table[0][0] = "Id";
-			table[0][1] = "Result saver";
-			for (int i = 0; i < resultSavers.length; i++) {
-				table[i + 1][0] = String.valueOf(i + 1);
-				table[i + 1][1] = resultSavers[i].toHTMLString();
-			}
-			b.append(HTMLUtils.encodeTable(table, true));
-			b.append("</html>");
-			c.gridy = 0;
-			JLabel label = new JLabel(b.toString());
-			label.setFont(label.getFont().deriveFont(11F));
-			inner.add(createTabbedPanel(DEFAULT_TAB, label), c);
+			b.append("To be implemented.<br>");
+//			String[][] table = new String[resultSavers.length + 1][2];
+//			table[0][0] = "Id";
+//			table[0][1] = "Result saver";
+//			for (int i = 0; i < resultSavers.length; i++) {
+//				table[i + 1][0] = String.valueOf(i + 1);
+//				table[i + 1][1] = resultSavers[i].toHTMLString();
+//			}
+//			b.append(HTMLUtils.encodeTable(table, true));
+//			b.append("</html>");
+//			c.gridy = 0;
+//			JLabel label = new JLabel(b.toString());
+//			label.setFont(label.getFont().deriveFont(11F));
+//			inner.add(createTabbedPanel(DEFAULT_TAB, label), c);
 		}
 		return inner;
 	}

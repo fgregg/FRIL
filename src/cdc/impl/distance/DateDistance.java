@@ -415,10 +415,6 @@ public class DateDistance extends AbstractDistance {
 		}
 		return getDistanceRange(d1.getTime(), d2.getTime(), difference);
 	}
-
-	public boolean distanceSatisfied(DataCell cell1, DataCell cell2) {
-		return distance(cell1, cell2) > 100;
-	}
 	
 	private double getDistanceRange(double val1, double val2, double[] range) {
 		double diff = Math.abs(val1 - val2);

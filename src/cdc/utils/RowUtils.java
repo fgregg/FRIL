@@ -45,6 +45,7 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import cdc.components.AbstractJoin;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
@@ -70,6 +71,8 @@ public class RowUtils {
 			props.putAll(rowA.getProperties());
 		}
 		row.setProperies(props);
+		row.setProperty(AbstractJoin.PROPERTY_SRCA_ID, String.valueOf(rowA.getRecordId()));
+		row.setProperty(AbstractJoin.PROPERTY_SRCB_ID, String.valueOf(rowB.getRecordId()));
 		return row;
 	}
 	

@@ -184,24 +184,6 @@ public class EditDistance extends AbstractStringDistance {
 		Log.log(getClass(), "Approve level=" + APPROVE, 1);
 	}
 	
-	public boolean distanceSatisfied(DataCell cell1, DataCell cell2) {
-		String str1 = cell1.getValue().toString();
-		String str2 = cell2.getValue().toString();
-		if (logLevel >= 2) {
-			Log.log(EqualFieldsDistance.class, "'" + str1 + "=?=" + str2 + "': " + distanceSatisfied(str1, str2), 2);
-		}
-		return distanceSatisfied(str1, str2);
-	}
-
-	public boolean distanceSatisfied(String s1, String s2) {
-		double dist = distanceInt(s1, s2);
-		double approveLevel = Math.max(s1.length(), s2.length()) * APPROVE;
-		if (logLevel >= 3) {
-			Log.log(getClass(), "Distance between '" + s1 + "' and '" + s2 + "' is '" + dist + "(approve level: " + approveLevel + ")", 3);
-		}
-		return  dist <= approveLevel;
-	}
-	
 	public double edits(String s1, String s2) {
 		return distanceInt(s1, s2);
 	}

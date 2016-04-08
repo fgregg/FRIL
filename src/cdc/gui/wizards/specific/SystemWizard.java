@@ -36,6 +36,8 @@
 
 package cdc.gui.wizards.specific;
 
+import java.io.IOException;
+
 import javax.swing.JFrame;
 
 import cdc.configuration.ConfiguredSystem;
@@ -75,9 +77,9 @@ public class SystemWizard {
 	public SystemWizard(JFrame parent) {
 		
 		leftSourceAction = new ChooseSourceAction("sourceA");
-		leftSourceFieldsAction = new ChooseSourceFieldsAction(leftSourceAction);
+		leftSourceFieldsAction = new ChooseSourceFieldsAction(-1, leftSourceAction);
 		rightSourceAction = new ChooseSourceAction("sourceB");
-		rightSourceFieldsAction = new ChooseSourceFieldsAction(rightSourceAction);
+		rightSourceFieldsAction = new ChooseSourceFieldsAction(-1, rightSourceAction);
 		joinStratificationConfiguration = new JoinStrataChooser(leftSourceAction, rightSourceAction);
 		joinFieldsConfiguration = new JoinChooseConditionsAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration);
 		joinConfiguration = new JoinConfigurationAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration, joinFieldsConfiguration);
@@ -102,8 +104,8 @@ public class SystemWizard {
 		return wizard.getResult();
 	}
 	
-	public ConfiguredSystem getConfiguredSystem() {
-		return new ConfiguredSystem(leftSourceAction.getDataSource(), rightSourceAction.getDataSource(), joinConfiguration.getJoin(), resultSaversActions.getResultsSavers());
+	public ConfiguredSystem getConfiguredSystem() throws IOException {
+		return new ConfiguredSystem(leftSourceAction.getDataSource(), rightSourceAction.getDataSource(), joinConfiguration.getJoin(), resultSaversActions.getResultsSaver());
 	}
 	
 	public void dispose() {

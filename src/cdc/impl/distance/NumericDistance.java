@@ -209,10 +209,6 @@ public class NumericDistance extends AbstractDistance {
 			}
 		}
 	}
-
-	public boolean distanceSatisfied(DataCell cell1, DataCell cell2) {
-		return distance(cell1, cell2) > 100;
-	}
 	
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new NumericDistanceComponent();
