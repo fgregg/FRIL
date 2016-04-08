@@ -164,6 +164,14 @@ public class ConvsThread extends StoppableThread {
 			frame.finished(false);
 			frame.setWarningMessage(e.getMessage());
 			return;
+		} finally {
+			try {
+				source.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
 		}
 		frame.finished(true);
 	}

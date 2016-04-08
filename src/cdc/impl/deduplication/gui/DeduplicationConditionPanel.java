@@ -163,4 +163,9 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 		return false;
 	}
 
+	public void windowClosing(JDialog parent) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

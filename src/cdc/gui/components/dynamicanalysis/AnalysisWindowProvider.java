@@ -39,11 +39,11 @@
  */
 package cdc.gui.components.dynamicanalysis;
 
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 
+import javax.swing.JButton;
 import javax.swing.Timer;
 
 import cdc.configuration.ConfiguredSystem;
@@ -51,28 +51,55 @@ import cdc.gui.MainFrame;
 import cdc.impl.conditions.AbstractConditionPanel;
 import cdc.impl.conditions.AbstractConditionPanel.ConditionItem;
 
-public class DistAnalysisRestartListener implements PropertyChangeListener {
+public class AnalysisWindowProvider implements ActionListener, ChangedConfigurationListener {
 	
-	private DynamicAnalysisFrame frame;
+	public static final String[] columns = {"Left source", "Right source", "Match"};
+	
 	private AbstractConditionPanel panel;
+	private Window parent;
+	private boolean on = false;
+	private DynamicAnalysisFrame frame;
+	private JButton button;
 	private Timer timer;
 	
-	public DistAnalysisRestartListener() {
+	public AnalysisWindowProvider(Window parent, AbstractConditionPanel panel) {
+		this.panel = panel;
+		this.parent = parent;
 	}
 	
-	public void setFrame(DynamicAnalysisFrame frame) {
-		this.frame = frame;
+	public void actionPerformed(ActionEvent arg0) {
+		on = !on;
+		
+		if (on) {
+			button = (JButton)arg0.getSource();
+			button.setEnabled(false);
+			ConfiguredSystem system = MainFrame.main.getSystem();
+			String error = null;
+			try {
+				panel.okPressed(null);
+			} catch (Exception e) {
+				error = e.toString();
+			}
+			cdc.impl.conditions.AbstractConditionPanel.ConditionItem item = panel.getConditionItem();
+			frame = DynamicAnalysis.getDistanceAnalysisFrame(parent);
+			if (item != null) {
+				frame.setParameters(columns, new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction()});
+			} else if (error == null) {
+				error = "Error has occured.";
+			}
+			frame.addCloseListener(this);
+			frame.setVisible(true);
+			if (error != null) {
+				frame.finished(false);
+				frame.setWarningMessage(error);
+			}
+		} else {
+			button.setEnabled(true);
+		}
 	}
-
-	public void setPanel(AbstractConditionPanel panel) {
-		this.panel = panel;
-	}
-
-	public void propertyChange(PropertyChangeEvent evt) {
-//		if (!frame.isVisible()) {
-//			((ParamPanelField)evt.getSource()).removePropertyChangeListener(this);
-//		}
-		if (panel == null) return;
+	
+	public void configurationChanged() {
+		if (!on) return;
 		if (timer != null && timer.isRunning()) timer.stop();
 		timer = new Timer(700, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -80,12 +107,29 @@ public class DistAnalysisRestartListener implements PropertyChangeListener {
 				panel.okPressed(null);
 				ConditionItem item = panel.getConditionItem();
 				if (item != null) {
-					frame.setParameters(DistAnalysisActionListener.columns, 
+					frame.setParameters(AnalysisWindowProvider.columns, 
 							new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction()});
 				}
 				timer.stop();
 			}
 		});
 		timer.start();
+	}
+	
+//	public void closeWindow() {
+//		if (frame != null) {
+//			frame.stop();
+//			frame.dispose();
+//		}
+//		if (button != null) {
+//			button.setEnabled(true);
+//		}
+//		on = false;
+//	}
+
+	public void reportError(String string) {
+		if (frame != null) {
+			frame.setWarningMessage(string);
+		}
 	}
 }

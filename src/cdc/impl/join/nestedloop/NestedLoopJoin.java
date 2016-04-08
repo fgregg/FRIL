@@ -191,7 +191,7 @@ public class NestedLoopJoin extends AbstractJoin {
 
 	protected void finalize() throws Throwable {
 		//System.out.println(getClass() + " finalize");
-		close();
+		//close();
 	}
 	
 	public String toHTMLString() {

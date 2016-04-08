@@ -36,15 +36,15 @@
 
 package cdc.gui.components.paramspanel;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public interface ComponentFactoryInterface {
 	public JComponent createComponent();
 	public void setValue(JComponent input, String val);
 	public String retrieveValue(JComponent input);
-	public void addPropertyChangeListener(JComponent radioParamPanelField, PropertyChangeListener propertyChangeListener);
-	public void removoPropertyChangeListener(JComponent comp, PropertyChangeListener listener);
+	public void addPropertyChangeListener(JComponent radioParamPanelField, ChangedConfigurationListener propertyChangeListener);
+	public void removoPropertyChangeListener(JComponent comp, ChangedConfigurationListener listener);
 	public boolean isInputComponent();
 }

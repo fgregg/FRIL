@@ -64,7 +64,6 @@ import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
@@ -82,13 +81,12 @@ public class AppendConverter extends AbstractColumnConverter {
 		private ParamsPanel panel;
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
-		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
 		private ScriptPanel scriptPanel;
 		
-		private static class CreatorName extends DefaultParamPanelFieldCreator {
+		private class CreatorName extends DefaultParamPanelFieldCreator {
 			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 				ParamPanelField field = super.create(parent, param, label, defaultValue);
-				field.addPropertyChangeListener(propertyListener);
+				field.addConfigurationChangeListener(analysisListener);
 				return field;
 			}
 		}
@@ -100,6 +98,11 @@ public class AppendConverter extends AbstractColumnConverter {
 		}
 
 		public JPanel getConfigurationPanel(Object[] inParams, int sizeX, int sizeY) {
+			
+			AbstractDataSource source = (AbstractDataSource) inParams[2];
+			Window parent = (Window) inParams[3];
+			JDataSource jDataSource = (JDataSource)inParams[4];
+			analysisListener = new ConvAnalysisActionListener(parent, source, this, jDataSource);
 			
 			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(AppendConverter.class), 
 					String.class, new String[] {"column", "appendFront", "appendEnd"}, new Class[] {String.class, String.class, String.class});
@@ -137,15 +140,7 @@ public class AppendConverter extends AbstractColumnConverter {
 			
 			this.column = (DataColumnDefinition) inParams[0];
 			
-			AbstractDataSource source = (AbstractDataSource) inParams[2];
-			Window parent = (Window) inParams[3];
-			JDataSource jDataSource = (JDataSource)inParams[4];
-			
-			if (analysisListener != null) {
-				visual.removeActionListener(analysisListener);
-			}
-			
-			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
+			visual.addActionListener(analysisListener);
 			
 			JTabbedPane tabs = new JTabbedPane();
 			tabs.addTab("Configuration", panel);
@@ -167,6 +162,10 @@ public class AppendConverter extends AbstractColumnConverter {
 		public boolean validate(JDialog dialog) {
 			return panel.doValidate();
 		}
+
+		public void windowClosing(JDialog parent) {	
+		}
+		
 	}
 
 	public static final String PROPERTY_APPEND_FRONT = "front";

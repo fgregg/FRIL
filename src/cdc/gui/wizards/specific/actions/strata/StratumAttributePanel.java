@@ -120,5 +120,10 @@ public class StratumAttributePanel extends JPanel implements DialogListener {
 		}
 		return true;
 	}
+
+	public void windowClosing(JDialog parent) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

@@ -113,8 +113,13 @@ public class IncidentInfo {
     		return null;
     	}
 		if (localizedMessage.length() > 100) {
-			return localizedMessage.substring(0, localizedMessage.indexOf(' ', 100)) + "<br>" + 
-						breakLines(localizedMessage.substring(localizedMessage.indexOf(' ', 100)));
+			if (localizedMessage.indexOf(' ', 100) == -1) {
+				return localizedMessage.substring(0, 100) + "<br>" + 
+							breakLines(localizedMessage.substring(100));
+			} else {
+				return localizedMessage.substring(0, localizedMessage.indexOf(' ', 100)) + "<br>" + 
+							breakLines(localizedMessage.substring(localizedMessage.indexOf(' ', 100)));
+			}
 		} else {
 			return localizedMessage;
 		}

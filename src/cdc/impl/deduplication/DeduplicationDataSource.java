@@ -22,6 +22,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 	private BucketManager buckets;
 	private DeduplicationConfig config;
 	private int sizeDedup;
+	private int nDuplicates = 0;
 	
 	public DeduplicationDataSource(AbstractDataSource parentSource, DeduplicationConfig config) {
 		super(parentSource.getSourceName(), parentSource.getProperties());
@@ -33,7 +34,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		return false;
 	}
 
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		parent.close();
 		if (deduplicatedData != null) {
 			deduplicatedData.close();
@@ -44,6 +45,11 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		initialized = false;
 	}
 
+	protected void finalize() throws Throwable {
+		close();
+		super.finalize();
+	}
+	
 	public AbstractDataSource copy() throws IOException, RJException {
 		initialize();
 		DeduplicationDataSource that = new DeduplicationDataSource(parent, config);
@@ -85,13 +91,17 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		}
 		initialized = true;
 		sizeDedup = 0;
+		nDuplicates = 0;
 		Log.log(getClass(), "Deduplication begins for data source " + getSourceName(), 1);
 		buckets = new BucketManager(config.getHashingFunction());
 		deduplicatedData = new BufferedData(parent.size());
 		DataRow row;
+		int added = 0;
 		while ((row = parent.getNextRow()) != null) {
 			buckets.addToBucketLeftSource(row);
+			added++;
 		}
+		System.out.println("Deduplication of " + getSourceName() + ": added " + added + " rows to bucket manager.");
 		buckets.addingCompleted();
 		Log.log(getClass(), "Deduplication: buckets generated", 2);
 		DataRow[][] bucket;
@@ -99,7 +109,8 @@ public class DeduplicationDataSource extends AbstractDataSource {
 			deduplicate(bucket[0]);
 		}
 		deduplicatedData.addingCompleted();
-		Log.log(getClass(), "Deduplication finished for data source " + getSourceName(), 1);
+		Log.log(getClass(), "Deduplication finished for data source " + getSourceName() + ". Identified " + nDuplicates + " duplicates." , 1);
+		Log.log(getClass(), "Size of data in deduplicated " + getSourceName() + ": " + sizeDedup + " (" + deduplicatedData.getSize() + ")" , 1);
 	}
 
 	private void deduplicate(DataRow[] dataRows) throws IOException {
@@ -108,6 +119,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 			for (int j = i + 1; j < dataRows.length; j++) {
 				if (duplicate(dataRows[i], dataRows[j])) {
 					dup = true;
+					nDuplicates++;
 				}
 			}
 			if (!dup) {

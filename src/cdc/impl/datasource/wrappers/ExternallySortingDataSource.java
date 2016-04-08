@@ -84,6 +84,8 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 	private BufferedData sortedData;
 	private SortThread[] workers;
 	
+	private int readItems = 0;
+	
 	private volatile AtomicInteger configurationProgress = new AtomicInteger(0);
 	
 	public ExternallySortingDataSource(String name, AbstractDataSource dataSource, DataColumnDefinition[] columns, CompareFunctionInterface[] functions, Map params) throws IOException, RJException {
@@ -111,10 +113,15 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 			Log.log(getClass(), "Data sorted in time " + (t2-t1) + "ms.",1);
 		}
 		initialized = true;
+		closed = false;
 	}
 
 	public boolean canSort() {
 		return true;
+	}
+	
+	public DataColumnDefinition[] getAvailableColumns() {
+		return parentSource.getAvailableColumns();
 	}
 	
 	public void setOrderBy(DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) throws IOException, RJException {
@@ -193,7 +200,9 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 			
 			synchronized (parentSource) {
 				parentSource.reset();
+				int size = 0;
 				while ((row = parentSource.getNextRow()) != null) {
+					size++;
 					workers[roundRobin].addDataRow(row);
 					roundRobin = (roundRobin + 1) % workers.length;
 					readFromSource++;
@@ -206,6 +215,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 						return;
 					}
 				}
+				Log.log(getClass(), "Read all data from source " + parentSource.getSourceName() + ". # of records: " + size ,1);
 				
 				//signal end of data
 				for (int i = 0; i < workers.length; i++) {
@@ -216,7 +226,8 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 				sortedData = new BufferedData(workers, orderBy, functions, configurationProgress, parentSource.size());
 			}
 			configurationProgress.set(100);
-			Log.log(getClass(), "Data sorted.", 2);
+			readItems = 0;
+			Log.log(getClass(), "Data sorted (size of sorted data: " + sortedData.getSize() + ")", 1);
 			
 			System.gc();
 		} finally {
@@ -229,7 +240,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		}
 	}
 
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		Log.log(getClass(), "Closing data source", 1);
 		if (closed) {
 			return;
@@ -240,6 +251,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		}
 		sortedData = null;
 		workers = null;
+		initialized = false;
 		synchronized (parentSource) {
 			parentSource.close();
 		}
@@ -248,9 +260,9 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 
 	public DataRow nextRow() throws IOException, RJException {
 		
-		if (closed) {
-			throw new RJException("Cannot get next row on closed data source");
-		}
+		//if (closed) {
+		//	throw new RJException("Cannot get next row on closed data source");
+		//}
 		
 		initialize();
 		
@@ -259,7 +271,13 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		}
 		
 		Log.log(getClass(), "getNextRow()", 3);
-		return sortedData.getDataRow();
+		DataRow row = sortedData.getDataRow();
+		if (row == null) {
+			Log.log(getClass(), "Finished reading sorted data of source " + parentSource.getSourceName() + ". Read items = " + readItems, 1);
+			return null;
+		}
+		readItems++;
+		return row;
 		
 	}
 

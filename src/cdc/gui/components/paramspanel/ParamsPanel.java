@@ -91,12 +91,19 @@ public class ParamsPanel extends JPanel implements DialogListener {
 				fields[i] = creator.create(this, params[i], labels[i], null);
 			}
 			GridBagConstraints[] c = getNextConstraint();
-			if (fields[i].getComponentLabel() != null) {
-				add(fields[i].getComponentLabel(), c[0]);
+			JComponent componentLabel = fields[i].getComponentLabel();
+			JComponent componentInputField = fields[i].getComponentInputField();
+			if (componentLabel != null) {
+				add(componentLabel, c[0]);
 			}
-			if (fields[i].getComponentInputField() != null) {
-				add(fields[i].getComponentInputField(), c[1]);
+			if (componentInputField != null) {
+				add(componentInputField, c[1]);
 			}
+			
+			//JSeparator s1 = new JSeparator(JSeparator.HORIZONTAL);
+			//c = getNextConstraint();
+			//c[0].gridwidth = 2;
+			//add(s1, c[0]);
 		}
 		
 		GridBagConstraints c = new GridBagConstraints();
@@ -105,7 +112,10 @@ public class ParamsPanel extends JPanel implements DialogListener {
 		c.gridx = 0;
 		c.gridy = 200;
 		add(Box.createRigidArea(new Dimension(2, 2)), c);
+		
+		
 	}
+
 	
 	private GridBagConstraints[] getNextConstraint() {
 		GridBagConstraints c1 = new GridBagConstraints();
@@ -168,6 +178,9 @@ public class ParamsPanel extends JPanel implements DialogListener {
 
 	public boolean okPressed(JDialog parent) {
 		return doValidate();
+	}
+	
+	public void windowClosing(JDialog parent) {
 	}
 
 	public boolean doValidate() {

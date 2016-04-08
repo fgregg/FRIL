@@ -36,9 +36,10 @@
 
 package cdc.gui.components.paramspanel;
 
-import java.beans.PropertyChangeListener;
 
 import javax.swing.JComponent;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public abstract class ParamPanelField {
 	
@@ -46,8 +47,8 @@ public abstract class ParamPanelField {
 	public abstract JComponent getComponentLabel();
 	public abstract String getValue();
 	public abstract void setValue(String val);
-	public abstract void addPropertyChangeListener(PropertyChangeListener propertyChangeListener);
-	public abstract void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener);
+	public abstract void addConfigurationChangeListener(ChangedConfigurationListener configurationListener);
+	public abstract void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener);
 	public abstract String getUserLabel();
 	public abstract void error(String message);
 	

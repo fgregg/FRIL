@@ -36,9 +36,6 @@
 
 package cdc.impl.distance;
 
-import java.awt.Window;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -50,7 +47,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JList;
@@ -65,17 +61,14 @@ import cdc.configuration.ConfiguredSystem;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
-import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.MainFrame;
-import cdc.gui.components.dynamicanalysis.DistAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.DistAnalysisRestartListener;
+import cdc.gui.components.dynamicanalysis.AnalysisWindowProvider;
 import cdc.gui.components.paramspanel.CheckBoxParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.validation.Validator;
-import cdc.impl.conditions.AbstractConditionPanel;
 import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.impl.distance.parampanel.DateFormatPanelField;
 import cdc.impl.distance.parampanel.DateFormatPanelFieldCreator;
@@ -101,136 +94,134 @@ public class DateDistance extends AbstractDistance {
 	//private static final String PROP_SOURCE1 = "source-1";
 	//private static final String PROP_SOURCE2 = "source-2";
 	
-	private static class Creator extends DateFormatPanelFieldCreator {
+	public static class DateGUIVisibleComponent extends GUIVisibleComponent {
 		
-		private class WorkThread extends Thread {
-			volatile boolean goOn = true;
-			DataColumnDefinition column;
-			String[] formatsArray;
-			public WorkThread(DataColumnDefinition column) {
-				this.column = column;
-			}
-			public void run() {
-				//System.out.println("Started...");
-				ConfiguredSystem system = MainFrame.main.getSystem();
-				AbstractDataSource source = null;
-				if (system.getSourceA().getSourceName().equals(column.getSourceName())) {
-					source = system.getSourceA();
-				} else {
-					source = system.getSourceB();
+		private class Creator extends DateFormatPanelFieldCreator {
+			
+			private class WorkThread extends Thread {
+				volatile boolean goOn = true;
+				DataColumnDefinition column;
+				String[] formatsArray;
+				public WorkThread(DataColumnDefinition column) {
+					this.column = column;
 				}
-				try {
-					source.reset();
-					List formats = null;
-					long start = System.currentTimeMillis();
-					while (true && goOn && start + MAX_DATE_TEST_INTERVAL > System.currentTimeMillis()) {
-						try {
+				public void run() {
+					//System.out.println("Started...");
+					ConfiguredSystem system = MainFrame.main.getSystem();
+					AbstractDataSource source = null;
+					if (system.getSourceA().getSourceName().equals(column.getSourceName())) {
+						source = system.getSourceA();
+					} else {
+						source = system.getSourceB();
+					}
+					try {
+						source.reset();
+						List formats = null;
+						long start = System.currentTimeMillis();
+						while (true && goOn && start + MAX_DATE_TEST_INTERVAL > System.currentTimeMillis()) {
+							try {
+								DataRow row = source.getNextRow();
+								if (row == null) {
+									break;
+								}
+								DataCell cell = row.getData(column);
+								String strDate = String.valueOf(cell.getValue());
+								formats = new ArrayList(Arrays.asList(DateUtils.parse(strDate)));
+							} catch (IllegalArgumentException e) {
+								continue;
+							}
+							break;
+						}
+						if (!goOn || start + MAX_DATE_TEST_INTERVAL < System.currentTimeMillis()) {
+							if (goOn) {
+								field.setSuggestions(null);
+							}
+							return;
+						}
+						while (start + MAX_DATE_TEST_INTERVAL > System.currentTimeMillis() && goOn) {
 							DataRow row = source.getNextRow();
 							if (row == null) {
 								break;
 							}
-							DataCell cell = row.getData(column);
-							String strDate = String.valueOf(cell.getValue());
-							formats = new ArrayList(Arrays.asList(DateUtils.parse(strDate)));
-						} catch (IllegalArgumentException e) {
-							continue;
-						}
-						break;
-					}
-					if (!goOn || start + MAX_DATE_TEST_INTERVAL < System.currentTimeMillis()) {
-						if (goOn) {
-							field.setSuggestions(null);
-						}
-						return;
-					}
-					while (start + MAX_DATE_TEST_INTERVAL > System.currentTimeMillis() && goOn) {
-						DataRow row = source.getNextRow();
-						if (row == null) {
-							break;
-						}
-						try {
-							DataCell cell = row.getData(column);
-							String strDate = String.valueOf(cell.getValue());
-							List list = Arrays.asList(DateUtils.parse(strDate));
-							for (Iterator iterator = list.iterator(); iterator.hasNext();) {
-								String format = (String) iterator.next();
-								if (!formats.contains(format)) {
-									formats.add(format);
+							try {
+								DataCell cell = row.getData(column);
+								String strDate = String.valueOf(cell.getValue());
+								List list = Arrays.asList(DateUtils.parse(strDate));
+								for (Iterator iterator = list.iterator(); iterator.hasNext();) {
+									String format = (String) iterator.next();
+									if (!formats.contains(format)) {
+										formats.add(format);
+									}
 								}
+							} catch (IllegalArgumentException e) {
+								continue;
 							}
-						} catch (IllegalArgumentException e) {
-							continue;
 						}
+						if (!goOn || formats == null) {
+							return;
+						}
+						formatsArray = new String[formats.size()];
+						for (int i = 0; i < formatsArray.length; i++) {
+							formatsArray[i] = (String) formats.get(i);
+						}
+						//System.out.println("Here...");
+						if (goOn) {
+							SwingUtilities.invokeLater(new Runnable() {
+								public void run() {
+									field.setSuggestions(formatsArray);
+								}
+							});
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+						JXErrorDialog.showDialog(MainFrame.main, "Error", e);
+					} catch (RJException e) {
+						e.printStackTrace();
+						JXErrorDialog.showDialog(MainFrame.main, "Error", e);
 					}
-					if (!goOn || formats == null) {
-						return;
-					}
-					formatsArray = new String[formats.size()];
-					for (int i = 0; i < formatsArray.length; i++) {
-						formatsArray[i] = (String) formats.get(i);
-					}
-					//System.out.println("Here...");
-					if (goOn) {
-						SwingUtilities.invokeLater(new Runnable() {
-							public void run() {
-								field.setSuggestions(formatsArray);
-							}
-						});
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-					JXErrorDialog.showDialog(MainFrame.main, "Error", e);
-				} catch (RJException e) {
-					e.printStackTrace();
-					JXErrorDialog.showDialog(MainFrame.main, "Error", e);
 				}
 			}
-		}
-		
-		private JList component;
-		private DateFormatPanelField field;
-		private WorkThread thread;
-		
-		public Creator(JList attrComponent) {
-			this.component = attrComponent;
-		}
-
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			field = (DateFormatPanelField) super.create(parent, param, label, defaultValue);
-			//System.out.println("Created...");
-			if (component.getSelectedValue() != null) {
-				thread = new WorkThread((DataColumnDefinition) component.getSelectedValue());
-				field.setSuggestions(null);
-				field.startWork();
-				thread.start();
+			
+			private JList component;
+			private DateFormatPanelField field;
+			private WorkThread thread;
+			
+			public Creator(JList attrComponent) {
+				this.component = attrComponent;
 			}
-			component.addListSelectionListener(new ListSelectionListener() {
-				public void valueChanged(ListSelectionEvent arg0) {
-					DataColumnDefinition column = (DataColumnDefinition) component.getSelectedValue();
-					System.out.println(column);
-					if (column == null) {
-						return;
-					}
-					if (thread != null) {
-						thread.goOn = false;
-					}
+
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				field = (DateFormatPanelField) super.create(parent, param, label, defaultValue);
+				//System.out.println("Created...");
+				if (component.getSelectedValue() != null) {
+					thread = new WorkThread((DataColumnDefinition) component.getSelectedValue());
 					field.setSuggestions(null);
 					field.startWork();
-					thread = new WorkThread(column);
 					thread.start();
 				}
-			});
-			field.addPropertyChangeListener(propertyListener);
-			return field;
+				component.addListSelectionListener(new ListSelectionListener() {
+					public void valueChanged(ListSelectionEvent arg0) {
+						DataColumnDefinition column = (DataColumnDefinition) component.getSelectedValue();
+						System.out.println(column);
+						if (column == null) {
+							return;
+						}
+						if (thread != null) {
+							thread.goOn = false;
+						}
+						field.setSuggestions(null);
+						field.startWork();
+						thread = new WorkThread(column);
+						thread.start();
+					}
+				});
+				field.addConfigurationChangeListener(DateGUIVisibleComponent.this);
+				return field;
+			}
 		}
-	}
-	
-	private static DistAnalysisRestartListener propertyListener = new DistAnalysisRestartListener();
-	
-	public static class DateGUIVisibleComponent extends GUIVisibleComponent {
 
 		private ParamsPanel panel;
-		private DistAnalysisActionListener analysisListener;
+		private AnalysisWindowProvider analysisListener;
 		//private String[] sourceNames = null;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
@@ -241,7 +232,6 @@ public class DateDistance extends AbstractDistance {
 		}
 
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
-			Boolean boolCond = (Boolean)objects[0];
 			//sourceNames = new String[2];
 			//sourceNames[0] = ((DataColumnDefinition)((JList)objects[3]).getModel().getElementAt(0)).getSourceName();
 			//sourceNames[1] = ((DataColumnDefinition)((JList)objects[4]).getModel().getElementAt(0)).getSourceName();
@@ -263,9 +253,9 @@ public class DateDistance extends AbstractDistance {
 			}
 			
 			Map creators = new HashMap();
-			creators.put(PROP_RANGE1, new DateRangeParamFieldCreator(propertyListener));
-			creators.put(PROP_RANGE2, new DateRangeParamFieldCreator(propertyListener));
-			creators.put(PROP_LINERAL, new CheckBoxParamPanelFieldCreator(propertyListener));
+			creators.put(PROP_RANGE1, new DateRangeParamFieldCreator(DateGUIVisibleComponent.this));
+			creators.put(PROP_RANGE2, new DateRangeParamFieldCreator(DateGUIVisibleComponent.this));
+			creators.put(PROP_LINERAL, new CheckBoxParamPanelFieldCreator(DateGUIVisibleComponent.this));
 			creators.put(PROP_FORMAT1, new Creator((JList)WeightedJoinCondition.getLeftAttributeComponent(objects)));
 			creators.put(PROP_FORMAT2, new Creator((JList)WeightedJoinCondition.getRightAttributeComponent(objects)));
 			
@@ -300,23 +290,6 @@ public class DateDistance extends AbstractDistance {
 					new String[] {"Date/time format (left column)", "Date/time format (right column)", "Range before", "Range after", "Use lineral approximation"}, 
 					defs, creators);
 			panel.setValidators(validators);
-			
-			if (!boolCond.booleanValue()) {
-				JButton visual = Configs.getAnalysisButton();
-				//visual.setPreferredSize(new Dimension(visual.getPreferredSize().width, 20));
-				visual.addActionListener(analysisListener = new DistAnalysisActionListener((Window)objects[2], (AbstractConditionPanel) objects[1], propertyListener));
-				panel.append(visual);
-			}
-			
-			
-			WeightedJoinCondition.attachListener(objects, propertyListener);
-			
-			panel.addPropertyChangeListener("ancestor", new PropertyChangeListener() {
-				public void propertyChange(PropertyChangeEvent evt) {
-					if (evt.getNewValue() == null && analysisListener != null) {
-						analysisListener.closeWindow();
-					}
-				}});
 			
 			return panel;
 		}
@@ -355,7 +328,7 @@ public class DateDistance extends AbstractDistance {
 	private double[] difference;
 	private boolean lineralOn;
 	
-	private DistAnalysisActionListener distanceListener = null;
+	private AnalysisWindowProvider distanceListener = null;
 	
 	public DateDistance(Map properties) {
 		super(properties);
@@ -371,7 +344,7 @@ public class DateDistance extends AbstractDistance {
 		difference = new double[] {Long.parseLong(r1 == null ? "0" : r1), Long.parseLong(r1 == null ? "0" : r2)};
 	}
 
-	public DateDistance(Map params, DistAnalysisActionListener analysisListener) {
+	public DateDistance(Map params, AnalysisWindowProvider analysisListener) {
 		this(params);
 		this.distanceListener = analysisListener;
 	}

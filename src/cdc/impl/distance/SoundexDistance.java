@@ -37,14 +37,10 @@
 package cdc.impl.distance;
 
 import java.awt.Dimension;
-import java.awt.Window;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
@@ -53,52 +49,17 @@ import cdc.components.AbstractDistance;
 import cdc.components.AbstractStringDistance;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
-import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
-import cdc.gui.components.dynamicanalysis.DistAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.DistAnalysisRestartListener;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.slope.SlopePanel;
 import cdc.gui.validation.NumberValidator;
-import cdc.impl.conditions.AbstractConditionPanel;
-import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 import cdc.utils.StringUtils;
 
 public class SoundexDistance extends AbstractStringDistance {
-
-	private static class CreatorV1 extends DefaultParamPanelFieldCreator {
-		private SlopePanel slope;
-		public CreatorV1(SlopePanel slope) {this.slope = slope;}
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			slope.bindV1(field);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
-
-	private static class CreatorV2 extends DefaultParamPanelFieldCreator {
-		private SlopePanel slope;
-		public CreatorV2(SlopePanel slope) {this.slope = slope;}
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			slope.bindV2(field);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
-	
-	private static class CreatorQ extends DefaultParamPanelFieldCreator {
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
 	
 	private static final int logLevel = Log.getLogLevel(SoundexDistance.class);
 	
@@ -106,12 +67,39 @@ public class SoundexDistance extends AbstractStringDistance {
 	
 	public static final int DFAULT_SIZE = 5;
 	
-	private static DistAnalysisRestartListener propertyListener = new DistAnalysisRestartListener();
-	
 	private static class SoundexVisibleComponent extends GUIVisibleComponent {
 
+		private class CreatorV1 extends DefaultParamPanelFieldCreator {
+			private SlopePanel slope;
+			public CreatorV1(SlopePanel slope) {this.slope = slope;}
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				slope.bindV1(field);
+				field.addConfigurationChangeListener(SoundexVisibleComponent.this);
+				return field;
+			}
+		}
+
+		private class CreatorV2 extends DefaultParamPanelFieldCreator {
+			private SlopePanel slope;
+			public CreatorV2(SlopePanel slope) {this.slope = slope;}
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				slope.bindV2(field);
+				field.addConfigurationChangeListener(SoundexVisibleComponent.this);
+				return field;
+			}
+		}
+		
+		private class CreatorQ extends DefaultParamPanelFieldCreator {
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				field.addConfigurationChangeListener(SoundexVisibleComponent.this);
+				return field;
+			}
+		}
+		
 		private ParamsPanel panel;
-		private DistAnalysisActionListener analysisListener;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
 			return new SoundexDistance(panel.getParams());
@@ -172,19 +160,7 @@ public class SoundexDistance extends AbstractStringDistance {
 				validators.put(EditDistance.PROP_END_APPROVE_LEVEL, new NumberValidator(NumberValidator.DOUBLE));
 				panel.setValidators(validators);
 				
-				JButton visual = Configs.getAnalysisButton();
-				//visual.setPreferredSize(new Dimension(visual.getPreferredSize().width, 20));
-				visual.addActionListener(analysisListener = new DistAnalysisActionListener((Window)objects[2], (AbstractConditionPanel) objects[1], propertyListener));
-				panel.append(visual);
 			}
-			
-			panel.addPropertyChangeListener("ancestor", new PropertyChangeListener() {
-				public void propertyChange(PropertyChangeEvent evt) {
-					if (evt.getNewValue() == null && analysisListener != null) {
-						analysisListener.closeWindow();
-					}
-				}});
-			WeightedJoinCondition.attachListener(objects, propertyListener);
 			
 			return panel;
 		}
@@ -199,10 +175,6 @@ public class SoundexDistance extends AbstractStringDistance {
 
 		public boolean validate(JDialog dialog) {
 			return panel.doValidate();
-		}
-		
-		public void configurationPanelClosed() {
-			analysisListener.closeWindow();
 		}
 		
 	}

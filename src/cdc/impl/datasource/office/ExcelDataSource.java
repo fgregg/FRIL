@@ -42,8 +42,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
@@ -76,9 +78,8 @@ public class ExcelDataSource extends AbstractDataSource {
 	
 	private boolean filesOpen = false;
 	private HSSFWorkbook workbook;
-	private HSSFSheet sheet;
-	private HSSFFormulaEvaluator evaluator;
-	private Iterator rowIterator;
+	private SheetsIterator iterator;
+	
 	private InputStream stream;
 	private boolean closed = false;
 	
@@ -91,20 +92,58 @@ public class ExcelDataSource extends AbstractDataSource {
 		try {
 			is = new BufferedInputStream(new FileInputStream((String)params.get(PARAM_FILE)));
 			HSSFWorkbook wb = new HSSFWorkbook(new POIFSFileSystem(is));
-			HSSFSheet sheet = wb.getSheet((String)params.get(PARAM_SHEET));
+			String[] sheets;
+			if (params.get(PARAM_SHEET) != null) {
+				sheets = new String[] {(String)params.get(PARAM_SHEET)};
+			} else {
+				sheets = new String[wb.getNumberOfSheets()];
+				for (int i = 0; i < sheets.length; i++) {
+					sheets[i] = wb.getSheetName(i);
+				}
+			}
+			if (sheets.length == 0) {
+				throw new RJException("Excel file " + params.get(PARAM_FILE) + " does not provide any sheets.");
+			}
+			List cols = new ArrayList();
+			HSSFSheet sheet = wb.getSheet(sheets[0]);
 			if (sheet == null) {
-				throw new RJException("Sheet '" + params.get(PARAM_SHEET) + "' is not provided by file " + params.get(PARAM_FILE));
+				//System.out.println("Thorwing: " + "Sheet " + sheets[0] + " is not provided by file " + params.get(PARAM_FILE));
+				throw new RJException("Sheet '" + sheets[0] + "' is not provided by file " + params.get(PARAM_FILE));
 			}
 			HSSFFormulaEvaluator evaluator = new HSSFFormulaEvaluator(sheet, wb);
 			//first row should provide data model
 			HSSFRow row = sheet.getRow(0);
 			evaluator.setCurrentRow(row);
-			DataColumnDefinition[] cols = new DataColumnDefinition[row.getPhysicalNumberOfCells()];
-			for (int i = 0; i < cols.length; i++) {
+			for (int i = 0; i < row.getPhysicalNumberOfCells(); i++) {
 				HSSFCell cell = row.getCell(i);
-				cols[i] = new ExcelDataColumnDefinition(decodeValue(cell, evaluator), DataColumnDefinition.TYPE_STRING, sourceName, i);
+				cols.add(new ExcelDataColumnDefinition(decodeValue(cell, evaluator), DataColumnDefinition.TYPE_STRING, sourceName, i));
 			}
-			return cols;
+			for (int i = 1; i < sheets.length; i++) {
+				sheet = wb.getSheet(sheets[i]);
+				if (sheet == null) {
+					throw new RJException("Sheet '" + params.get(PARAM_SHEET) + "' is not provided by file " + params.get(PARAM_FILE));
+				}
+				evaluator = new HSSFFormulaEvaluator(sheet, wb);
+				//first row should provide data model
+				row = sheet.getRow(0);
+				evaluator.setCurrentRow(row);
+				List localCols = new ArrayList();
+				for (i = 0; i < row.getPhysicalNumberOfCells(); i++) {
+					HSSFCell cell = row.getCell(i);
+					DataColumnDefinition col = new ExcelDataColumnDefinition(decodeValue(cell, evaluator), DataColumnDefinition.TYPE_STRING, sourceName, i);
+					localCols.add(col);
+				}
+				List toRemove = new ArrayList();
+				for (Iterator iterator = cols.iterator(); iterator.hasNext();) {
+					DataColumnDefinition object = (DataColumnDefinition) iterator.next();
+					if (!localCols.contains(object)) {
+						toRemove.add(object);
+					}
+				}
+				cols.removeAll(toRemove);
+			}
+			
+			return (DataColumnDefinition[]) cols.toArray(new DataColumnDefinition[] {});
 		} finally {
 			if (is != null) {
 				is.close();
@@ -141,15 +180,17 @@ public class ExcelDataSource extends AbstractDataSource {
 		return false;
 	}
 
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		closed  = true;
 		if (stream != null) {
 			stream.close();
 			stream = null;
 		}
 		workbook = null;
-		sheet = null;
-		evaluator = null;
+		if (iterator != null) {
+			iterator.remove();
+			iterator = null;
+		}
 		filesOpen = false;
 	}
 
@@ -180,15 +221,15 @@ public class ExcelDataSource extends AbstractDataSource {
 			openFile();
 		}
 		
-		if (rowIterator.hasNext()) {
-			HSSFRow row = (HSSFRow) rowIterator.next();
-			evaluator.setCurrentRow(row);
+		if (iterator.hasNext()) {
+			HSSFRow row = (HSSFRow) iterator.next();
+			iterator.getEvaluator().setCurrentRow(row);
 			ModelGenerator generator = getDataModel();
 			DataColumnDefinition[] inputColumns = generator.getInputFormat();
 			DataCell[] rowCols = new DataCell[inputColumns.length];
 			for (int i = 0; i < rowCols.length; i++) {
 				DataColumnDefinition col = generator.getInputFormat()[i];
-				rowCols[i] = new DataCell(col.getColumnType(), decodeValue(row.getCell(((ExcelDataColumnDefinition)col).getCellId()), evaluator));
+				rowCols[i] = new DataCell(col.getColumnType(), decodeValue(row.getCell(((ExcelDataColumnDefinition)col).getCellId()), iterator.getEvaluator()));
 			}
 			return new DataRow(generator.getOutputFormat(), generator.generateOutputRow(rowCols), getSourceName());
 		} else {
@@ -203,20 +244,13 @@ public class ExcelDataSource extends AbstractDataSource {
 		if (!filesOpen) {
 			openFile();
 		}
-		return sheet.getPhysicalNumberOfRows() - 1;
+		return iterator.countRecords();
 	}
 
 	private void openFile() throws IOException, RJException {
 		stream = new BufferedInputStream(new FileInputStream(getProperty(PARAM_FILE)));
 		workbook = new HSSFWorkbook(new POIFSFileSystem(stream));
-		sheet = workbook.getSheet(getProperty(PARAM_SHEET));
-		if (sheet == null) {
-			throw new RJException("Sheet '" + "' is not provided by file " + getProperty(PARAM_FILE));
-		}
-		evaluator = new HSSFFormulaEvaluator(sheet, workbook);
-		rowIterator = sheet.rowIterator();
-		//skip header row
-		rowIterator.next();
+		iterator = new SheetsIterator(workbook, getProperty(PARAM_SHEET) == null ? null : new String[] {getProperty(PARAM_SHEET)});
 		filesOpen = true;
 		closed = false;
 	}

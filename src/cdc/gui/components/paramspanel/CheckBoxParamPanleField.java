@@ -36,43 +36,56 @@
 
 package cdc.gui.components.paramspanel;
 
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.Box;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class CheckBoxParamPanleField extends ParamPanelField {
 
 	private class ActionListenerProxy implements ActionListener {
 
-		private PropertyChangeListener listener;
+		private ChangedConfigurationListener listener;
 		
-		public ActionListenerProxy(PropertyChangeListener listener) {
+		public ActionListenerProxy(ChangedConfigurationListener listener) {
 			this.listener = listener;
 		}
 		
 		public void actionPerformed(ActionEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(arg0.getSource(), "selected", String.valueOf(((JCheckBox)arg0.getSource()).isSelected()), null));
+			listener.configurationChanged();
 		}
 		
 	}
 	
 	private JCheckBox checkBox;
 	private Map listeners = new HashMap();
+	private JPanel panel;
+	private JLabel label;
 	
 	public CheckBoxParamPanleField(JComponent parent, String param, String label, String defaultValue) {
-		checkBox = new JCheckBox(label);
+		checkBox = new JCheckBox();
+		
+		panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		panel.add(Box.createRigidArea(new Dimension(20, 20)));
+		panel.add(checkBox);
+		this.label = new JLabel(label);
+		
 		setValue(defaultValue);
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		ActionListenerProxy proxy = new ActionListenerProxy(propertyChangeListener);
-		listeners.put(propertyChangeListener, proxy);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		ActionListenerProxy proxy = new ActionListenerProxy(configurationListener);
+		listeners.put(configurationListener, proxy);
 		checkBox.addActionListener(proxy);
 	}
 
@@ -81,7 +94,7 @@ public class CheckBoxParamPanleField extends ParamPanelField {
 	}
 
 	public JComponent getComponentInputField() {
-		return checkBox;
+		return panel;
 	}
 
 	public String getUserLabel() {
@@ -92,8 +105,8 @@ public class CheckBoxParamPanleField extends ParamPanelField {
 		return String.valueOf(checkBox.isSelected());
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
-		checkBox.removeActionListener((ActionListener) listeners.get(distAnalysisRestartListener));
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		checkBox.removeActionListener((ActionListener) listeners.get(configurationListener));
 	}
 
 	public void setValue(String val) {
@@ -101,7 +114,7 @@ public class CheckBoxParamPanleField extends ParamPanelField {
 	}
 
 	public JComponent getComponentLabel() {
-		return null;
+		return label;
 	}
 
 }

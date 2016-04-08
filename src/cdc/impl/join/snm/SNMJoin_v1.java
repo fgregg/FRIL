@@ -52,7 +52,6 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
 import cdc.impl.datasource.wrappers.ExternallySortingDataSource;
-import cdc.utils.CPUInfo;
 import cdc.utils.CompareFunctionInterface;
 import cdc.utils.HTMLUtils;
 import cdc.utils.Log;
@@ -80,6 +79,9 @@ public class SNMJoin_v1 extends AbstractJoin {
 		}
 
 		public void notifyJoined(DataRow rowA, DataRow rowB) throws RJException {
+			synchronized (mutex) {
+				joined++;
+			}
 			SNMJoin_v1.this.notifyJoined(rowA, rowB);
 		}
 
@@ -92,6 +94,13 @@ public class SNMJoin_v1 extends AbstractJoin {
 		}
 
 		public void notifyTrashingNotJoined(DataRow disposed) throws RJException {
+			synchronized (mutex) {
+				if (disposed.getSourceName().equals(getSourceA().getSourceName())) {
+					minusA++;
+				} else {
+					minusB++;
+				}
+			}
 			SNMJoin_v1.this.notifyTrashingNotJoined(disposed);
 		}
 
@@ -113,6 +122,8 @@ public class SNMJoin_v1 extends AbstractJoin {
 
 	}
 
+	private Object mutex = new Object();
+	
 	public static final int DEFAULT_WINDOW_SIZE = 8;
 	public static final String PARAM_WINDOW_SIZE = "window";
 	public static final String PARAM_SORT_ORDER_B = "sort-order-left";
@@ -129,6 +140,10 @@ public class SNMJoin_v1 extends AbstractJoin {
 	private DataColumnDefinition[] leftOrder;
 	private DataColumnDefinition[] rightOrder;
 	private CompareFunctionInterface[] functions;
+	
+	private int joined = 0;
+	private int minusA = 0;
+	private int minusB = 0;
 	
 	public SNMJoin_v1(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition outFormat[], AbstractJoinCondition condition, Map params) throws IOException, RJException {
 		super(fixSource(sourceA, parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()), condition.getCompareFunctions(parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()), parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()))), 
@@ -192,6 +207,7 @@ public class SNMJoin_v1 extends AbstractJoin {
 								workers[i].interrupt();
 							}
 						}
+						endSequence();
 						return null;
 					}
 					for (int i = 0; i < workers.length; i++) {
@@ -203,13 +219,22 @@ public class SNMJoin_v1 extends AbstractJoin {
 							continue main;
 						}
 					}
+					endSequence();
 					return null;
 				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		endSequence();
 		return null;
+	}
+
+	private void endSequence() {
+		Log.log(getClass(), "Summary of linkage: linked=" + joined + ", size(" + getSourceA().getSourceName() + ")=" + getSourceA().position()
+				   + ", size(" + getSourceB().getSourceName() + ")=" + getSourceB().position()
+				   + ", minus(" + getSourceA().getSourceName() + ")=" + minusA
+				   + ", minus(" + getSourceB().getSourceName() + ")=" + minusB, 1);
 	}
 
 	private void createWorkersIfNeeded() throws IOException, RJException {
@@ -384,5 +409,9 @@ public class SNMJoin_v1 extends AbstractJoin {
 		}
 		buffer = new ArrayBlockingQueue(100);
 		//createWorkersIfNeeded();
+		
+		joined = 0;
+		minusA = 0;
+		minusB = 0;
 	}
 }

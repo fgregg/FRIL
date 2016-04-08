@@ -47,6 +47,7 @@ import java.awt.event.WindowListener;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.Timer;
 
 import cdc.components.AbstractDataSource;
 import cdc.datamodel.DataColumnDefinition;
@@ -55,22 +56,21 @@ import cdc.datamodel.converters.ModelGenerator;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.datasource.JDataSource;
 
-public class ConvAnalysisActionListener implements ActionListener {
+public class ConvAnalysisActionListener implements ActionListener, ChangedConfigurationListener {
 	
 	private GUIVisibleComponent convCreator;
 	private AbstractDataSource source;
 	private Window parent;
-	private ConvAnalysisRestartListener changeListener;
 	private boolean on = false;
 	private DynamicAnalysisFrame frame;
 	private JButton button;
 	private JDataSource dataSource;
+	private Timer timer;
 	
-	public ConvAnalysisActionListener(Window parent, AbstractDataSource source, GUIVisibleComponent convCreator, ConvAnalysisRestartListener changeListener, JDataSource dataSource) {
+	public ConvAnalysisActionListener(Window parent, AbstractDataSource source, GUIVisibleComponent convCreator, JDataSource dataSource) {
 		this.convCreator = convCreator;
 		this.source = source;
 		this.parent = parent;
-		this.changeListener = changeListener;
 		this.dataSource = dataSource;
 		parent.addWindowListener(new WindowListener() {
 			public void windowActivated(WindowEvent arg0) {}
@@ -78,9 +78,6 @@ public class ConvAnalysisActionListener implements ActionListener {
 				if (on) {
 					on = !on;
 					button.setEnabled(true);
-					ConvAnalysisActionListener.this.changeListener.setFrame(null);
-					ConvAnalysisActionListener.this.changeListener.setConvCreator(null);
-					ConvAnalysisActionListener.this.changeListener.setSource(null);
 				}
 			}
 
@@ -116,28 +113,39 @@ public class ConvAnalysisActionListener implements ActionListener {
 			}
 			//frame.addCloseListener(this);
 			frame.setVisible(true);
-			changeListener.setConvCreator(convCreator);
-			changeListener.setFrame(frame);
-			changeListener.setSource(source);
-			changeListener.setJDataSource(dataSource);
 		} else {
 			button.setEnabled(true);
-			changeListener.setFrame(null);
-			changeListener.setConvCreator(null);
-			changeListener.setSource(null);
-			changeListener.setJDataSource(null);
 		}
 	}
 	
-	public void closeWindow() {
-		if (frame != null) {
-			frame.dispose();
-		}
-		if (button != null) {
-			button.setEnabled(true);
-		}
-		on = false;
+	public void configurationChanged() {
+		if (!on) return;
+		if (timer != null && timer.isRunning()) timer.stop();
+		timer = new Timer(700, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					if (convCreator.validate(null)) {
+						AbstractColumnConverter conv = (AbstractColumnConverter) convCreator.generateSystemComponent();
+						frame.setParameters(ConvAnalysisActionListener.getColumns(conv), new Object[] {source, conv, new ModelGenerator(dataSource.getConverters())});
+					}
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+				timer.stop();
+			}
+		});
+		timer.start();
 	}
+	
+//	public void closeWindow() {
+//		if (frame != null) {
+//			frame.dispose();
+//		}
+//		if (button != null) {
+//			button.setEnabled(true);
+//		}
+//		on = false;
+//	}
 	
 	public static String[] getColumns(AbstractColumnConverter conv) {
 		DataColumnDefinition[] in = conv.getExpectedColumns();

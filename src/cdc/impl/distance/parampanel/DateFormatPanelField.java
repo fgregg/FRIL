@@ -43,8 +43,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,23 +56,24 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import cdc.gui.Configs;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class DateFormatPanelField extends ParamPanelField {
 
 	public class DocumentChangedAction implements DocumentListener {
-		private PropertyChangeListener listener;
-		public DocumentChangedAction(PropertyChangeListener listener) {
+		private ChangedConfigurationListener listener;
+		public DocumentChangedAction(ChangedConfigurationListener listener) {
 				this.listener = listener;
 		}
 		public void changedUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(DateFormatPanelField.this, "text", null, format.getText()));
+			listener.configurationChanged();
 		}
 		public void insertUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(DateFormatPanelField.this, "text", null, format.getText()));
+			listener.configurationChanged();
 		}
 		public void removeUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(DateFormatPanelField.this, "text", null, format.getText()));
+			listener.configurationChanged();
 		}
 	}
 
@@ -163,13 +162,13 @@ public class DateFormatPanelField extends ParamPanelField {
 		format.setText(val);
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		DocumentListener l = new DocumentChangedAction(propertyChangeListener);
-		listeners.put(propertyChangeListener, l);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		DocumentListener l = new DocumentChangedAction(configurationListener);
+		listeners.put(configurationListener, l);
 		this.format.getDocument().addDocumentListener(l);
 	}
 	
-	public void removePropertyChangeListener(PropertyChangeListener listener) {
+	public void removeConfigurationChangeListener(ChangedConfigurationListener listener) {
 		this.format.getDocument().removeDocumentListener((DocumentListener) listeners.remove(listener));
 	}
 	

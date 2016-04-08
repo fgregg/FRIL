@@ -37,15 +37,11 @@
 package cdc.impl.distance;
 
 import java.awt.Dimension;
-import java.awt.Window;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.ButtonGroup;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -54,17 +50,12 @@ import javax.swing.SpinnerNumberModel;
 import cdc.components.AbstractDistance;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
-import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
-import cdc.gui.components.dynamicanalysis.DistAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.DistAnalysisRestartListener;
 import cdc.gui.components.paramspanel.CheckBoxParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ComponentFactory;
 import cdc.gui.components.paramspanel.ComponentFactoryInterface;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.components.paramspanel.RadioParamPanelFieldCreator;
-import cdc.impl.conditions.AbstractConditionPanel;
-import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.utils.CompareFunctionInterface;
 import cdc.utils.RJException;
 import cdc.utils.comparators.NumberComparator;
@@ -78,19 +69,15 @@ public class NumericDistance extends AbstractDistance {
 	//private static final String[] RANGE_LABELS = {"[value - epsilon, value + epsilon]", "[value - epsilon, value]", "[value, value + epsilon]"};
 	//private static final String[] RANGE_VALUES = {"0", "1", "2"};
 	
-	private static DistAnalysisRestartListener propertyListener = new DistAnalysisRestartListener();
-	
 	public static class NumericDistanceComponent extends GUIVisibleComponent {
 
 		private ParamsPanel panel;
-		private DistAnalysisActionListener analysisListener;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
 			return new NumericDistance(panel.getParams());
 		}
 
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
-			Boolean boolCond = (Boolean)objects[0];
 			ButtonGroup group = new ButtonGroup();
 			String[] defs = new String[] {"0", "0", "true"};
 			if (getRestoredParam(PROP_NUMBER_RANGE) != null) {
@@ -109,7 +96,7 @@ public class NumericDistance extends AbstractDistance {
 					ComponentFactory.jSpinnerFactory(new SpinnerNumberModel(0.0, 0.0, 10000000.0, 0.01), new Dimension(60, 20)),
 					ComponentFactory.labelFactory(")")
 			});
-			RadioParamPanelFieldCreator creatorRange = new RadioParamPanelFieldCreator(group, factoryRange, propertyListener);
+			RadioParamPanelFieldCreator creatorRange = new RadioParamPanelFieldCreator(group, factoryRange, this);
 			
 			ComponentFactoryInterface factoryPercentage = ComponentFactory.compoundFactory(new ComponentFactoryInterface[] {
 					ComponentFactory.labelFactory("Between (value - "),
@@ -118,33 +105,17 @@ public class NumericDistance extends AbstractDistance {
 					ComponentFactory.jSpinnerFactory(new SpinnerNumberModel(0.0, 0.0, 10000000.0, 0.01), new Dimension(60, 20)),
 					ComponentFactory.labelFactory("%)")
 			});
-			RadioParamPanelFieldCreator creatorPercent = new RadioParamPanelFieldCreator(group, factoryPercentage, propertyListener);
+			RadioParamPanelFieldCreator creatorPercent = new RadioParamPanelFieldCreator(group, factoryPercentage, this);
 			
 			Map creators = new HashMap();
 			creators.put(PROP_NUMBER_RANGE, creatorRange);
 			creators.put(PROP_PERCENT, creatorPercent);
-			creators.put(PROP_LINERAL, new CheckBoxParamPanelFieldCreator(propertyListener));
+			creators.put(PROP_LINERAL, new CheckBoxParamPanelFieldCreator(this));
 			
-			panel = new ParamsPanel(new String[] {PROP_NUMBER_RANGE, PROP_PERCENT, PROP_LINERAL}, 
+			return panel = new ParamsPanel(new String[] {PROP_NUMBER_RANGE, PROP_PERCENT, PROP_LINERAL}, 
 					new String[] {"Range (fixed value)", "Range (percentage)", "Use lineral approximation"}, 
 					defs, creators);
 			
-			if (!boolCond.booleanValue()) {
-				JButton visual = Configs.getAnalysisButton();
-				//visual.setPreferredSize(new Dimension(visual.getPreferredSize().width, 20));
-				visual.addActionListener(analysisListener = new DistAnalysisActionListener((Window)objects[2], (AbstractConditionPanel) objects[1], propertyListener));
-				panel.append(visual);
-			}
-			
-			panel.addPropertyChangeListener("ancestor", new PropertyChangeListener() {
-				public void propertyChange(PropertyChangeEvent evt) {
-					if (evt.getNewValue() == null && analysisListener != null) {
-						analysisListener.closeWindow();
-					}
-				}});
-			WeightedJoinCondition.attachListener(objects, propertyListener);
-			
-			return panel;
 		}
 
 		public Class getProducedComponentClass() {
@@ -162,10 +133,6 @@ public class NumericDistance extends AbstractDistance {
 				return false;
 			}
 			return true;
-		}
-		
-		public void configurationPanelClosed() {
-			analysisListener.closeWindow();
 		}
 		
 	}

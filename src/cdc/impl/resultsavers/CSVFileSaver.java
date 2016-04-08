@@ -60,7 +60,6 @@ import cdc.gui.components.paramspanel.FileChoosingPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.Log;
-import cdc.utils.PrintUtils;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 

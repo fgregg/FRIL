@@ -41,4 +41,5 @@ import javax.swing.JDialog;
 public interface DialogListener {
 	public boolean okPressed(JDialog parent);
 	public void cancelPressed(JDialog parent);
+	public void windowClosing(JDialog parent);
 }

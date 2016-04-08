@@ -65,7 +65,6 @@ import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.components.paramspanel.SeparatorPanelFieldCreator;
@@ -97,7 +96,6 @@ public class SplitConverter extends AbstractColumnConverter {
 		private DataColumnDefinition column;
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
-		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
 		private ScriptPanel scriptPanel;
 		
 		public Object generateSystemComponent() throws RJException {
@@ -107,6 +105,11 @@ public class SplitConverter extends AbstractColumnConverter {
 		}
 
 		public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
+			
+			AbstractDataSource source = (AbstractDataSource) params[2];
+			Window parent = (Window) params[3];
+			JDataSource jDataSource = (JDataSource)params[4];
+			analysisListener = new ConvAnalysisActionListener(parent, source, this, jDataSource);
 			
 			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(SplitConverter.class), 
 					String[].class, new String[] {"column", "splitStr", "outSize"}, new Class[] {String.class, String.class, Integer.TYPE});
@@ -123,8 +126,8 @@ public class SplitConverter extends AbstractColumnConverter {
 			}
 			
 			Map listeners = new HashMap();
-			listeners.put(PARAM_SPLIT, new SeparatorPanelFieldCreator(seps, labels, 2, 3, propertyListener));
-			listeners.put(PARAM_COL_NAME, new SplitNamesFieldCreator(propertyListener));
+			listeners.put(PARAM_SPLIT, new SeparatorPanelFieldCreator(seps, labels, 2, 3, analysisListener));
+			listeners.put(PARAM_COL_NAME, new SplitNamesFieldCreator(analysisListener));
 			panel = new ParamsPanel(new String[] {PARAM_COL_NAME, PARAM_SPLIT}, 
 					new String[] {"Output attribute name", "Split character"}, 
 					def, listeners);
@@ -140,17 +143,9 @@ public class SplitConverter extends AbstractColumnConverter {
 			//visual.setPreferredSize(new Dimension(visual.getPreferredSize().width, 20));
 			panel.append(visual);
 			
-			
 			this.column = (DataColumnDefinition) params[0];
 			
-			AbstractDataSource source = (AbstractDataSource) params[2];
-			Window parent = (Window) params[3];
-			JDataSource jDataSource = (JDataSource)params[4];
-			if (analysisListener != null) {
-				visual.removeActionListener(analysisListener);
-			}
-			
-			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
+			visual.addActionListener(analysisListener);
 			
 			JTabbedPane tabs = new JTabbedPane();
 			tabs.addTab("Configuration", panel);
@@ -171,6 +166,11 @@ public class SplitConverter extends AbstractColumnConverter {
 
 		public boolean validate(JDialog dialog) {
 			return panel.doValidate();
+		}
+
+		public void windowClosing(JDialog parent) {
+			// TODO Auto-generated method stub
+			
 		}
 
 	}

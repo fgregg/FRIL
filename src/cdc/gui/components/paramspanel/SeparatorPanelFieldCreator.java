@@ -36,9 +36,9 @@
 
 package cdc.gui.components.paramspanel;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 
 public class SeparatorPanelFieldCreator implements FieldCreator {
@@ -46,10 +46,10 @@ public class SeparatorPanelFieldCreator implements FieldCreator {
 	private int x,y;
 	private String[] values;
 	private String[] labels;
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 	private boolean otherEnabled = true;
 	
-	public SeparatorPanelFieldCreator(String[] values, String[] labels, int x, int y, PropertyChangeListener listener) {
+	public SeparatorPanelFieldCreator(String[] values, String[] labels, int x, int y, ChangedConfigurationListener listener) {
 		this(values, labels, x, y, true, listener);
 	}
 	
@@ -57,7 +57,7 @@ public class SeparatorPanelFieldCreator implements FieldCreator {
 		this(values, labels, x, y, true);
 	}
 	
-	public SeparatorPanelFieldCreator(String[] values, String[] labels, int x, int y, boolean otherEnabled, PropertyChangeListener listener) {
+	public SeparatorPanelFieldCreator(String[] values, String[] labels, int x, int y, boolean otherEnabled, ChangedConfigurationListener listener) {
 		this.x = x;
 		this.y = y;
 		this.values = values;

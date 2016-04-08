@@ -103,6 +103,8 @@ public class JoinThread extends StoppableThread {
 				}
 			});
 			
+			System.gc();
+			
 			system.getJoin().reset();
 			if (system.getJoin().isProgressSupported()) {
 				new PollingThread(info, system).start();

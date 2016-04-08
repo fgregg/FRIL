@@ -55,7 +55,6 @@ import cdc.datamodel.converters.ModelGenerator;
 import cdc.impl.deduplication.DeduplicationConfig;
 import cdc.impl.deduplication.DeduplicationDataSource;
 import cdc.impl.join.strata.StrataJoinWrapper;
-import cdc.utils.PrintUtils;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -302,10 +301,14 @@ public abstract class AbstractDataSource extends SystemComponent {
 	
 	public void setDeduplicationConfig(DeduplicationConfig deduplication) {
 		dedupConfig = deduplication;
-		if (deduplication == null) {
+		configureDeduplication();
+	}
+
+	private void configureDeduplication() {
+		if (dedupConfig == null) {
 			preprocessedDataSource = this;
 		} else {
-			preprocessedDataSource = new DeduplicationDataSource(this, deduplication);
+			preprocessedDataSource = new DeduplicationDataSource(this, dedupConfig);
 		}
 	}
 	
@@ -314,11 +317,24 @@ public abstract class AbstractDataSource extends SystemComponent {
 	}
 	
 	public AbstractDataSource getPreprocessedDataSource() {
+		if (preprocessedDataSource == null) {
+			configureDeduplication();
+		}
 		return preprocessedDataSource;
 	}
 	
+	protected void finalize() throws Throwable {
+		super.finalize();
+	}
+	
+	public void close() throws IOException, RJException {
+		//The following is to break the circular reference
+		this.preprocessedDataSource = null;
+		doClose();
+	}
+	
 	protected abstract DataRow nextRow() throws IOException, RJException;
-	public abstract void close() throws IOException, RJException;
+	protected abstract void doClose() throws IOException, RJException;
 	protected abstract void doReset() throws IOException, RJException;
 	public abstract boolean canSort();
 	public abstract long size() throws IOException, RJException;

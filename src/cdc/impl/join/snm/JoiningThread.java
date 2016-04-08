@@ -99,6 +99,7 @@ public class JoiningThread extends Thread {
 	private boolean leftEnded = false;
 	private int rightAfterLeftEnded = 0;
 	private long readFromLeft = 0;
+	private long readB = 0;
 
 	public JoiningThread(int id, AbstractDataSource sourceA, AbstractDataSource sourceB, long[] startIndexes, long workSize, ArrayBlockingQueue buffer, SNMJoinConnector connector) {
 		this.sourceA = sourceA;
@@ -127,6 +128,7 @@ public class JoiningThread extends Thread {
 			if (!shouldCancel()) {
 				linkData();
 			}
+			finishProcess();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} catch (RJException e) {
@@ -140,7 +142,39 @@ public class JoiningThread extends Thread {
 			finished = true;
 			notifyAll();
 		}
-		Log.log(getClass(), "Thread " + getName() + " finishes.", 2);
+		Log.log(getClass(), "Thread " + getName() + " finishes. Size of data read: " + sourceA.getSourceName() + "=" + readFromLeft + ", " + sourceB.getSourceName() + "=" + readB, 2);
+	}
+
+	private void finishProcess() throws IOException, RJException {
+		int n = 0;
+		boolean first = true;
+		DataRow row;
+		Log.log(getClass(), "Thread finished linkage. Draining data sources. (readFromLeft=" + readFromLeft + ")", 1);
+		while ((row = sourceA.getNextRow()) != null) {
+			readFromLeft++;
+			if (first) {
+				Log.log(getClass(), "First leftover in " + sourceA.getSourceName() + ": " + row, 2);
+			}
+			connector.notifyTrashingNotJoined(row);
+			n++;
+			first = false;
+		}
+		if (n != 0) {
+			Log.log(getClass(), "Leftovers in " + sourceA.getSourceName() + ": " + n, 2);
+		}
+		n = 0;
+		first = true;
+		while ((row = sourceB.getNextRow()) != null) {
+			if (first) {
+				Log.log(getClass(), "First leftover in " + sourceB.getSourceName() + ": " + row, 2);
+			}
+			connector.notifyTrashingNotJoined(row);
+			n++;
+			first = false;
+		}
+		if (n != 0) {
+			Log.log(getClass(), "Leftovers in " + sourceB.getSourceName() + ": " + n, 2);
+		}
 	}
 
 	private boolean shouldCancel() {
@@ -333,15 +367,16 @@ public class JoiningThread extends Thread {
 		if (leftEnded) {
 			rightAfterLeftEnded++;
 		}
+		readB++;
 		return sourceB.getNextRow();
 	}
 
 	private DataRow getNextA() throws IOException, RJException {
 		DataRow row = sourceA.getNextRow();
+		readFromLeft++;
 		if (row == null) {
 			leftEnded  = true;
 		}
-		readFromLeft++;
 		return row;
 	}
 

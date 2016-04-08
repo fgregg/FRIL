@@ -43,8 +43,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,6 +57,7 @@ import javax.swing.event.DocumentListener;
 import cdc.gui.Configs;
 import cdc.gui.MainFrame;
 import cdc.gui.OptionDialog;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.jdbc.JDBCConfigurationPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.GuiUtils;
@@ -68,18 +67,18 @@ import cdc.utils.StringUtils;
 public class JDBCConnectionPanelField extends ParamPanelField {
 
 	public class DocumentChangedAction implements DocumentListener {
-		private PropertyChangeListener listener;
-		public DocumentChangedAction(PropertyChangeListener listener) {
+		private ChangedConfigurationListener listener;
+		public DocumentChangedAction(ChangedConfigurationListener listener) {
 				this.listener = listener;
 		}
 		public void changedUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(JDBCConnectionPanelField.this, "text", null, field.getText()));
+			listener.configurationChanged();
 		}
 		public void insertUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(JDBCConnectionPanelField.this, "text", null, field.getText()));
+			listener.configurationChanged();
 		}
 		public void removeUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(JDBCConnectionPanelField.this, "text", null, field.getText()));
+			listener.configurationChanged();
 		}
 	}
 	
@@ -201,13 +200,13 @@ public class JDBCConnectionPanelField extends ParamPanelField {
 		}
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		DocumentChangedAction l = new DocumentChangedAction(propertyChangeListener);
-		listeners.put(propertyChangeListener, l);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		DocumentChangedAction l = new DocumentChangedAction(configurationListener);
+		listeners.put(configurationListener, l);
 		field.getDocument().addDocumentListener(l);
 	}
 	
-	public void removePropertyChangeListener(PropertyChangeListener listener) {
+	public void removeConfigurationChangeListener(ChangedConfigurationListener listener) {
 		field.getDocument().removeDocumentListener((DocumentListener) listeners.remove(listener));
 	}
 

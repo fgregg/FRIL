@@ -183,11 +183,6 @@ public class DynamicAnalysisFrame extends JDialog {
 				if (backgroundThread != null) {
 					backgroundThread.scheduleStop();
 					((JButton)arg0.getSource()).setEnabled(false);
-//					try {
-//						backgroundThread.join();
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
 				}
 				DynamicAnalysisFrame.this.dispose();
 			}
@@ -241,7 +236,11 @@ public class DynamicAnalysisFrame extends JDialog {
 		
 		addWindowListener(new WindowListener() {
 			public void windowActivated(WindowEvent e) {}
-			public void windowClosed(WindowEvent e) {}
+			public void windowClosed(WindowEvent e) {
+				if (backgroundThread != null) {
+					backgroundThread.scheduleStop();
+				}
+			}
 			public void windowClosing(WindowEvent e) {
 				if (backgroundThread != null) {
 					backgroundThread.scheduleStop();

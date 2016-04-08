@@ -44,11 +44,10 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 
 import javax.swing.JPanel;
 
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class SlopePanel extends JPanel {
@@ -281,10 +280,10 @@ public class SlopePanel extends JPanel {
 	
 	public void bindV1(ParamPanelField field) {
 		this.v1Listener = field;
-		this.v1Listener.addPropertyChangeListener(new PropertyChangeListener() {
-			public void propertyChange(PropertyChangeEvent evt) {
+		this.v1Listener.addConfigurationChangeListener(new ChangedConfigurationListener() {
+			public void configurationChanged() {
 				try {
-					double v = Double.parseDouble((String)evt.getNewValue());
+					double v = Double.parseDouble(v1Listener.getValue());
 					if (v >=0 && v <= 1) v1 = v;
 					SlopePanel.this.repaint();
 				} catch (NumberFormatException e) {}
@@ -294,10 +293,10 @@ public class SlopePanel extends JPanel {
 	
 	public void bindV2(ParamPanelField field) {
 		this.v2Listener = field;
-		this.v2Listener.addPropertyChangeListener(new PropertyChangeListener() {
-			public void propertyChange(PropertyChangeEvent evt) {
+		this.v2Listener.addConfigurationChangeListener(new ChangedConfigurationListener() {
+			public void configurationChanged() {
 				try {
-					double v = Double.parseDouble((String)evt.getNewValue());
+					double v = Double.parseDouble(v2Listener.getValue());
 					if (v >=0 && v <= 1) v2 = v;
 					SlopePanel.this.repaint();
 				} catch (NumberFormatException e) {}

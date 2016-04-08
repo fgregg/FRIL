@@ -37,18 +37,23 @@
 package cdc.gui;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
 import cdc.components.SystemComponent;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.utils.RJException;
 
-public abstract class GUIVisibleComponent implements DialogListener {
+public abstract class GUIVisibleComponent implements DialogListener, ChangedConfigurationListener {
 	
 	private Map params = new HashMap();
+	private List changedConfigurationListeners = new ArrayList();
 	
 	public void restoreValues(SystemComponent component) {
 		if (component.getProperties() != null) {
@@ -71,7 +76,26 @@ public abstract class GUIVisibleComponent implements DialogListener {
 		return validate(parent);
 	}
 	
+	public void windowClosing(JDialog parent) {
+	}
+	
 	public void cancelPressed(JDialog parent) {
+	}
+	
+	public void addChangedConfigurationListener(ChangedConfigurationListener listener) {
+		changedConfigurationListeners.add(listener);
+	}
+	
+	public void removeChangedConfigurationListener(ChangedConfigurationListener listener) {
+		System.out.println("REMOVE LISTENER");
+		changedConfigurationListeners.remove(listener);
+	}
+	
+	public void configurationChanged() {
+		for (Iterator iterator = changedConfigurationListeners.iterator(); iterator.hasNext();) {
+			ChangedConfigurationListener listener = (ChangedConfigurationListener) iterator.next();
+			listener.configurationChanged();
+		}
 	}
 	
 	public abstract JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY);

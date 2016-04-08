@@ -41,8 +41,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,17 +50,18 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
 import cdc.gui.Configs;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class RadioParamPanelField extends ParamPanelField {
 
 	public class ItemListenerProxy implements ItemListener {
-		private PropertyChangeListener listener;
-		public ItemListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ItemListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			this.listener = propertyChangeListener;
 		}
 		public void itemStateChanged(ItemEvent e) {
 			if (radio.isSelected()) {
-				listener.propertyChange(new PropertyChangeEvent(e.getSource(), "selection", new Boolean(!radio.isSelected()), new Boolean(radio.isSelected())));
+				listener.configurationChanged();
 			}
 		}
 	}
@@ -96,7 +95,6 @@ public class RadioParamPanelField extends ParamPanelField {
 		errorPanel.add(error);
 		errorPanel.setPreferredSize(new Dimension(20, 20));
 		
-		panel.add(radio);
 		panel.add(errorPanel);
 		panel.add(input);
 	}
@@ -117,7 +115,7 @@ public class RadioParamPanelField extends ParamPanelField {
 	}
 	
 	public JComponent getComponentLabel() {
-		return null;
+		return radio;
 	}
 
 	public String getUserLabel() {
@@ -135,14 +133,14 @@ public class RadioParamPanelField extends ParamPanelField {
 		factory.setValue(input, val);
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		ItemListenerProxy l = new ItemListenerProxy(propertyChangeListener);
-		listeners.put(propertyChangeListener, l);
-		factory.addPropertyChangeListener(input, propertyChangeListener);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		ItemListenerProxy l = new ItemListenerProxy(configurationListener);
+		listeners.put(configurationListener, l);
+		factory.addPropertyChangeListener(input, configurationListener);
 		radio.addItemListener(l);
 	}
 	
-	public void removePropertyChangeListener(PropertyChangeListener listener) {
+	public void removeConfigurationChangeListener(ChangedConfigurationListener listener) {
 		factory.removoPropertyChangeListener(input, listener);
 		radio.removeItemListener((ItemListener) listeners.get(listener));
 	}

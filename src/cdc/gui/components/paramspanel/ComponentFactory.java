@@ -38,8 +38,6 @@ package cdc.gui.components.paramspanel;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +48,8 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class ComponentFactory {
 
@@ -78,12 +78,12 @@ public class ComponentFactory {
 		private Map listeners = new HashMap();
 		
 		public class ChangeListenerProxy implements ChangeListener {
-			private PropertyChangeListener listener;
-			public ChangeListenerProxy(PropertyChangeListener propertyChangeListener) {
+			private ChangedConfigurationListener listener;
+			public ChangeListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 				listener = propertyChangeListener;
 			}
 			public void stateChanged(ChangeEvent e) {
-				listener.propertyChange(new PropertyChangeEvent(e.getSource(), "value", null, null));
+				listener.configurationChanged();
 			}
 		}
 		
@@ -99,14 +99,14 @@ public class ComponentFactory {
 			this.model = model;
 		}
 		
-		public void addPropertyChangeListener(JComponent comp, PropertyChangeListener propertyChangeListener) {
+		public void addPropertyChangeListener(JComponent comp, ChangedConfigurationListener propertyChangeListener) {
 			
 			ChangeListenerProxy changeListenerProxy = new ChangeListenerProxy(propertyChangeListener);
 			listeners.put(propertyChangeListener, changeListenerProxy);
 			((JSpinner)comp).addChangeListener(changeListenerProxy);
 			//((JSpinner.DefaultEditor)((JSpinner)comp).getEditor()).getTextField().addKeyListener(new KeyAdapterProxy(propertyChangeListener));
 		}
-		public void removoPropertyChangeListener(JComponent comp, PropertyChangeListener listener) {
+		public void removoPropertyChangeListener(JComponent comp, ChangedConfigurationListener listener) {
 			((JSpinner)comp).removeChangeListener((ChangeListener) listeners.remove(listener));
 		}
 		public JComponent createComponent() {
@@ -141,7 +141,7 @@ public class ComponentFactory {
 			this.prefSize = size;
 		}
 		
-		public void addPropertyChangeListener(JComponent radioParamPanelField, PropertyChangeListener propertyChangeListener) {
+		public void addPropertyChangeListener(JComponent radioParamPanelField, ChangedConfigurationListener propertyChangeListener) {
 		}
 
 		public JComponent createComponent() {
@@ -156,7 +156,7 @@ public class ComponentFactory {
 			return false;
 		}
 
-		public void removoPropertyChangeListener(JComponent comp, PropertyChangeListener listener) {
+		public void removoPropertyChangeListener(JComponent comp, ChangedConfigurationListener listener) {
 		}
 
 		public String retrieveValue(JComponent input) {
@@ -192,7 +192,7 @@ public class ComponentFactory {
 			this.childrenFactories = children;
 		}
 		
-		public void addPropertyChangeListener(JComponent comp, PropertyChangeListener propertyChangeListener) {
+		public void addPropertyChangeListener(JComponent comp, ChangedConfigurationListener propertyChangeListener) {
 			for (int i = 0; i < childrenFactories.length; i++) {
 				childrenFactories[i].addPropertyChangeListener(getChild(comp, i), propertyChangeListener);
 			}
@@ -209,7 +209,7 @@ public class ComponentFactory {
 			return panel;
 		}
 
-		public void removoPropertyChangeListener(JComponent comp, PropertyChangeListener listener) {
+		public void removoPropertyChangeListener(JComponent comp, ChangedConfigurationListener listener) {
 			for (int i = 0; i < childrenFactories.length; i++) {
 				childrenFactories[i].removoPropertyChangeListener(getChild(comp, i), listener);
 			}

@@ -132,7 +132,7 @@ public class SortingDataSource extends AbstractDataSource {
 		rows = (DataRow[]) list.toArray(new DataRow[] {});
 	}
 	
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		Log.log(SortingDataSource.class, "Closing data source");
 		this.parentSource.close();
 	}

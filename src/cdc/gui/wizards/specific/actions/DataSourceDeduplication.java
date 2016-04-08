@@ -35,6 +35,7 @@ public class DataSourceDeduplication extends WizardAction {
 		button = new JButton("Preferences");
 		if (originalDataSource != null && originalDataSource.getDeduplicationConfig() != null) {
 			config = originalDataSource.getDeduplicationConfig();
+			config.fixIfNeeded(sourceAction.getDataSource());
 			dedupOn.setSelected(true);
 			button.setEnabled(true);
 		} else {

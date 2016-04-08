@@ -56,7 +56,6 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -374,6 +373,11 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 			parent.repaint();
 		}
 
+		public void windowClosing(JDialog parent) {
+			// TODO Auto-generated method stub
+			
+		}
+
 	}
 	
 	
@@ -566,17 +570,17 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		return weights;
 	}
 
-	public static void attachListener(Object[] objects, PropertyChangeListener propertyListener) {
-		for (int i = 0; i < objects.length; i++) {
-			if (objects[i] instanceof JList) {
-				JList list = (JList) objects[i];
-				list.addListSelectionListener(new ListListener(propertyListener));
-			} else if (objects[i] instanceof JTextField) {
-				JTextField field = (JTextField) objects[i];
-				field.getDocument().addDocumentListener(new DocumentChangedAction(field, propertyListener));
-			}
-		}
-	}
+//	public static void attachListener(Object[] objects, PropertyChangeListener propertyListener) {
+//		for (int i = 0; i < objects.length; i++) {
+//			if (objects[i] instanceof JList) {
+//				JList list = (JList) objects[i];
+//				list.addListSelectionListener(new ListListener(propertyListener));
+//			} else if (objects[i] instanceof JTextField) {
+//				JTextField field = (JTextField) objects[i];
+//				field.getDocument().addDocumentListener(new DocumentChangedAction(field, propertyListener));
+//			}
+//		}
+//	}
 	
 	public Object clone() {
 		return new WeightedJoinCondition(getLeftJoinColumns(), getRightJoinColumns(), getDistanceFunctions(), getWeights(), getProperties());

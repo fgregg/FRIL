@@ -46,8 +46,6 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
@@ -55,6 +53,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class SeparatorPanelField extends ParamPanelField {
 
@@ -84,22 +84,22 @@ public class SeparatorPanelField extends ParamPanelField {
 	}
 	
 	public class ItemListenerProxy implements ItemListener {
-		private PropertyChangeListener listener;
-		public ItemListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ItemListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			this.listener = propertyChangeListener;
 		}
 		public void itemStateChanged(ItemEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "selection", null, null));
+			listener.configurationChanged();
 		}
 	}
 	
 	public class KeyListenerProxy extends KeyAdapter {
-		private PropertyChangeListener listener;
-		public KeyListenerProxy(PropertyChangeListener listener) {
+		private ChangedConfigurationListener listener;
+		public KeyListenerProxy(ChangedConfigurationListener listener) {
 			this.listener = listener;
 		}
 		public void keyTyped(KeyEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "other-separator-text", null, null));
+			listener.configurationChanged();
 		}
 	}
 	
@@ -114,7 +114,7 @@ public class SeparatorPanelField extends ParamPanelField {
 	
 	private String userLabel;
 	
-	public SeparatorPanelField(JComponent parent, String param, String label, String defaultValue, String[] values, String[] labels, int x, int y, boolean otherEnabled, PropertyChangeListener listener) {
+	public SeparatorPanelField(JComponent parent, String param, String label, String defaultValue, String[] values, String[] labels, int x, int y, boolean otherEnabled, ChangedConfigurationListener listener) {
 		
 		//this.labels = labels;
 		this.values = values;
@@ -225,11 +225,11 @@ public class SeparatorPanelField extends ParamPanelField {
 		}
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
 		throw new RuntimeException("Not yet implemented");
 	}
 	
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
 		throw new RuntimeException("Not yet implemented");
 	}
 

@@ -36,24 +36,23 @@
 
 package cdc.impl.distance.parampanel;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
 
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.FieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class DateRangeParamFieldCreator implements FieldCreator {
 	
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 	
-	public DateRangeParamFieldCreator(PropertyChangeListener listener) {
+	public DateRangeParamFieldCreator(ChangedConfigurationListener listener) {
 		this.listener = listener;
 	}
 
 	public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 		DateRangeParamPanelField field = new DateRangeParamPanelField(parent, param, label, defaultValue);
-		field.addPropertyChangeListener(listener);
+		field.addConfigurationChangeListener(listener);
 		return field;
 	}
 

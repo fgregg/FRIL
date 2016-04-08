@@ -40,8 +40,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,6 +52,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class DateRangeParamPanelField extends ParamPanelField {
@@ -85,28 +84,28 @@ public class DateRangeParamPanelField extends ParamPanelField {
 	
 	private class ChangeListenerProxy implements ChangeListener {
 		
-		private PropertyChangeListener listener;
+		private ChangedConfigurationListener listener;
 		
-		public ChangeListenerProxy(PropertyChangeListener listener) {
+		public ChangeListenerProxy(ChangedConfigurationListener listener) {
 			this.listener = listener;
 		}
 		
 		public void stateChanged(ChangeEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(arg0.getSource(), "value", null, null));
+			listener.configurationChanged();
 		}
 		
 	}
 	
 	private class ActionListenerProxy implements ActionListener {
 
-		private PropertyChangeListener listener;
+		private ChangedConfigurationListener listener;
 		
-		public ActionListenerProxy(PropertyChangeListener listener) {
+		public ActionListenerProxy(ChangedConfigurationListener listener) {
 			this.listener = listener;
 		}
 		
 		public void actionPerformed(ActionEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(arg0.getSource(), "selection", String.valueOf(((JComboBox)arg0.getSource()).getSelectedIndex()), null));
+			listener.configurationChanged();
 		}
 		
 	}
@@ -135,13 +134,13 @@ public class DateRangeParamPanelField extends ParamPanelField {
 		setValue(defaultValue);
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		ChangeListenerProxy proxy = new ChangeListenerProxy(propertyChangeListener);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		ChangeListenerProxy proxy = new ChangeListenerProxy(configurationListener);
 		value1.addChangeListener(proxy);
-		listeners.put(propertyChangeListener, proxy);
-		ActionListenerProxy proxyA = new ActionListenerProxy(propertyChangeListener);
+		listeners.put(configurationListener, proxy);
+		ActionListenerProxy proxyA = new ActionListenerProxy(configurationListener);
 		multiplier1.addActionListener(proxyA);
-		listenersCombo.put(propertyChangeListener, proxyA);
+		listenersCombo.put(configurationListener, proxyA);
 	}
 
 	public void error(String message) {
@@ -166,11 +165,11 @@ public class DateRangeParamPanelField extends ParamPanelField {
 		return String.valueOf(multi * value);
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
-		value1.removeChangeListener((ChangeListener) listeners.get(distAnalysisRestartListener));
-		listeners.remove(distAnalysisRestartListener);
-		multiplier1.removeActionListener((ActionListener) listenersCombo.get(distAnalysisRestartListener));
-		listenersCombo.remove(distAnalysisRestartListener);
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		value1.removeChangeListener((ChangeListener) listeners.get(configurationListener));
+		listeners.remove(configurationListener);
+		multiplier1.removeActionListener((ActionListener) listenersCombo.get(configurationListener));
+		listenersCombo.remove(configurationListener);
 	}
 
 	public void setValue(String val) {

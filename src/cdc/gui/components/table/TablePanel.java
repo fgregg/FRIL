@@ -42,8 +42,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
@@ -61,7 +59,7 @@ import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 
 import cdc.gui.Configs;
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class TablePanel extends JPanel {
 
@@ -69,14 +67,14 @@ public class TablePanel extends JPanel {
 
 	public class TableModelProxy implements TableModelListener {
 
-		private PropertyChangeListener listener;
+		private ChangedConfigurationListener listener;
 		
-		public TableModelProxy(PropertyChangeListener propertyListener) {
+		public TableModelProxy(ChangedConfigurationListener propertyListener) {
 			this.listener = propertyListener;
 		}
 
 		public void tableChanged(TableModelEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(table, "rows", null, null));
+			listener.configurationChanged();
 		}
 
 	}
@@ -301,7 +299,7 @@ public class TablePanel extends JPanel {
 					int[] selected = table.getSelectedRows();
 					table.clearSelection();
 					for (int i = 0; i < selected.length; i++) {
-						tableModel.removeRow(selected[i]);
+						tableModel.removeRow(selected[i] - i);
 					}
 					((JButton)arg0.getSource()).setEnabled(false);
 				}
@@ -398,7 +396,7 @@ public class TablePanel extends JPanel {
 		remove.setEnabled(false);
 	}
 
-	public void addTablePropertyChangeListener(ConvAnalysisRestartListener propertyListener) {
+	public void addTablePropertyChangeListener(ChangedConfigurationListener propertyListener) {
 		table.getModel().addTableModelListener(new TableModelProxy(propertyListener));
 	}
 }

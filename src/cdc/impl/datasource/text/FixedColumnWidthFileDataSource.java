@@ -149,7 +149,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		return false;
 	}
 
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		Log.log(FixedColumnWidthFileDataSource.class, "Close called", 1);
 		if (closed) {
 			return;

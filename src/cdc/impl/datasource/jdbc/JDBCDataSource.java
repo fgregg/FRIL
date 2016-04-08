@@ -232,7 +232,7 @@ public class JDBCDataSource extends AbstractDataSource {
 		return false;
 	}
 
-	public void close() throws IOException, RJException {
+	protected void doClose() throws IOException, RJException {
 		log("Closing data source");
 		if (closed) {
 			return;

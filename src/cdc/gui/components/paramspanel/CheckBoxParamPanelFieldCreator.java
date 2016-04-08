@@ -36,25 +36,25 @@
 
 package cdc.gui.components.paramspanel;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class CheckBoxParamPanelFieldCreator implements FieldCreator {
 	
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 
 	public CheckBoxParamPanelFieldCreator() {
 	}
 	
-	public CheckBoxParamPanelFieldCreator(PropertyChangeListener propertyListener) {
+	public CheckBoxParamPanelFieldCreator(ChangedConfigurationListener propertyListener) {
 		listener = propertyListener;
 	}
 
 	public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 		CheckBoxParamPanleField field = new CheckBoxParamPanleField(parent, param, label, defaultValue);
 		if (listener != null) {
-			field.addPropertyChangeListener(listener);
+			field.addConfigurationChangeListener(listener);
 		}
 		return field;
 	}

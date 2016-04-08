@@ -164,7 +164,7 @@ public class CSVDataSource extends AbstractDataSource {
 //		return (DataRow[]) list.toArray(new DataRow[] {});
 //	}
 
-	public void close() throws IOException {
+	protected void doClose() throws IOException {
 		Log.log(CSVDataSource.class, "Closing data source", 1);
 		if (opened) {
 			parser.close();

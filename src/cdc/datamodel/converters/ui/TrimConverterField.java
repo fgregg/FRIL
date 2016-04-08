@@ -42,8 +42,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
@@ -56,6 +54,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class TrimConverterField extends ParamPanelField {
@@ -64,32 +63,32 @@ public class TrimConverterField extends ParamPanelField {
 	public static final int OPTION_LEAVE = 2;
 	
 	public class ItemListenerProxy implements ItemListener {
-		private PropertyChangeListener listener;
-		public ItemListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ItemListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			this.listener = propertyChangeListener;
 		}
 		public void itemStateChanged(ItemEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "selection", null, null));
+			listener.configurationChanged();
 		}
 	}
 	
 	public class ChangeListenerProxy implements ChangeListener {
-		private PropertyChangeListener listener;
-		public ChangeListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ChangeListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			listener = propertyChangeListener;
 		}
 		public void stateChanged(ChangeEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "value", null, null));
+			listener.configurationChanged();
 		}
 	}
 	
 	public class ActionListenerProxy implements ActionListener {
-		private PropertyChangeListener listener;
-		public ActionListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ActionListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			listener = propertyChangeListener;
 		}
 		public void actionPerformed(ActionEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "value", null, null));
+			listener.configurationChanged();
 		}
 		
 	}
@@ -111,7 +110,7 @@ public class TrimConverterField extends ParamPanelField {
 	private JPanel panel;
 	private String userLabel;
 	
-	public TrimConverterField(JComponent parent, String param, String label, String defaultValue, PropertyChangeListener listener) {
+	public TrimConverterField(JComponent parent, String param, String label, String defaultValue, ChangedConfigurationListener listener) {
 		this.userLabel = label;
 		JPanel filler = new JPanel();
 		filler.setMinimumSize(new Dimension(40,20));
@@ -209,7 +208,7 @@ public class TrimConverterField extends ParamPanelField {
 		}
 	}
 	
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
 		throw new RuntimeException("Not implemented");
 	}
 
@@ -279,7 +278,7 @@ public class TrimConverterField extends ParamPanelField {
 		}
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
 		throw new RuntimeException("Not implemented");
 	}
 

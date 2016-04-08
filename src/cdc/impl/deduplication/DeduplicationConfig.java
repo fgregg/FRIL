@@ -152,5 +152,39 @@ public class DeduplicationConfig {
 		}
 		return buffer.toString();
 	}
+
+	public void fixIfNeeded(AbstractDataSource originalDataSource) {
+		DataColumnDefinition[] sourceColumns = originalDataSource.getDataModel().getOutputFormat();
+		int nulls = 0;
+		main: for (int i = 0; i < testedColumns.length; i++) {
+			DataColumnDefinition col = testedColumns[i];
+			for (int j = 0; j < sourceColumns.length; j++) {
+				if (col != null && col.equals(sourceColumns[j])) {
+					continue main;
+				}
+			}
+			testedColumns[i] = null;
+			testCondition[i] = null;
+			nulls++;
+		}
+		
+		int skipped = 0;
+		if (nulls != 0) {
+			DataColumnDefinition[] newTestedColumns = new DataColumnDefinition[testedColumns.length - nulls];
+			AbstractDistance[] newTestCondition = new AbstractDistance[testCondition.length - nulls];
+			//clean arrays
+			for (int i = 0; i < testedColumns.length; i++) {
+				if (testedColumns[i] == null) {
+					skipped++;
+				} else {
+					newTestedColumns[i - skipped] = testedColumns[i];
+					newTestCondition[i - skipped] = testCondition[i];
+				}
+			}
+			testedColumns = newTestedColumns;
+			testCondition = newTestCondition; 
+		}
+		
+	}
 	
 }

@@ -12,6 +12,7 @@ public class FrilClasspath {
 	}
 	
 	public static void main(String[] args) {
+		System.out.println("A.B AcB".replaceAll("A\\.B", "CD"));
 		if (args.length == 0) {
 			printUsage();
 			return;

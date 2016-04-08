@@ -41,8 +41,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +50,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import cdc.gui.Configs;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class ComboBoxParamPanelField extends ParamPanelField {
 
@@ -79,14 +78,14 @@ public class ComboBoxParamPanelField extends ParamPanelField {
 	
 	private class ActionListenerProxy implements ActionListener {
 
-		private PropertyChangeListener listener;
+		private ChangedConfigurationListener listener;
 		
-		public ActionListenerProxy(PropertyChangeListener listener) {
+		public ActionListenerProxy(ChangedConfigurationListener listener) {
 			this.listener = listener;
 		}
 		
 		public void actionPerformed(ActionEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(arg0.getSource(), "selection", String.valueOf(((JComboBox)arg0.getSource()).getSelectedIndex()), null));
+			listener.configurationChanged();
 		}
 		
 	}
@@ -170,14 +169,14 @@ public class ComboBoxParamPanelField extends ParamPanelField {
 	}
 
 	
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
-		ActionListenerProxy proxy = new ActionListenerProxy(propertyChangeListener);
-		listeners.put(propertyChangeListener, proxy);
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		ActionListenerProxy proxy = new ActionListenerProxy(configurationListener);
+		listeners.put(configurationListener, proxy);
 		combo.addActionListener(proxy);
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
-		combo.removeActionListener((ActionListener) listeners.get(distAnalysisRestartListener));
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		combo.removeActionListener((ActionListener) listeners.get(configurationListener));
 	}
 
 }

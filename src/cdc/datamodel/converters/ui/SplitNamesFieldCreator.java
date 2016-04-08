@@ -36,25 +36,23 @@
 
 package cdc.datamodel.converters.ui;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
 
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.FieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class SplitNamesFieldCreator implements FieldCreator {
 	
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 	
-	public SplitNamesFieldCreator(ConvAnalysisRestartListener propertyListener) {
+	public SplitNamesFieldCreator(ChangedConfigurationListener propertyListener) {
 		this.listener = propertyListener;
 	}
 	
 	public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 		SplitNamesField splitNamesField = new SplitNamesField(parent, param, label, defaultValue);
-		splitNamesField.addPropertyChangeListener(listener);
+		splitNamesField.addConfigurationChangeListener(listener);
 		return splitNamesField;
 	}
 

@@ -36,18 +36,16 @@
 
 package cdc.datamodel.converters.ui;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
 
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.FieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 
 public class TrimConverterFieldCreator implements FieldCreator {
 
-	private PropertyChangeListener listener;
-	public TrimConverterFieldCreator(ConvAnalysisRestartListener propertyListener) {
+	private ChangedConfigurationListener listener;
+	public TrimConverterFieldCreator(ChangedConfigurationListener propertyListener) {
 		this.listener = propertyListener;
 	}
 

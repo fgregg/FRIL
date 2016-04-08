@@ -38,7 +38,6 @@ package cdc.gui.components.paramspanel;
 
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.beans.PropertyChangeListener;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +48,8 @@ import java.util.Map;
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JRadioButton;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class RadioParamPanelFieldCreator implements FieldCreator {
 
@@ -79,15 +80,15 @@ public class RadioParamPanelFieldCreator implements FieldCreator {
 	private static Map componentsMap = new HashMap();
 	private ButtonGroup group;
 	private ComponentFactoryInterface factory;
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 	
-	public RadioParamPanelFieldCreator(ComponentFactoryInterface factory, PropertyChangeListener listener) {
+	public RadioParamPanelFieldCreator(ComponentFactoryInterface factory, ChangedConfigurationListener listener) {
 		this.factory = factory;
 		this.listener = listener;
 		componentsMap.put(group, new ArrayList());
 	}
 	
-	public RadioParamPanelFieldCreator(ButtonGroup group, ComponentFactoryInterface factory, PropertyChangeListener listener) {
+	public RadioParamPanelFieldCreator(ButtonGroup group, ComponentFactoryInterface factory, ChangedConfigurationListener listener) {
 		this.group = group;
 		this.factory = factory;
 		this.listener = listener;
@@ -122,7 +123,7 @@ public class RadioParamPanelFieldCreator implements FieldCreator {
 		
 		RadioParamPanelField field = new RadioParamPanelField(factory, button, component, label, defaultValue);
 		if (listener != null) {
-			field.addPropertyChangeListener(listener);
+			field.addConfigurationChangeListener(listener);
 		}
 		return field;
 	}

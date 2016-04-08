@@ -38,6 +38,8 @@ package cdc.impl.conditions;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -45,8 +47,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -56,10 +58,16 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import cdc.components.AbstractDistance;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
+import cdc.gui.components.dynamicanalysis.AnalysisWindowProvider;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
@@ -77,14 +85,30 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 	private JTextField weight = new JTextField();
 	private java.awt.Window parent;
 	private GUIVisibleComponent oldCreator;
+	private AnalysisWindowProvider analysisButtonListener;
 	
 	public NewWeightedConditionPanel(DataColumnDefinition[] leftColumns, DataColumnDefinition[] rightColumns, java.awt.Window parent) {
 		
-		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+		this.setLayout(new GridBagLayout());
 		this.parent = parent;
+		analysisButtonListener = new AnalysisWindowProvider(parent, this);
+		for (int i = 0; i < avaialbleMethods.getItemCount(); i++) {
+			GUIVisibleComponent gui = (GUIVisibleComponent) avaialbleMethods.getItemAt(i);
+			gui.addChangedConfigurationListener(analysisButtonListener);
+		}
 		
 		leftColList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		leftColList.addListSelectionListener(new ListSelectionListener() {
+			public void valueChanged(ListSelectionEvent e) {
+				analysisButtonListener.configurationChanged();
+			}
+		});
 		rightColList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		rightColList.addListSelectionListener(new ListSelectionListener() {
+			public void valueChanged(ListSelectionEvent e) {
+				analysisButtonListener.configurationChanged();
+			}
+		});
 		
 		for (int i = 0; i < leftColumns.length; i++) {
 			leftModel.addElement(leftColumns[i]);
@@ -93,23 +117,56 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 			rightModel.addElement(rightColumns[i]);
 		}
 		
-		JPanel leftPanel = new JPanel();
+		GridBagConstraints c;
+		
+		JPanel leftPanel = new JPanel(new GridBagLayout());
 		leftPanel.setBorder(BorderFactory.createTitledBorder("Left column"));
 		JScrollPane scroll = new JScrollPane(leftColList);
 		scroll.setPreferredSize(new Dimension(200, 100));
-		leftPanel.add(scroll);
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		leftPanel.add(scroll, c);
 		
-		JPanel rightPanel = new JPanel();
+		JPanel rightPanel = new JPanel(new GridBagLayout());
 		rightPanel.setBorder(BorderFactory.createTitledBorder("Right column"));
 		scroll = new JScrollPane(rightColList);
 		scroll.setPreferredSize(new Dimension(200, 100));
-		rightPanel.add(scroll);
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		rightPanel.add(scroll, c);
 		
-		JPanel columnsSelectionPanel = new JPanel(new FlowLayout());
+		JPanel columnsSelectionPanel = new JPanel(new GridBagLayout());
 		columnsSelectionPanel.setBorder(BorderFactory.createTitledBorder("Select columns"));
-		columnsSelectionPanel.add(leftPanel);
-		columnsSelectionPanel.add(rightPanel);
-		this.add(columnsSelectionPanel);
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		columnsSelectionPanel.add(leftPanel, c);
+		c = new GridBagConstraints();
+		c.gridx = 1; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		columnsSelectionPanel.add(rightPanel, c);
+		
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.gridwidth = 2;
+		this.add(columnsSelectionPanel, c);
 		
 		JPanel comboPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		comboPanel.add(new JLabel("Distance metric"));
@@ -131,19 +188,39 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 				NewWeightedConditionPanel.this.validate();
 				NewWeightedConditionPanel.this.repaint();
 				oldCreator = componentCreator;
+				analysisButtonListener.configurationChanged();
 			}
 		});
 		
-		comboSpecificPanel = new JPanel();
+		comboSpecificPanel = new JPanel(new GridBagLayout());
 		JScrollPane comboSpecificScroll = new JScrollPane(comboSpecificPanel);
 		comboSpecificScroll.setPreferredSize(new Dimension(500, 180));
 		
-		JPanel methodSelectionPanel = new JPanel();
-		methodSelectionPanel.setLayout(new BoxLayout(methodSelectionPanel, BoxLayout.PAGE_AXIS));
+		JPanel methodSelectionPanel = new JPanel(new GridBagLayout());
 		methodSelectionPanel.setBorder(BorderFactory.createTitledBorder("Select distance metric"));
-		methodSelectionPanel.add(comboPanel);
-		methodSelectionPanel.add(comboSpecificScroll);
-		this.add(methodSelectionPanel);
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 0;
+		c.weightx = 1;
+		c.weighty = 0;
+		c.fill = GridBagConstraints.BOTH;
+		methodSelectionPanel.add(comboPanel, c);
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 1;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.fill = GridBagConstraints.BOTH;
+		methodSelectionPanel.add(comboSpecificScroll, c);
+		
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.gridwidth = 2;
+		this.add(methodSelectionPanel, c);
 		
 		JLabel label = new JLabel("Condition weight: ");
 		label.setPreferredSize(new Dimension(120, 20));
@@ -153,8 +230,31 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		weightsSumPanel.add(label);
 		weight.setPreferredSize(new Dimension(40, 20));
 		weight.setBorder(BorderFactory.createEtchedBorder());
+		weight.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+			public void insertUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+			public void removeUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+		});
 		weightsSumPanel.add(weight);
-		this.add(weightsSumPanel);
+		
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 2;
+		c.weightx = 0.6;
+		c.fill = GridBagConstraints.BOTH;
+		this.add(weightsSumPanel, c);
+		
+		JPanel showExamples = new JPanel(new FlowLayout());
+		showExamples.setBorder(BorderFactory.createTitledBorder("Dynamic analysis"));
+		JButton examplesButton = Configs.getAnalysisButton();
+		examplesButton.addActionListener(analysisButtonListener);
+		showExamples.add(examplesButton);
+		c = new GridBagConstraints();
+		c.gridx = 1; 
+		c.gridy = 2;
+		c.weightx = 0.4;
+		c.fill = GridBagConstraints.BOTH;
+		this.add(showExamples, c);
 		
 		avaialbleMethods.setSelectedIndex(0);
 		
@@ -168,7 +268,8 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 				(DataColumnDefinition)rightColList.getSelectedValue(), distance, Integer.parseInt(weight.getText()));
 	}
 
-	public void cancelPressed(JDialog parent) {}
+	public void cancelPressed(JDialog parent) {
+	}
 	
 	public boolean okPressed(JDialog parent) {
 		distance = null;
@@ -202,6 +303,13 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		return false;
 	}
 
+	private void removeListeners() {
+		for (int i = 0; i < avaialbleMethods.getItemCount(); i++) {
+			GUIVisibleComponent gui = (GUIVisibleComponent) avaialbleMethods.getItemAt(i);
+			gui.removeChangedConfigurationListener(analysisButtonListener);
+		}
+	}
+
 	public void restoreValues(AbstractDistance abstractDistance, DataColumnDefinition left, DataColumnDefinition right, int weight) {
 		for (int i = 0; i < leftModel.getSize(); i++) {
 			if (leftModel.get(i).equals(left)) {
@@ -223,6 +331,10 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 			}
 		}
 		this.weight.setText(String.valueOf(weight));
+	}
+
+	public void windowClosing(JDialog parent) {
+		removeListeners();
 	}
 	
 }

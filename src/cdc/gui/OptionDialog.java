@@ -44,6 +44,8 @@ import java.awt.GridBagLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +78,17 @@ public class OptionDialog extends JDialog {
 		setModal(true);
 		setMainLayout();
 		addButtons();
+		
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				internalListeners.clear();
+				checkValidators(mainPanel);
+				for (int i = 0; i < internalListeners.size(); i++) {
+					DialogListener listener = (DialogListener) internalListeners.get(i);
+					listener.windowClosing(OptionDialog.this);
+				}
+			}
+		});
 	}
 	
 	private GridBagConstraints getGtidBagConstraints() {
@@ -140,6 +153,8 @@ public class OptionDialog extends JDialog {
 		});
 		cancel.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				internalListeners.clear();
+				checkValidators(mainPanel);
 				for (int i = 0; i < listeners.size(); i++) {
 					DialogListener listener = (DialogListener) listeners.get(i);
 					listener.cancelPressed(OptionDialog.this);

@@ -128,6 +128,9 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 			return false;
 		}
 		DataSourceNotJoinedJoinListener that = (DataSourceNotJoinedJoinListener) arg0;
+//		if (that == null || this.filePrefix == null || this.source == null) {
+//			return false;
+//		}
 		return this.filePrefix.equals(that.filePrefix) && this.source.getSourceName().equals(that.source.getSourceName());
 	}
 	

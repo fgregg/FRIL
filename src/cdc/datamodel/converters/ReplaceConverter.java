@@ -75,7 +75,6 @@ import cdc.gui.MainFrame;
 import cdc.gui.OptionDialog;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.components.table.TablePanel;
 import cdc.gui.validation.NonEmptyValidator;
@@ -99,7 +98,6 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener;
 		private ScriptPanel scriptPanel;
-		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
 		
 		public Object generateSystemComponent() throws RJException, IOException {
 			Map props = new HashMap();
@@ -116,6 +114,10 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
 			
 			this.column = (DataColumnDefinition) objects[0];
+			AbstractDataSource source = (AbstractDataSource) objects[2];
+			Window parent = (Window) objects[3];
+			JDataSource jDataSource = (JDataSource)objects[4];
+			analysisListener = new ConvAnalysisActionListener(parent, source, this, jDataSource);
 			
 			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(ReplaceConverter.class), String.class, 
 					new String[] {"column", "lookFor", "replaceWith"}, 
@@ -180,7 +182,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 					}
 				}
 			});
-			table.addTablePropertyChangeListener(propertyListener);
+			table.addTablePropertyChangeListener(analysisListener);
 			
 			JPanel panel = new JPanel(new BorderLayout());
 			panel.add(params, BorderLayout.NORTH);
@@ -193,15 +195,8 @@ public class ReplaceConverter extends AbstractColumnConverter {
 			JPanel visualWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER));
 			visualWrapper.add(visual);
 			panel.add(visualWrapper, BorderLayout.SOUTH);
-			AbstractDataSource source = (AbstractDataSource) objects[2];
-			Window parent = (Window) objects[3];
-			JDataSource jDataSource = (JDataSource)objects[4];
 			
-			if (analysisListener != null) {
-				visual.removeActionListener(analysisListener);
-			}
-			
-			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
+			visual.addActionListener(analysisListener);
 			
 			JTabbedPane tabs = new JTabbedPane();
 			tabs.addTab("Configuration", panel);
@@ -229,6 +224,11 @@ public class ReplaceConverter extends AbstractColumnConverter {
 				return false;
 			}
 			return true;
+		}
+
+		public void windowClosing(JDialog parent) {
+			// TODO Auto-generated method stub
+			
 		}
 		
 	}

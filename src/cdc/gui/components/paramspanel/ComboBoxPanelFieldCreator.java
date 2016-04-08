@@ -36,15 +36,15 @@
 
 package cdc.gui.components.paramspanel;
 
-import java.beans.PropertyChangeListener;
-
 import javax.swing.JComponent;
+
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class ComboBoxPanelFieldCreator implements FieldCreator {
 
 	private String[] options;
 	private String[] labels;
-	private PropertyChangeListener listener;
+	private ChangedConfigurationListener listener;
 	
 	public ComboBoxPanelFieldCreator(String[] options) {
 		this.options = options;
@@ -54,7 +54,7 @@ public class ComboBoxPanelFieldCreator implements FieldCreator {
 		this(options, optionLabels, null);
 	}
 	
-	public ComboBoxPanelFieldCreator(String[] rangeValues, String[] rangeLabels, PropertyChangeListener propertyListener) {
+	public ComboBoxPanelFieldCreator(String[] rangeValues, String[] rangeLabels, ChangedConfigurationListener propertyListener) {
 		this.options = rangeValues;
 		this.labels = rangeLabels;
 		this.listener = propertyListener;
@@ -63,7 +63,7 @@ public class ComboBoxPanelFieldCreator implements FieldCreator {
 	public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 		ComboBoxParamPanelField field = new ComboBoxParamPanelField(parent, param, label, defaultValue, options, labels);
 		if (listener != null) {
-			field.addPropertyChangeListener(listener);
+			field.addConfigurationChangeListener(listener);
 		}
 		return field;
 	}

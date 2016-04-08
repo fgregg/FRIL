@@ -48,6 +48,7 @@ import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.paramspanel.FileChoosingPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.validation.NonEmptyValidator;
+import cdc.impl.datasource.office.paramspanel.SheetChooserCreator;
 import cdc.utils.RJException;
 
 public class ExcelDataSourceVisibleComponent extends GUIVisibleComponent {
@@ -65,6 +66,7 @@ public class ExcelDataSourceVisibleComponent extends GUIVisibleComponent {
 		
 		Map creators = new HashMap();
 		creators.put(ExcelDataSource.PARAM_FILE, new FileChoosingPanelFieldCreator());
+		creators.put(ExcelDataSource.PARAM_SHEET, new SheetChooserCreator());
 		
 		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, ExcelDataSource.PARAM_FILE, ExcelDataSource.PARAM_SHEET};
 		String[] defaults = new String[] {"excel-source", "", ""};
@@ -88,7 +90,7 @@ public class ExcelDataSourceVisibleComponent extends GUIVisibleComponent {
 		Map validators = new HashMap();
 		validators.put(AbstractDataSource.PARAM_SOURCE_NAME, new NonEmptyValidator());
 		validators.put(ExcelDataSource.PARAM_FILE, new NonEmptyValidator());
-		validators.put(ExcelDataSource.PARAM_SHEET, new NonEmptyValidator());
+		//validators.put(ExcelDataSource.PARAM_SHEET, new NonEmptyValidator());
 		panel.setValidators(validators);
 		
 		return panel;

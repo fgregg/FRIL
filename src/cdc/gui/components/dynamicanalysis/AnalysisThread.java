@@ -75,8 +75,6 @@ public class AnalysisThread extends StoppableThread  {
 			sourceA = sourceB.copy();
 		}
 		
-		
-		System.out.println("Analysis thread created");
 	}
 	
 	public void run() {
@@ -127,6 +125,22 @@ public class AnalysisThread extends StoppableThread  {
 			frame.finished(false);
 			frame.setWarningMessage(e.toString());
 			return;
+		} finally {
+			System.out.println("Analysis thread done. Closing data sources.");
+			try {
+				sourceA.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
+			try {
+				sourceB.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
 		}
 		frame.finished(true);
 		

@@ -40,7 +40,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Window;
-import java.beans.PropertyChangeEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +80,6 @@ import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.datasource.JDataSource.Brick;
 import cdc.gui.components.datasource.JDataSource.Connection;
 import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.ConvAnalysisRestartListener;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
@@ -101,10 +99,10 @@ public class JoinConverter extends AbstractColumnConverter {
 	
 	public static class JoinVisibleComponent extends GUIVisibleComponent {
 	
-		private static class Creator extends DefaultParamPanelFieldCreator {
+		private class Creator extends DefaultParamPanelFieldCreator {
 			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
 				ParamPanelField field = super.create(parent, param, label, defaultValue);
-				field.addPropertyChangeListener(propertyListener);
+				field.addConfigurationChangeListener(analysisListener);
 				return field;
 			}
 		}
@@ -115,24 +113,32 @@ public class JoinConverter extends AbstractColumnConverter {
 		private DataColumnDefinition column;
 		private JButton visual;
 		private ConvAnalysisActionListener analysisListener = null;
-		private static ConvAnalysisRestartListener propertyListener = new ConvAnalysisRestartListener();
 		private ScriptPanel scriptPanel;
 		
 		public Object generateSystemComponent() throws RJException {
 			Object[] selected = columnsList.getSelectedValues();
 			DataColumnDefinition[] cols = new DataColumnDefinition[selected.length + 1];
+			String colsString = column.getColumnName();
 			for (int i = 0; i < selected.length; i++) {
 				cols[i + 1] = (DataColumnDefinition)selected[i];
+				colsString += ",";
+				colsString += cols[i + 1].getColumnName();
 			}
 			cols[0] = column;
 			Map props = paramsPanel.getParams();
 			props.put(PARAM_SCRIPT, scriptPanel.getScript ());
+			props.put(PARAM_COLUMNS, colsString);
 			return new JoinConverter(paramsPanel.getParameterValue(PARAM_OUT_NAME), cols, props);
 		}
 
 		public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 			
 			columnsList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			
+			AbstractDataSource source = (AbstractDataSource) params[2];
+			Window parent = (Window) params[3];
+			JDataSource jDataSource = (JDataSource)params[4];
+			analysisListener = new ConvAnalysisActionListener(parent, source, this, jDataSource);
 			
 			scriptPanel = new ScriptPanel(AbstractColumnConverter.getDefaultScript(JoinConverter.class), 
 					String.class, new String[] {"columns", "connector"}, new Class[] {String[].class, String.class});
@@ -149,7 +155,7 @@ public class JoinConverter extends AbstractColumnConverter {
 			}
 			
 			Map creators = new HashMap();
-			creators.put(PARAM_COUPLER, new SeparatorPanelFieldCreator(seps, labels, 2, 3, propertyListener));
+			creators.put(PARAM_COUPLER, new SeparatorPanelFieldCreator(seps, labels, 2, 3, analysisListener));
 			creators.put(PARAM_OUT_NAME, new Creator());
 			
 			paramsPanel = new ParamsPanel(
@@ -171,9 +177,6 @@ public class JoinConverter extends AbstractColumnConverter {
 			column = (DataColumnDefinition)params[0];
 			
 			//DataColumnDefinition columns[] = (DataColumnDefinition[])params[1];
-			AbstractDataSource source = (AbstractDataSource) params[2];
-			Window parent = (Window) params[3];
-			JDataSource jDataSource = (JDataSource)params[4];
 			
 			columnsModel.removeAllElements();
 			Connection[] connections = jDataSource.getConnections();
@@ -202,6 +205,20 @@ public class JoinConverter extends AbstractColumnConverter {
 				}
 			}
 			
+			if (getRestoredParam(PARAM_COLUMNS) != null) {
+				String[] columns = getRestoredParam(PARAM_COLUMNS).split(",");
+				int[] indices = new int[columns.length - 1];
+				for (int i = 1; i < columns.length; i++) {
+					for (int j = 0; j < columnsModel.size(); j++) {
+						DataColumnDefinition col = (DataColumnDefinition)columnsModel.get(j);
+						if (col.getColumnName().equals(columns[i])) {
+							indices[i - 1] = j;
+						}
+					}
+				}
+				columnsList.setSelectedIndices(indices);
+			}
+			
 			JScrollPane listScroll = new JScrollPane(columnsList); 
 			listScroll.setPreferredSize(new Dimension(250, 100));
 			
@@ -212,7 +229,7 @@ public class JoinConverter extends AbstractColumnConverter {
 			otherColumns.add(listScroll);
 			columnsList.addListSelectionListener(new ListSelectionListener() {
 				public void valueChanged(ListSelectionEvent e) {
-					propertyListener.propertyChange(new PropertyChangeEvent(e.getSource(), "selected-columns", null, null));
+					analysisListener.configurationChanged();
 				}
 			});
 			
@@ -227,7 +244,7 @@ public class JoinConverter extends AbstractColumnConverter {
 			if (analysisListener != null) {
 				visual.removeActionListener(analysisListener);
 			}
-			visual.addActionListener(analysisListener = new ConvAnalysisActionListener(parent, source, this, propertyListener, jDataSource));
+			visual.addActionListener(analysisListener);
 			
 			JTabbedPane tabs = new JTabbedPane();
 			tabs.addTab("Configuration", panel);
@@ -254,9 +271,15 @@ public class JoinConverter extends AbstractColumnConverter {
 			return paramsPanel.doValidate();
 		}
 
+		public void windowClosing(JDialog parent) {
+			// TODO Auto-generated method stub
+			
+		}
+
 	}
 
 	private static final String PARAM_OUT_NAME = "out-name";
+	private static final String PARAM_COLUMNS = "columns";
 	private static final String PARAM_COUPLER = "coupler-param";
 	private static final String PARAM_SCRIPT = "script";
 	private static final String DEFAULT_COUPLER = " ";
@@ -339,21 +362,39 @@ public class JoinConverter extends AbstractColumnConverter {
 		String name = DOMUtils.getAttribute(element, Configuration.NAME_ATTR);
 		Map params = null;
 		List childCols = new ArrayList();
-		Element rows = DOMUtils.getChildElement(element, Configuration.ROW_MODEL_TAG);
-		Element[] columns = DOMUtils.getChildElements(rows);
-		for (int i = 0; i < columns.length; i++) {
-			if (columns[i].getNodeName().equals(Configuration.ROW_TAG)) {
-				String subcolumnName = DOMUtils.getAttribute(columns[i], Configuration.NAME_ATTR);
-				if (!genericColumns.containsKey(subcolumnName)) {
-					throw new RJException("Column " + subcolumnName + " is not provided by source...");
-				}
-				childCols.add(genericColumns.get(subcolumnName));
-			}
-		}
 		
 		Element paramsEl = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
 		if (paramsEl != null) {
 			params = Configuration.parseParams(paramsEl);
+		}
+		if (params.containsKey(PARAM_COLUMNS)) {
+			String[] columns = ((String)params.get(PARAM_COLUMNS)).split(",");
+			for (int i = 0; i < columns.length; i++) {
+				if (!genericColumns.containsKey(columns[i])) {
+					throw new RJException("Column " + columns[i] + " is not provided by source...");
+				}
+				childCols.add(genericColumns.get(columns[i]));
+			}
+		} else {
+			//This is to guarantee backwards compatibility
+			Element rows = DOMUtils.getChildElement(element, Configuration.ROW_MODEL_TAG);
+			Element[] columns = DOMUtils.getChildElements(rows);
+			String colsParam = "";
+			for (int i = 0; i < columns.length; i++) {
+				if (columns[i].getNodeName().equals(Configuration.ROW_TAG)) {
+					String subcolumnName = DOMUtils.getAttribute(columns[i], Configuration.NAME_ATTR);
+					if (!genericColumns.containsKey(subcolumnName)) {
+						throw new RJException("Column " + subcolumnName + " is not provided by source...");
+					}
+					DataColumnDefinition object = (DataColumnDefinition) genericColumns.get(subcolumnName);
+					childCols.add(object);
+					if (!colsParam.isEmpty()) {
+						colsParam += ",";
+					}
+					colsParam += object.getColumnName();
+				}
+			}
+			params.put(PARAM_COLUMNS, colsParam);
 		}
 		
 		return new JoinConverter(name, (DataColumnDefinition[])childCols.toArray(new DataColumnDefinition[] {}), params);
@@ -370,10 +411,10 @@ public class JoinConverter extends AbstractColumnConverter {
 	public void saveToXML(Document doc, Element node) {
 		DOMUtils.setAttribute(node, Configuration.NAME_ATTR, outFormat[0].getColumnName());
 		Configuration.appendParams(doc, node, getProperties());
-		Element columnsTag = DOMUtils.createChildElement(doc, node, Configuration.ROW_MODEL_TAG);
-		for (int i = 0; i < columns.length; i++) {
-			Element child = DOMUtils.createChildElement(doc, columnsTag, Configuration.ROW_TAG);
-			DOMUtils.setAttribute(child, Configuration.NAME_ATTR, columns[i].getColumnName());
-		}
+//		Element columnsTag = DOMUtils.createChildElement(doc, node, Configuration.ROW_MODEL_TAG);
+//		for (int i = 0; i < columns.length; i++) {
+//			Element child = DOMUtils.createChildElement(doc, columnsTag, Configuration.ROW_TAG);
+//			DOMUtils.setAttribute(child, Configuration.NAME_ATTR, columns[i].getColumnName());
+//		}
 	}
 }

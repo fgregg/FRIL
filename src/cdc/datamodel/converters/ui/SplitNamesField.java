@@ -43,8 +43,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,6 +66,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.utils.StringUtils;
 
@@ -80,30 +79,28 @@ public class SplitNamesField extends ParamPanelField {
 	}
 	
 	public class DocumentChangedAction implements DocumentListener {
-		private PropertyChangeListener listener;
-		private JTextField source;
-		public DocumentChangedAction(PropertyChangeListener listener, JTextField source) {
+		private ChangedConfigurationListener listener;
+		public DocumentChangedAction(ChangedConfigurationListener listener, JTextField source) {
 				this.listener = listener;
-				this.source = source;
 		}
 		public void changedUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(SplitNamesField.this, "text", null, source.getText()));
+			listener.configurationChanged();
 		}
 		public void insertUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(SplitNamesField.this, "text", null, source.getText()));
+			listener.configurationChanged();
 		}
 		public void removeUpdate(DocumentEvent arg0) {
-			listener.propertyChange(new PropertyChangeEvent(SplitNamesField.this, "text", null, source.getText()));
+			listener.configurationChanged();
 		}
 	}
 	
 	public class ChangeListenerProxy implements ChangeListener {
-		private PropertyChangeListener listener;
-		public ChangeListenerProxy(PropertyChangeListener propertyChangeListener) {
+		private ChangedConfigurationListener listener;
+		public ChangeListenerProxy(ChangedConfigurationListener propertyChangeListener) {
 			listener = propertyChangeListener;
 		}
 		public void stateChanged(ChangeEvent e) {
-			listener.propertyChange(new PropertyChangeEvent(e.getSource(), "value", null, null));
+			listener.configurationChanged();
 		}
 	}
 	
@@ -258,8 +255,8 @@ public class SplitNamesField extends ParamPanelField {
 		panel.removeAll();
 		
 		for (Iterator iterator = listeners.keySet().iterator(); iterator.hasNext();) {
-			PropertyChangeListener l = (PropertyChangeListener) iterator.next();
-			removePropertyChangeListener(l);
+			ChangedConfigurationListener l = (ChangedConfigurationListener) iterator.next();
+			removeConfigurationChangeListener(l);
 		}
 		
 		GridBagConstraints c = new GridBagConstraints();
@@ -317,25 +314,25 @@ public class SplitNamesField extends ParamPanelField {
 		parent.updateUI();
 		
 		for (Iterator iterator = listeners.keySet().iterator(); iterator.hasNext();) {
-			PropertyChangeListener l = (PropertyChangeListener) iterator.next();
-			addPropertyChangeListener(l);
+			ChangedConfigurationListener l = (ChangedConfigurationListener) iterator.next();
+			addConfigurationChangeListener(l);
 		}
 	}
 
-	public void addPropertyChangeListener(PropertyChangeListener propertyChangeListener) {
+	public void addConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
 		List l = new ArrayList();
-		DocumentListener listener = new DocumentChangedAction(propertyChangeListener, edit);
+		DocumentListener listener = new DocumentChangedAction(configurationListener, edit);
 		l.add(listener);
 		
 		edit.getDocument().addDocumentListener(listener);
 		for (int i = 0; i < columnNames.length; i++) {
-			listener = new DocumentChangedAction(propertyChangeListener, columnNames[i]);
+			listener = new DocumentChangedAction(configurationListener, columnNames[i]);
 			l.add(listener);
 			columnNames[i].getDocument().addDocumentListener(listener);
 		}
-		listeners.put(propertyChangeListener, l);
-		ChangeListenerProxy proxy = new ChangeListenerProxy(propertyChangeListener);
-		listenersSpinner.put(propertyChangeListener, proxy);
+		listeners.put(configurationListener, l);
+		ChangeListenerProxy proxy = new ChangeListenerProxy(configurationListener);
+		listenersSpinner.put(configurationListener, proxy);
 		spinner.addChangeListener(proxy);
 	}
 
@@ -404,8 +401,8 @@ public class SplitNamesField extends ParamPanelField {
 		updateSelected();
 	}
 
-	public void removePropertyChangeListener(PropertyChangeListener distAnalysisRestartListener) {
-		List toRemove = (List) listeners.get(distAnalysisRestartListener);
+	public void removeConfigurationChangeListener(ChangedConfigurationListener configurationListener) {
+		List toRemove = (List) listeners.get(configurationListener);
 		for (Iterator iterator = toRemove.iterator(); iterator.hasNext();) {
 			DocumentListener object = (DocumentListener) iterator.next();
 			edit.getDocument().removeDocumentListener(object);
@@ -413,7 +410,7 @@ public class SplitNamesField extends ParamPanelField {
 				columnNames[i].getDocument().removeDocumentListener(object);
 			}
 		}
-		ChangeListenerProxy proxy = (ChangeListenerProxy)listenersSpinner.get(distAnalysisRestartListener);
+		ChangeListenerProxy proxy = (ChangeListenerProxy)listenersSpinner.get(configurationListener);
 		spinner.removeChangeListener(proxy);
 	}
 

@@ -37,66 +37,29 @@
 package cdc.impl.distance;
 
 import java.awt.Dimension;
-import java.awt.Window;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
+import cdc.components.AbstractDistance;
 import cdc.components.AbstractStringDistance;
 import cdc.datamodel.DataCell;
-import cdc.gui.Configs;
+import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.GUIVisibleComponent;
-import cdc.gui.components.dynamicanalysis.DistAnalysisActionListener;
-import cdc.gui.components.dynamicanalysis.DistAnalysisRestartListener;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.slope.SlopePanel;
 import cdc.gui.validation.NumberValidator;
-import cdc.impl.conditions.AbstractConditionPanel;
-import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 
 public class QGramDistance extends AbstractStringDistance {
-	
-	private static class CreatorV1 extends DefaultParamPanelFieldCreator {
-		private SlopePanel slope;
-		public CreatorV1(SlopePanel slope) {this.slope = slope;}
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			slope.bindV1(field);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
-
-	private static class CreatorV2 extends DefaultParamPanelFieldCreator {
-		private SlopePanel slope;
-		public CreatorV2(SlopePanel slope) {this.slope = slope;}
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			slope.bindV2(field);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
-	
-	private static class CreatorQ extends DefaultParamPanelFieldCreator {
-		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-			ParamPanelField field = super.create(parent, param, label, defaultValue);
-			field.addPropertyChangeListener(propertyListener);
-			return field;
-		}
-	}
 	
 	private static final int logLevel = Log.getLogLevel(QGramDistance.class);
 	
@@ -105,14 +68,43 @@ public class QGramDistance extends AbstractStringDistance {
 	public static final String PROP_DISAPPROVE = "disapprove-level";
 	public static final double DEFAULT_APPROVE_LEVEL = 0.2;
 	public static final double DEFAULT_DISAPPROVE_LEVEL = 0.4;
-	public static final String DEFAULT_Q = "0";
-	
-	private static DistAnalysisRestartListener propertyListener = new DistAnalysisRestartListener();
+	public static final String DEFAULT_Q = "3";
+	public static final String AUTO_Q = "auto";
 	
 	private static class QGramsVisibleComponent extends GUIVisibleComponent {
 		
+		private class CreatorV1 extends DefaultParamPanelFieldCreator {
+			private SlopePanel slope;
+			public CreatorV1(SlopePanel slope) {this.slope = slope;}
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				slope.bindV1(field);
+				field.addConfigurationChangeListener(QGramsVisibleComponent.this);
+				return field;
+			}
+		}
+
+		private class CreatorV2 extends DefaultParamPanelFieldCreator {
+			private SlopePanel slope;
+			public CreatorV2(SlopePanel slope) {this.slope = slope;}
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				slope.bindV2(field);
+				field.addConfigurationChangeListener(QGramsVisibleComponent.this);
+				return field;
+			}
+		}
+		
+		private class CreatorQ extends DefaultParamPanelFieldCreator {
+			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+				ParamPanelField field = super.create(parent, param, label, defaultValue);
+				field.addConfigurationChangeListener(QGramsVisibleComponent.this);
+				return field;
+			}
+		}
+		
+		
 		private ParamsPanel panel;
-		private DistAnalysisActionListener analysisListener;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
 			return new QGramDistance(panel.getParams());
@@ -171,20 +163,7 @@ public class QGramDistance extends AbstractStringDistance {
 				validators.put(PROP_APPROVE, new NumberValidator(NumberValidator.DOUBLE));
 				validators.put(PROP_DISAPPROVE, new NumberValidator(NumberValidator.DOUBLE));
 				panel.setValidators(validators);
-				
-				JButton visual = Configs.getAnalysisButton();
-				//visual.setPreferredSize(new Dimension(visual.getPreferredSize().width, 20));
-				visual.addActionListener(analysisListener = new DistAnalysisActionListener((Window)objects[2], (AbstractConditionPanel) objects[1], propertyListener));
-				panel.append(visual);
 			}
-			
-			panel.addPropertyChangeListener("ancestor", new PropertyChangeListener() {
-				public void propertyChange(PropertyChangeEvent evt) {
-					if (evt.getNewValue() == null && analysisListener != null) {
-						analysisListener.closeWindow();
-					}
-				}});
-			WeightedJoinCondition.attachListener(objects, propertyListener);
 			
 			return panel;
 		}
@@ -199,10 +178,6 @@ public class QGramDistance extends AbstractStringDistance {
 
 		public boolean validate(JDialog dialog) {
 			return panel.doValidate();
-		}
-		
-		public void configurationPanelClosed() {
-			analysisListener.closeWindow();
 		}
 		
 	}
@@ -227,7 +202,7 @@ public class QGramDistance extends AbstractStringDistance {
 		super(props);
 		//read q-gram
 		if (getProperty(PROP_Q) != null) {
-			if (!getProperty(PROP_Q).equals(DEFAULT_Q)) { 
+			if (!getProperty(PROP_Q).equals(AUTO_Q)) { 
 				this.qgram = Integer.parseInt((String)getProperty(PROP_Q));
 			}
 		} else {
@@ -353,9 +328,9 @@ public class QGramDistance extends AbstractStringDistance {
 	}
 
 	public double distance(DataCell cellA, DataCell cellB) {
-		int distance = distanceInt(cellA, cellB);
-		int approve = (int)Math.round((((Map)gramsS1.get()).size() + ((Map)gramsS2.get()).size()) * APPROVE);
-		int disapprove = (int)Math.round((((Map)gramsS1.get()).size() + ((Map)gramsS2.get()).size()) * DISAPPROVE);
+		double distance = distanceInt(cellA, cellB);
+		double approve = (int)Math.round((((Map)gramsS1.get()).size() + ((Map)gramsS2.get()).size()) * APPROVE);
+		double disapprove = (int)Math.round((((Map)gramsS1.get()).size() + ((Map)gramsS2.get()).size()) * DISAPPROVE);
 		((Map)gramsS1.get()).clear();
 		((Map)gramsS2.get()).clear();
 		if (distance > disapprove) {
@@ -374,6 +349,15 @@ public class QGramDistance extends AbstractStringDistance {
 				return (100 - 100/(disapprove - approve)*(distance - approve));
 			}
 		}
+	}
+	
+	public static void main(String[] args) {
+		Map params = new HashMap();
+		params.put(PROP_Q, "3");
+		params.put(PROP_APPROVE, "0.2");
+		params.put(PROP_DISAPPROVE, "0.4");
+		AbstractDistance d = new QGramDistance(params);
+		System.out.println(d.distance(new DataCell(DataColumnDefinition.TYPE_STRING, "DONOVAN BLACK"), new DataCell(DataColumnDefinition.TYPE_STRING, "DONOVAN PACK")));
 	}
 	
 	

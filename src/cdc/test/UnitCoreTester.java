@@ -22,9 +22,12 @@ import cdc.datamodel.converters.AbstractColumnConverter;
 import cdc.datamodel.converters.JoinConverter;
 import cdc.datamodel.converters.ModelGenerator;
 import cdc.impl.Main;
+import cdc.impl.datasource.wrappers.ExternallySortingDataSource;
+import cdc.utils.CompareFunctionInterface;
 import cdc.utils.Log;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import cdc.utils.comparators.StringComparator;
 
 public class UnitCoreTester {
 	
@@ -35,6 +38,10 @@ public class UnitCoreTester {
 			System.out.println("Unit tester of core FRIL functionality.");
 			System.out.println("Testing converters and data sources");
 			testConvertersAndSources();
+			System.out.println("Testing sorting data source");
+			testSortingDS();
+			System.out.println("Testing deduplication data source");
+			testDeduplication();
 			System.out.println("Testing joins...");
 			testJoins();
 		} catch (ComparisonFailure f) {
@@ -49,6 +56,62 @@ public class UnitCoreTester {
 			System.exit(0);
 		}
 		System.out.println("All tests completed.");
+	}
+
+	private static void testDeduplication() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private static void testSortingDS() throws IOException, SecurityException, NoSuchMethodException, ClassNotFoundException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException, RJException {
+		ItemDescriptor[] sourceDescriptors = readDescriptors("tests/sources.txt");
+		
+		for (int i = 0; i < sourceDescriptors.length; i++) {
+			System.out.print("   Testing " + sourceDescriptors[i].message);
+			Object[] constrParams = new Object[] {(String)sourceDescriptors[i].properties.get("source-name"), sourceDescriptors[i].properties};
+			Constructor c = Class.forName(sourceDescriptors[i].className).getConstructor(new Class[] {String.class, Map.class});	
+			AbstractDataSource source = (AbstractDataSource) c.newInstance(constrParams);
+			CompareFunctionInterface[] compares = new CompareFunctionInterface[source.getAvailableColumns().length];
+			for (int j = 0; j < compares.length; j++) {
+				compares[j] = new StringComparator();
+			}
+			
+			ItemDescriptor[] converterDescriptors = readDescriptors("tests/converters.txt");
+			ModelGenerator model = createModel(converterDescriptors, source.getAvailableColumns());
+			source.setModel(model);
+			
+			source = new ExternallySortingDataSource(source.getSourceName(), source, model.getOutputFormat(), compares, new HashMap());
+			
+			Assert.assertEquals(sourceDescriptors[i].message + ": ERROR in size()", 3L, source.size());
+			DataRow row;
+			int n = 0;
+			while ((row = source.getNextRow()) != null) {
+				n++;
+			}
+			
+			Assert.assertEquals(sourceDescriptors[i].message + ": ERROR in size() (source does not return number of rows it promised)", 3, n);
+			source.reset();
+			
+			n = 0;
+			while ((row = source.getNextRow()) != null) {
+				n++;
+			}
+			Assert.assertEquals(sourceDescriptors[i].message + ": ERROR in reset() (source does not return number of rows it promised after reset)", 3, n);
+			source.close();
+			row = null;
+			Exception e = null;
+			try {
+				n = 0;
+				while ((row = source.getNextRow()) != null) {
+					n++;
+				}
+				Assert.assertEquals(sourceDescriptors[i].message + ": ERROR in close() (source does not return size() records after closed and reopened)", 3, n);
+			} catch (RJException ec) {
+				e = ec;
+			}
+			Assert.assertTrue(sourceDescriptors[i].message + ": ERROR in close() (source should reopen after close and getNextRow were called)", row == null && e == null);
+			System.out.println("...OK");
+		}
 	}
 
 	private static void testJoins() throws IOException, RJException {
