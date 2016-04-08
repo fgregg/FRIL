@@ -20,7 +20,7 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.components.table.TablePanel;
 import cdc.utils.CompareFunctionInterface;
 
-public class SortingEditor extends JPanel {
+public class SortingEditor extends AbstractSortingEditor {
 	
 	private TablePanel leftColumns;
 	private TablePanel rightColumns;

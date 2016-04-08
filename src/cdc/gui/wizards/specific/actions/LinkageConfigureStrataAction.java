@@ -55,16 +55,16 @@ import cdc.gui.wizards.specific.actions.strata.StrataChooser;
 import cdc.impl.join.strata.DataStratum;
 import cdc.impl.join.strata.StrataJoinWrapper;
 
-public class JoinStrataChooser extends WizardAction {
+public class LinkageConfigureStrataAction extends WizardAction {
 
 	private JRadioButton strataOff = new JRadioButton("Do not stratify data", true);
 	private JRadioButton strataOn = new JRadioButton("Stratify data");
 	private JPanel strataPanel;
 	private StrataChooser strataConfiguration;
-	private ChooseSourceAction leftSourceAction;
-	private ChooseSourceAction rightSourceAction;
+	private DSConfigureTypeAction leftSourceAction;
+	private DSConfigureTypeAction rightSourceAction;
 	
-	public JoinStrataChooser(AbstractDataSource sourceA, AbstractDataSource sourceB) {
+	public LinkageConfigureStrataAction(AbstractDataSource sourceA, AbstractDataSource sourceB) {
 		ButtonGroup group = new ButtonGroup();
 		group.add(strataOff);
 		group.add(strataOn);
@@ -92,7 +92,7 @@ public class JoinStrataChooser extends WizardAction {
 		strataConfiguration.setEnabled(false);
 	}
 
-	public JoinStrataChooser(ChooseSourceAction leftSourceAction, ChooseSourceAction rightSourceAction) {
+	public LinkageConfigureStrataAction(DSConfigureTypeAction leftSourceAction, DSConfigureTypeAction rightSourceAction) {
 		this.leftSourceAction = leftSourceAction;
 		this.rightSourceAction = rightSourceAction;
 	}

@@ -55,7 +55,7 @@ import cdc.gui.wizards.WizardAction;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
 
-public class ChooseSourceAction extends WizardAction {
+public class DSConfigureTypeAction extends WizardAction {
 
 	private JPanel buffer;
 	private JPanel internalPanel;
@@ -66,7 +66,7 @@ public class ChooseSourceAction extends WizardAction {
 	//private boolean altered = true;
 	private String defaultName;
 	
-	public ChooseSourceAction(String defaultSourceName) {
+	public DSConfigureTypeAction(String defaultSourceName) {
 		this.defaultName = defaultSourceName;
 	}
 	

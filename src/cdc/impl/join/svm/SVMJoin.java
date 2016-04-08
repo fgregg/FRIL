@@ -16,6 +16,7 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -77,6 +78,10 @@ public class SVMJoin extends AbstractJoin {
 	private boolean firstStep = false;
 	//private boolean fullAgreementAdded = false;
 	private boolean initialized = false;
+	
+	private int readA = 0;
+	private int readB = 0;
+	private int linked = 0;
 	
 	public SVMJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition[] outColumns, AbstractJoinCondition condition, Map params) throws RJException {
 		super(sourceA, sourceB, condition, outColumns, params);
@@ -179,6 +184,7 @@ public class SVMJoin extends AbstractJoin {
 				firstStep = false;
 				//buckets.reset();
 			} else {
+				linked++;
 				return row;
 			}
 		}
@@ -198,6 +204,7 @@ public class SVMJoin extends AbstractJoin {
 		if (!bufferedMatches.isEmpty()) {
 			//we have some buffered data from the first phase (initialization phase).
 			DataRow match = (DataRow) bufferedMatches.remove(0);
+			linked++;
 			return match;
 		} else {
 			//We will just output everything according to the current svm decision boundry.
@@ -205,7 +212,11 @@ public class SVMJoin extends AbstractJoin {
 			//tested, and simply return all the cases that are classified to matching records.
 			//This code can also be executed if learning does not provide new examples.
 			System.out.println("Second phase of the algorithm begins.");
-			return nextMatch();
+			DataRow nextMatch = nextMatch();
+			if (nextMatch != null) {
+				linked++;
+			}
+			return nextMatch;
 		}
 		
 	}
@@ -638,9 +649,11 @@ public class SVMJoin extends AbstractJoin {
 		DataRow row;
 		while ((row = getSourceA().getNextRow()) != null) {
 			buckets.addToBucketLeftSource(row);
+			readA++;
 		}
 		while ((row = getSourceB().getNextRow()) != null) {
 			buckets.addToBucketRightSource(row);
+			readB++;
 		}
 		buckets.addingCompleted();
 	}
@@ -660,8 +673,16 @@ public class SVMJoin extends AbstractJoin {
 		this.initialized = false;
 		this.learnignRound = 0;
 		
+		readA = 0;
+		readB = 0;
+		linked = 0;
+		
 		getSourceA().reset();
 		getSourceB().reset();
 	}
 
+	public LinkageSummary getLinkageSummary() {
+		return new LinkageSummary(readA, readB, linked);
+	}
+	
 }

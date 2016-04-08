@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration deduplication="true">
+    <left-data-source class="cdc.impl.datasource.text.CSVDataSource" name="sourceA">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="sourceA"/>
+            <param name="input-file" value="./data-sample/generated-data-error.csv"/>
+        </params>
+        <row-model>
+            <column column="firsrt_name" converter="cdc.datamodel.converters.DummyConverter" name="firsrt_name">
+                <params/>
+            </column>
+            <column column="last_name" converter="cdc.datamodel.converters.DummyConverter" name="last_name">
+                <params/>
+            </column>
+            <column column="DOB" converter="cdc.datamodel.converters.DummyConverter" name="DOB">
+                <params/>
+            </column>
+            <column column="height" converter="cdc.datamodel.converters.DummyConverter" name="height">
+                <params/>
+            </column>
+            <column column="weight" converter="cdc.datamodel.converters.DummyConverter" name="weight">
+                <params/>
+            </column>
+        </row-model>
+        <preprocessing>
+            <deduplication>
+                <deduplication-condition>
+                    <condition class="cdc.impl.distance.EditDistance" column="firsrt_name">
+                        <params>
+                            <param name="match-level-start" value="0.05"/>
+                            <param name="math-level-end" value="0.25"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance" column="last_name">
+                        <params>
+                            <param name="match-level-start" value="0.05"/>
+                            <param name="math-level-end" value="0.26"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EqualFieldsDistance" column="DOB">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.NumericDistance" column="height">
+                        <params>
+                            <param name="use-lineral-approximation" value="true"/>
+                            <param name="percent-difference" value="10.0,10.0"/>
+                            <param name="numeric-difference" value=""/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.NumericDistance" column="weight">
+                        <params>
+                            <param name="use-lineral-approximation" value="true"/>
+                            <param name="percent-difference" value="10.0,10.0"/>
+                            <param name="numeric-difference" value=""/>
+                        </params>
+                    </condition>
+                </deduplication-condition>
+                <hashing-function columns="last_name" hash="soundex(5)"/>
+                <minus-file file="duplicates.csv"/>
+                <dedupe-file file="deduplicated-source.csv"/>
+            </deduplication>
+        </preprocessing>
+    </left-data-source>
+</configuration>

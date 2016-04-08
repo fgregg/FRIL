@@ -59,6 +59,7 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.OptionDialog;
 import cdc.gui.components.table.TablePanel;
+import cdc.gui.components.uicomponents.AvaialbleColumnsPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
@@ -67,7 +68,7 @@ import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
 
-public class JoinChooseConditionsAction extends WizardAction {
+public class LinkageConfigureConditionsAction extends WizardAction {
 
 	public class PasteActionListener implements ActionListener {
 
@@ -148,10 +149,10 @@ public class JoinChooseConditionsAction extends WizardAction {
 
 	private AbstractWizard parent;
 	
-	private ChooseSourceAction leftSourceAction;
-	private ChooseSourceAction rightSourceAction;
+	private DSConfigureTypeAction leftSourceAction;
+	private DSConfigureTypeAction rightSourceAction;
 	
-	private JoinStrataChooser strataChooser;
+	private LinkageConfigureStrataAction strataChooser;
 	
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
@@ -170,14 +171,14 @@ public class JoinChooseConditionsAction extends WizardAction {
 
 	private AbstractJoin restoredJoin = null;
 	
-	public JoinChooseConditionsAction(ChooseSourceAction left, ChooseSourceAction right, JoinStrataChooser joinStratificationConfiguration) {
+	public LinkageConfigureConditionsAction(DSConfigureTypeAction left, DSConfigureTypeAction right, LinkageConfigureStrataAction joinStratificationConfiguration) {
 		leftSourceAction = left;
 		rightSourceAction = right;
 		this.strataChooser = joinStratificationConfiguration;
 		createTable();
 	}
 	
-	public JoinChooseConditionsAction(AbstractDataSource sourceA, AbstractDataSource sourceB, JoinStrataChooser joinStratificationConfiguration) {
+	public LinkageConfigureConditionsAction(AbstractDataSource sourceA, AbstractDataSource sourceB, LinkageConfigureStrataAction joinStratificationConfiguration) {
 		this.sourceA = sourceA;
 		this.sourceB = sourceB;
 		this.strataChooser = joinStratificationConfiguration;

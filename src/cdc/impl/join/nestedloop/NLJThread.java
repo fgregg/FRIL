@@ -61,6 +61,9 @@ public class NLJThread extends Thread {
 	private volatile boolean stopped = false;
 	private volatile RJException error;
 	
+	private int readA = 0;
+	private int readB = 0;
+	
 	private int step = 1;
 	
 	public NLJThread(AbstractDataSource sourceA, AbstractDataSource sourceB, ArrayBlockingQueue resultBuffer, NLJConnector join) {
@@ -75,10 +78,11 @@ public class NLJThread extends Thread {
 		try {
 			Log.log(getClass(), "Thread starts.", 2);
 			main: while ((rowA = fillInBuffer(sourceA, BUFFER_SIZE)) != null) {
+				readA += rowA.length;
 				DataRow rowB[];
 				Log.log(NestedLoopJoin.class, "Outer loop starts", 3);
 				while ((rowB = fillInBuffer(sourceB, 1)) != null) {
-					//System.out.println(this.hashCode() + " Buffers: " + rowA.length + "  " + rowB.length);
+					readB += rowB.length;
 					for (int i = 0; i < rowA.length; i++) {
 						for (int j = 0; j < rowB.length; j++) {
 							calculateProgress();
@@ -179,6 +183,14 @@ public class NLJThread extends Thread {
 		synchronized (this) {
 			return completed;
 		}
+	}
+	
+	public int getReadA() {
+		return readA;
+	}
+	
+	public int getReadB() {
+		return readB;
 	}
 	
 }

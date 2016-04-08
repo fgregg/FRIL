@@ -63,12 +63,12 @@ import cdc.gui.GUIVisibleComponent;
 import cdc.gui.MainFrame;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
-import cdc.gui.wizards.specific.actions.JoinStrataChooser;
+import cdc.gui.wizards.specific.actions.LinkageConfigureStrataAction;
 import cdc.utils.RJException;
 
 public class StrataJoinGUIVisibleComponent extends GUIVisibleComponent {
 
-	private JoinStrataChooser strataChooser;
+	private LinkageConfigureStrataAction strataChooser;
 	private GUIVisibleComponent[] joins;
 	private JTabbedPane joinConfigs;
 	private JRadioButton sameConfigs;
@@ -78,7 +78,7 @@ public class StrataJoinGUIVisibleComponent extends GUIVisibleComponent {
 	private StrataJoinWrapper join;
 	private boolean sameEnabled = true;
 	
-	public StrataJoinGUIVisibleComponent(AbstractWizard wizard, GUIVisibleComponent[] specificJoins, JoinStrataChooser strata) {
+	public StrataJoinGUIVisibleComponent(AbstractWizard wizard, GUIVisibleComponent[] specificJoins, LinkageConfigureStrataAction strata) {
 		this.joins = specificJoins;
 		this.strataChooser = strata;
 		this.wizard = wizard;
@@ -101,6 +101,8 @@ public class StrataJoinGUIVisibleComponent extends GUIVisibleComponent {
 	public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
 		sameConfigs = new JRadioButton("Use the same join configuration for all strata");
 		diffConfigs = new JRadioButton("Use different join configuration for each strata");
+		diffConfigs.setEnabled(false);
+		diffConfigs.setToolTipText("This option was disabled due to possible inconsistencies it could create.\nYou can achieve the same functionality by running FRIL linkage more than once and using data source filtering.");
 		sameConfigs.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				enableDisableTabs();

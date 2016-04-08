@@ -79,7 +79,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 				defs[0] = getRestoredParam(OUTPUT_FILE_PROPERTY);
 			}
 			Map map = new HashMap();
-			map.put(OUTPUT_FILE_PROPERTY, new FileChoosingPanelFieldCreator());
+			map.put(OUTPUT_FILE_PROPERTY, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.SAVE));
 			panel = new ParamsPanel(
 					new String[] {OUTPUT_FILE_PROPERTY},
 					new String[] {"Output file"},
@@ -144,7 +144,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 					}
 				}
 				if (stratum != null) {
-					header[header.length - 2] = "Stratum name";
+					header[header.length - (saveConfidence ? 2 : 1)] = "Stratum name";
 				}
 				if (saveConfidence) {
 					header[header.length - 1] = "Confidence";
@@ -158,7 +158,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 				strRow[i] = cells[i].getValue().toString();
 			}
 			if (stratum != null) {
-				strRow[strRow.length - 2] = stratum;
+				strRow[strRow.length - (saveConfidence ? 2 : 1)] = stratum;
 			}
 			if (saveConfidence) {
 				strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);

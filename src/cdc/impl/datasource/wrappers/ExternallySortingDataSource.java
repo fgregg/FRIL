@@ -300,7 +300,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 	}
 
 	public AbstractDataSource copy() throws IOException, RJException {
-		ExternallySortingDataSource that = new ExternallySortingDataSource(getSourceName(), parentSource, orderBy, functions, getProperties());
+		ExternallySortingDataSource that = new ExternallySortingDataSource(getSourceName(), parentSource.copy(), orderBy, functions, getProperties());
 		initialize();
 		that.setStratumCondition(getFilterCondition());
 		that.initialized = initialized;

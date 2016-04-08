@@ -58,7 +58,7 @@ import cdc.gui.Configs;
 import cdc.gui.MainFrame;
 import cdc.gui.OptionDialog;
 import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
-import cdc.gui.components.jdbc.JDBCConfigurationPanel;
+import cdc.gui.components.uicomponents.JDBCConfigurationPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;

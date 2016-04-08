@@ -165,8 +165,8 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		doDeduplication();
 		
 		Log.log(getClass(), "Removed " + duplicatesCnt + " duplicate(s) from results.");
-		MainApp.main.appendLinkageSummary("\nResults deduplication identified " + duplicatesCnt + " duplicate(s).\n");
-		MainApp.main.appendLinkageSummary("Saved " + savedCnt + " linkage(s) to result files.\n");
+		//MainApp.main.appendLinkageSummary("\nResults deduplication identified " + duplicatesCnt + " duplicate(s).\n");
+		//MainApp.main.appendLinkageSummary("Saved " + savedCnt + " linkage(s) to result files.\n");
 		
 		if (data != null) {
 			data.cleanup();
@@ -235,22 +235,22 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		DataRow example = null;
 		List buffer = new ArrayList();
 		example = inputData.getNextSortedRow();
-		int n = 0;
-		int s = 0;
-		int n1 = 0;
+//		int n = 0;
+//		int s = 0;
+//		int n1 = 0;
 		while (true) {
 			if (example == null) {
 				break;
 			}
-			n++;
+			//n++;
 			buffer.add(example);
 			DataRow row;
 			while (isTheSameKey(row = inputData.getNextSortedRow(), example, sortedKey) && row != null) {
 				buffer.add(row);
-				n++;
+				//n++;
 			}
-			n1 += buffer.size();
-			s += solveGroup(outputData, buffer, sortedKey);
+			//n1 += buffer.size();
+			/*s += */solveGroup(outputData, buffer, sortedKey);
 			buffer.clear();
 			example = row;
 		}
@@ -325,7 +325,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		DataRow rowB = (DataRow) rejected.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
 		if (!decrementAndCheck(rowA)) {
 			//System.out.println("Saving to minus: " + rowA);
-			AbstractJoin join = MainApp.main.getJoin().getJoin();
+			AbstractJoin join = MainApp.main.getConfiguredSystem().getJoin();
 			try {
 				join.notifyTrashingNotJoined(rowA);
 			} catch (RJException e) {
@@ -334,7 +334,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		}
 		if (!decrementAndCheck(rowB)) {
 			//System.out.println("Saving to minus: " + rowB);
-			AbstractJoin join = MainApp.main.getJoin().getJoin();
+			AbstractJoin join = MainApp.main.getConfiguredSystem().getJoin();
 			try {
 				join.notifyTrashingNotJoined(rowB);
 			} catch (RJException e) {
@@ -383,5 +383,13 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 			saveToMinusIfNeeded(linkage);
 		}
 	}
+	
+	public int getDuplicatesCnt() {
+		return duplicatesCnt;
+	}
 
+	public int getSavedCnt() {
+		return savedCnt;
+	}
+	
 }

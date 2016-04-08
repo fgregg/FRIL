@@ -417,6 +417,7 @@ public class JDBCDataSource extends AbstractDataSource {
 	public AbstractDataSource copy() throws IOException, RJException {
 		JDBCDataSource dataSource = new JDBCDataSource(getSourceName(), getProperties());
 		dataSource.setModel(getDataModel());
+		dataSource.setFilter(getFilter());
 		return dataSource;
 	}
 

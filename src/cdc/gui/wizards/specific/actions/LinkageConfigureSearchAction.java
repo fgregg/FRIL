@@ -66,7 +66,7 @@ import cdc.utils.GuiUtils;
 import cdc.utils.Props;
 import cdc.utils.RJException;
 
-public class JoinConfigurationAction extends WizardAction {
+public class LinkageConfigureSearchAction extends WizardAction {
 
 	private static final String LABEL_SUMMARY = "Create summary for not joined data in source ";
 	
@@ -76,27 +76,27 @@ public class JoinConfigurationAction extends WizardAction {
 	private JCheckBox checkBoxLeft = new JCheckBox();
 	private JCheckBox checkBoxRight = new JCheckBox();
 	
-	private ChooseSourceAction leftSource;
-	private ChooseSourceAction rightSource;
+	private DSConfigureTypeAction leftSource;
+	private DSConfigureTypeAction rightSource;
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
-	private JoinStrataChooser strataChooser;
-	private JoinChooseConditionsAction joinConfig;
+	private LinkageConfigureStrataAction strataChooser;
+	private LinkageConfigureConditionsAction joinConfig;
 	
 	private AbstractJoin join;
 	private GUIVisibleComponent[] comps;
 
 	private JScrollPane scrollPanel;
 	
-	public JoinConfigurationAction(ChooseSourceAction leftSource, ChooseSourceAction rightSource, JoinStrataChooser strata, JoinChooseConditionsAction joinConfig) {
+	public LinkageConfigureSearchAction(DSConfigureTypeAction leftSource, DSConfigureTypeAction rightSource, LinkageConfigureStrataAction strata, LinkageConfigureConditionsAction joinConfig) {
 		this.leftSource = leftSource;
 		this.rightSource = rightSource;
 		this.strataChooser = strata;
 		this.joinConfig = joinConfig;
 	}
 	
-	public JoinConfigurationAction(AbstractDataSource sourceA, AbstractDataSource sourceB,
-			JoinStrataChooser strata, JoinChooseConditionsAction joinFieldsConfiguration) {
+	public LinkageConfigureSearchAction(AbstractDataSource sourceA, AbstractDataSource sourceB,
+			LinkageConfigureStrataAction strata, LinkageConfigureConditionsAction joinFieldsConfiguration) {
 		this.sourceA = sourceA;
 		this.sourceB = sourceB;
 		this.strataChooser = strata;

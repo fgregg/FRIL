@@ -45,19 +45,22 @@ import cdc.utils.RJException;
 
 public class ConfiguredSystem {
 	
-	private static ConfiguredSystem configuredSystem;
-	
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
 	private AbstractJoin join;
 	private AbstractResultsSaver resultSavers;
+	private boolean deduplication = false;
 	
 	public ConfiguredSystem(AbstractDataSource left, AbstractDataSource right, AbstractJoin join, AbstractResultsSaver resultSaver) {
 		this.sourceA = left;
 		this.sourceB = right;
 		this.join = join;
 		this.resultSavers = resultSaver;
-		configuredSystem = this;
+	}
+	
+	public ConfiguredSystem(AbstractDataSource dedupeSource) {
+		this.sourceA = dedupeSource;
+		this.deduplication = true;
 	}
 
 	public AbstractJoin getJoin() {
@@ -131,8 +134,8 @@ public class ConfiguredSystem {
 		System.out.println("System closed.");
 	}
 	
-	public static ConfiguredSystem getActiveSystem() {
-		return configuredSystem;
+	public boolean isDeduplication() {
+		return deduplication;
 	}
 	
 }

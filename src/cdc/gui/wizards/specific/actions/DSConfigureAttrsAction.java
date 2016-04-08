@@ -50,13 +50,14 @@ import javax.swing.JScrollPane;
 
 import cdc.components.AbstractDataSource;
 import cdc.datamodel.converters.ModelGenerator;
+import cdc.gui.LinkageSystemPanel;
 import cdc.gui.MainFrame;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.datasource.ui.LegendPanel;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
 
-public class ChooseSourceFieldsAction extends WizardAction {
+public class DSConfigureAttrsAction extends WizardAction {
 
 	
 //	public class ResizeListener implements ComponentListener {
@@ -90,18 +91,26 @@ public class ChooseSourceFieldsAction extends WizardAction {
 //		public void componentShown(ComponentEvent arg0) {}
 //	}
 
-	private ChooseSourceAction source;
+	private DSConfigureTypeAction source;
 	private AbstractDataSource dataSource;
 	private AbstractDataSource lastDataSource;
 	private JDataSource buffer;
 	private AbstractWizard parent;
 	private int id;
+	private boolean showOther;
 	
-	public ChooseSourceFieldsAction(int id, ChooseSourceAction sourceAction) {
+	public DSConfigureAttrsAction(int id, DSConfigureTypeAction sourceAction) {
 		this.source = sourceAction;
 		this.id = id;
+		this.showOther = true;
 	}
 	
+	public DSConfigureAttrsAction(int id, DSConfigureTypeAction sourceAction, boolean showDedupeOption) {
+		this.source = sourceAction;
+		this.id = id;
+		this.showOther = showDedupeOption;
+	}
+
 	public JPanel beginStep(AbstractWizard wizard) {
 		dataSource = source.getDataSource();
 		parent = wizard;
@@ -126,20 +135,22 @@ public class ChooseSourceFieldsAction extends WizardAction {
 		});
 		
 		JButton other = new JButton("Show other data source");
-		other.setPreferredSize(new Dimension(200, 20));
-		other.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					if (id == 0) {
-						MainFrame.main.getSystemPanel().openRightDataSourceConfig(parent);
-					} else if (id == 1) {
-						MainFrame.main.getSystemPanel().openLeftDataSourceConfig(parent);
+		if (showOther) {
+			other.setPreferredSize(new Dimension(200, 20));
+			other.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent arg0) {
+					try {
+						if (id == 0) {
+							((LinkageSystemPanel)MainFrame.main.getSystemPanel()).openRightDataSourceConfig(parent);
+						} else if (id == 1) {
+							((LinkageSystemPanel)MainFrame.main.getSystemPanel()).openLeftDataSourceConfig(parent);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
 				}
-			}
-		});
+			});
+		}
 		
 		JButton legend = new JButton("Show legend");
 		legend.setPreferredSize(new Dimension(200, 20));
@@ -154,7 +165,7 @@ public class ChooseSourceFieldsAction extends WizardAction {
 		});
 		
 		stering.add(summary);
-		if (id != -1) {
+		if (id != -1 && showOther) {
 			stering.add(other);
 		}
 		stering.add(legend);

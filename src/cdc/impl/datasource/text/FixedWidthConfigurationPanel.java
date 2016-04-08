@@ -64,8 +64,8 @@ public class FixedWidthConfigurationPanel extends GUIVisibleComponent {
 	public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 		
 		Map creators = new HashMap();
-		creators.put(FixedColumnWidthFileDataSource.PARAM_FILE_NAME, new FileChoosingPanelFieldCreator());
-		creators.put(FixedColumnWidthFileDataSource.PARAM_SCHEMA_FILE, new FileChoosingPanelFieldCreator());
+		creators.put(FixedColumnWidthFileDataSource.PARAM_FILE_NAME, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.OPEN));
+		creators.put(FixedColumnWidthFileDataSource.PARAM_SCHEMA_FILE, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.OPEN));
 		
 		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, FixedColumnWidthFileDataSource.PARAM_FILE_NAME, FixedColumnWidthFileDataSource.PARAM_SCHEMA_FILE};
 		String[] defaults = new String[] {"fixed-width-file-src", "", ""};

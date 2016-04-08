@@ -88,6 +88,8 @@ public class Configs {
 	public static final ImageIcon forwardButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "forward.png").getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH));
 	public static final ImageIcon backwardButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "backward.png").getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH));
 	
+	public static final ImageIcon floppyButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "floppy.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+	
 	public static final ImageIcon horizontal = new ImageIcon("icons" + File.separator + "horizontal.png");
 	public static final ImageIcon vertical = new ImageIcon("icons" + File.separator + "vertical.png");
 	public static final ImageIcon join_l = new ImageIcon("icons" + File.separator + "l-join.png");
@@ -100,6 +102,9 @@ public class Configs {
 	
 	public static final ImageIcon bulbOff = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-off.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
 	public static final ImageIcon bulbOn = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-on.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
+
+	public static final ImageIcon linkModeIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "link-mode.png").getImage().getScaledInstance(225, 60, Image.SCALE_SMOOTH));
+	public static final ImageIcon dedupeModeIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "dedupe-mode.png").getImage().getScaledInstance(225, 60, Image.SCALE_SMOOTH));
 	
 	public static final JButton getAnalysisButton() {
 		JButton button = new JButton(analysisButtonIcon);
@@ -115,6 +120,12 @@ public class Configs {
 	
 	public static final JButton getDetailsButton() {
 		JButton button = new JButton(detailsButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+	
+	public static JButton getViewMinusButton() {
+		JButton button = new JButton(analysisMinusButtonIcon);
 		button.setPreferredSize(new Dimension(30, 30));
 		return button;
 	}
@@ -162,6 +173,12 @@ public class Configs {
 	public static JButton getBackwardButton() {
 		JButton button = new JButton(backwardButtonIcon);
 		button.setPreferredSize(new Dimension(17, 17));
+		return button;
+	}
+
+	public static JButton getSaveButton() {
+		JButton button = new JButton(floppyButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
 		return button;
 	}
 }

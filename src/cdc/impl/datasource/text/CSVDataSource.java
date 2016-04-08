@@ -234,6 +234,7 @@ public class CSVDataSource extends AbstractDataSource {
 	public AbstractDataSource copy() throws IOException, RJException {
 		CSVDataSource dataSource = new CSVDataSource(getSourceName(), getProperties());
 		dataSource.setModel(getDataModel());
+		dataSource.setFilter(getFilter());
 		return dataSource;
 	}
 	

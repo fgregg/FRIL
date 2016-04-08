@@ -1,18 +1,28 @@
 package cdc.gui.components.linkagesanalysis;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.SwingUtilities;
+
+import cdc.components.AbstractResultsSaver;
 import cdc.components.Filter;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
-import cdc.gui.components.linkagesanalysis.dialog.ViewLinkagesDialog;
+import cdc.gui.components.linkagesanalysis.dialog.LinkagesWindowPanel;
+import cdc.gui.external.JXErrorDialog;
+import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.CompareFunctionInterface;
+import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 import cdc.utils.comparators.NumberComparator;
 import cdc.utils.comparators.StringComparator;
 
@@ -21,7 +31,7 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 	private List data;
 	private List toRemove = new ArrayList();
 	
-	private ViewLinkagesDialog dialog;
+	private LinkagesWindowPanel dialog;
 	private volatile boolean cancel;
 	private volatile boolean reload;
 	private Filter filter;
@@ -34,7 +44,7 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 	private AtomicInteger move = new AtomicInteger(1);
 	private int currentPage = 1;
 	
-	public DuplicateLinkageLoadingThread(List data, ThreadCreatorInterface interf, ViewLinkagesDialog viewLinkagesDialog, Filter filter, DataColumnDefinition[] sort, int[] order) {
+	public DuplicateLinkageLoadingThread(List data, ThreadCreatorInterface interf, LinkagesWindowPanel viewLinkagesDialog, Filter filter, DataColumnDefinition[] sort, int[] order) {
 		this.data = data;
 		this.dialog = viewLinkagesDialog;
 		this.filter = filter;
@@ -122,7 +132,9 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 //						}
 //					}
 //				}
-			} catch (InterruptedException e) {if (cancel) return;}
+			} catch (InterruptedException e) {
+				if (cancel) return;
+			}
 		}
 	}
 	
@@ -234,6 +246,37 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 			toRemove.add(linkage);
 		}
 		interrupt();
+	}
+	
+	public void saveToFile(String fileName, boolean all) {
+		try {
+			Map props = new HashMap();
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileName);
+			props.put(CSVFileSaver.SAVE_CONFIDENCE, "true");
+			props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+			AbstractResultsSaver saver = new CSVFileSaver(props);
+			DataColumnDefinition[] model = RowUtils.getModelForSave(dialog.getUsedModel());
+			if (all) {
+				synchronized (data) {
+					for (Iterator iterator = data.iterator(); iterator.hasNext();) {
+						DataRow row = (DataRow) iterator.next();
+						saver.saveRow(RowUtils.buildSubrow(row, model, true));
+					}
+				}
+			} else {
+				DataRow[] rows = dialog.getVisibleRows();
+				for (int i = 0; i < rows.length; i++) {
+					saver.saveRow(RowUtils.buildSubrow(rows[i], model, true));
+				}
+			}
+			saver.flush();
+			saver.close();
+		} catch (IOException e) {
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error saving data", e);
+		} catch (RJException e) {
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error saving data", e);
+		}
+		
 	}
 	
 }

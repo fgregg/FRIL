@@ -69,13 +69,13 @@ public class ConfigLoaderThread extends StoppableThread {
 						} else {
 							//error
 							if (ConfigListener.this.phase.equals(ConfigurationPhase.loadingLeftSourcePhase)) {
-								appPanel.reportErrorLeftSource();
+								MainFrame.main.getSystemPanel().reportErrorLeftSource();
 							} else if (ConfigListener.this.phase.equals(ConfigurationPhase.loadingRightSourcePhase)) {
-								appPanel.reportErrorRightSource();
+								MainFrame.main.getSystemPanel().reportErrorRightSource();
 							} else if (ConfigListener.this.phase.equals(ConfigurationPhase.loadingJoinProcessPhase)) {
-								appPanel.reportErrorJoinSource();
+								MainFrame.main.getSystemPanel().reportErrorJoinSource();
 							} else if (ConfigListener.this.phase.equals(ConfigurationPhase.loadingResultSaversPhase)) {
-								appPanel.reportErrorResultSavers();
+								MainFrame.main.getSystemPanel().reportErrorResultSavers();
 							} else {
 								//phase unknown??
 							}
@@ -88,16 +88,25 @@ public class ConfigLoaderThread extends StoppableThread {
 				e.printStackTrace();
 			}
 		}
+		public void configurationModeDetermined(boolean deduplication) {
+			MainFrame.main.setDeduplicationMode(deduplication);
+		}
+		public void systemUpdated(ConfiguredSystem system) {
+			try {
+				MainFrame.main.setSystem(system);
+			} catch (RJException e) {
+				JXErrorDialog.showDialog(MainFrame.main, "Error reading configuration", e);
+			}
+			
+		}
 	}
 	
 	private ConfigLoadDialog dialog;
-	private SystemPanel appPanel;
 	private File f;
 	
 	private volatile boolean stopScheduled = false;
 	
-	public ConfigLoaderThread(File f, SystemPanel appPanel, ConfigLoadDialog dialog) {
-		this.appPanel = appPanel;
+	public ConfigLoaderThread(File f, ConfigLoadDialog dialog) {
 		this.f = f;
 		this.dialog = dialog;
 		setPriority(Thread.MIN_PRIORITY);
@@ -105,10 +114,9 @@ public class ConfigLoaderThread extends StoppableThread {
 	
 	public void run() {
 		try {
-			Configuration config = new Configuration(f.getAbsolutePath(), false, new ConfigListener());
-			ConfiguredSystem system = config.getSystem();
+			new Configuration(f.getAbsolutePath(), false, new ConfigListener());
+			//ConfiguredSystem system = config.getSystem();
 			if (!stopScheduled) {
-				appPanel.setSystem(system);
 				MainFrame.main.configurationReadDone();
 			}
 			Configuration.stopForced = false;

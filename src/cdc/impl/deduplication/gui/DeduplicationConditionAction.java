@@ -37,6 +37,8 @@ public class DeduplicationConditionAction extends WizardAction {
 	private TablePanel table;
 	private AbstractWizard activeWizard;
 	
+	private ConditionItem[] prevConditions;
+	
 	public DeduplicationConditionAction(AbstractDataSource source, DeduplicationConfig config) {
 		this.source = source;
 		this.config = config;
@@ -73,8 +75,15 @@ public class DeduplicationConditionAction extends WizardAction {
 			}
 		});
 		
-		for (int i = 0; i < config.getTestedColumns().length; i++) {
-			table.addRow(new Object[] {config.getTestedColumns()[i], config.getTestCondition()[i]});
+		if (prevConditions == null) {
+			for (int i = 0; i < config.getTestedColumns().length; i++) {
+				table.addRow(new Object[] {config.getTestedColumns()[i], config.getTestCondition()[i]});
+			}
+		} else {
+			//Already been here. Restoring what was changed before.
+			for (int i = 0; i < prevConditions.length; i++) {
+				table.addRow(new Object[] {prevConditions[i].getLeft(), prevConditions[i].getDistanceFunction()});
+			}
 		}
 		computeText();
 		
@@ -132,6 +141,7 @@ public class DeduplicationConditionAction extends WizardAction {
 	}
 
 	public boolean endStep(AbstractWizard wizard) {
+		prevConditions = getDeduplicationCondition();
 		return table.getRows().length != 0;
 	}
 

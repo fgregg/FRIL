@@ -69,7 +69,7 @@ public class CSVConfigurationPanel extends GUIVisibleComponent {
 	public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 		
 		Map creators = new HashMap();
-		creators.put(CSVDataSource.PARAM_INPUT_FILE, new FileChoosingPanelFieldCreator());
+		creators.put(CSVDataSource.PARAM_INPUT_FILE, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.OPEN));
 		creators.put(CSVDataSource.PARAM_DELIM, new SeparatorPanelFieldCreator(seps, labels, 2, 3));
 		
 		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, CSVDataSource.PARAM_INPUT_FILE, CSVDataSource.PARAM_DELIM};

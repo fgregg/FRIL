@@ -175,6 +175,10 @@ public class Configuration {
 			DocumentBuilder builder = DOMUtils.createDocumentBuilder(false, false);
 			Document doc = builder.parse(config);
 			Node baseNode = doc.getDocumentElement();
+			boolean dedupe = Boolean.parseBoolean(DOMUtils.getAttribute((Element)baseNode, "deduplication", "false"));
+			if (listener != null) {
+				listener.configurationModeDetermined(dedupe);
+			}
 			NodeList list = baseNode.getChildNodes();
 			for (int i = 0; i < list.getLength(); i++) {
 				Node child = list.item(i);
@@ -184,7 +188,16 @@ public class Configuration {
 				if (stopForced) {
 					break;
 				}
-				system = new ConfiguredSystem(sources[0], sources[1], join, saver);
+				
+				//This is to make the components appear on GUI panel as they are being configured
+				//This has to be like that due to some stupid dependencies between components
+				//I know this is really lame :)
+				if (!dedupe) {
+					system = new ConfiguredSystem(sources[0], sources[1], join, saver);
+				} else {
+					system = new ConfiguredSystem(sources[0]);
+				}
+				listener.systemUpdated(system);
 			}
 			//System.out.println("Configuration read done.");
 		} catch (SAXException e) {
@@ -404,6 +417,10 @@ public class Configuration {
 		Document doc = builder.newDocument();
 		Element mainElement = doc.createElement("configuration");
 		
+		if (system.isDeduplication()) {
+			DOMUtils.setAttribute(mainElement, "deduplication", "true");
+		}
+		
 		if (system.getSourceA() != null) {
 			Element leftSource = DOMUtils.createChildElement(doc, mainElement, LEFT_SOURCE_TAG);
 			DOMUtils.setAttribute(leftSource, CLASS_ATTR, system.getSourceA().getClass().getName());
@@ -434,7 +451,6 @@ public class Configuration {
 		}
 		
 		doc.appendChild(mainElement);
-		//.out.println(doc);
 		OutputFormat format = new OutputFormat();
 		format.setIndenting(true);
 		format.setLineWidth(300);

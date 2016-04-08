@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -116,6 +117,10 @@ public class BlockingJoin extends AbstractJoin {
 	private BlockingJoinThread[] threads;
 	private ArrayBlockingQueue result = new ArrayBlockingQueue(1000);
 	private CountDownLatch latch;
+	
+	private int readA;
+	private int readB;
+	private int linked;
 	
 	public BlockingJoin(AbstractDataSource sourceA, AbstractDataSource sourceB,
 			DataColumnDefinition[] outColumns, AbstractJoinCondition condition, Map params) throws RJException, IOException {
@@ -200,6 +205,8 @@ public class BlockingJoin extends AbstractJoin {
 				return null;
 			}
 			
+			updateSrcStats();
+			
 			if (isCancelled()) {
 				buckets.stopProcessing();
 			} else {
@@ -240,6 +247,7 @@ public class BlockingJoin extends AbstractJoin {
 				checkError();
 				updateProgress();
 				if (fromQueue != null) {
+					linked++;
 					return ((Wrapper)fromQueue).row;
 				} else {
 					for (int i = 0; i < threads.length; i++) {
@@ -255,6 +263,13 @@ public class BlockingJoin extends AbstractJoin {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+
+	private void updateSrcStats() {
+		for (int i = 0; i < hashers.length; i++) {
+			readA += hashers[i].getReadA();
+			readB += hashers[i].getReadB();
 		}
 	}
 
@@ -321,6 +336,9 @@ public class BlockingJoin extends AbstractJoin {
 		}
 		threads = null;
 		hashers = null;
+		readA = 0;
+		readB = 0;
+		linked = 0;
 	}
 
 	private void doOpen() {
@@ -381,4 +399,9 @@ public class BlockingJoin extends AbstractJoin {
 		}
 		return super.getConfigurationProgress();
 	}
+	
+	public LinkageSummary getLinkageSummary() {
+		return new LinkageSummary(readA, readB, linked);
+	}
+	
 }

@@ -1,4 +1,14 @@
-Version 1.0 patch4 (current)
+Version 1.0 patch5 (current):
+1. New feature: Save removed duplicates from data source into files
+2. New feature: Linkage/Deduplication mode
+3. New feature: Memory usage monitoring
+4. New feature: Save data from data view
+5. Viewer for minus files
+6. Warning when viewing the reuslts for the fisrt time
+7. Improved summary information after linkage/deduplication
+8. Improved "Show fields summary" window
+
+Version 1.0 patch4:
 1. Fixed bug in results deduplication (error when no linkage results were produced)
 2. Fixed labels in data source wizard
 3. Added "File->New" option

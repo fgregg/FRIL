@@ -351,7 +351,9 @@ public abstract class AbstractDataSource extends SystemComponent {
 	
 	public void close() throws IOException, RJException {
 		//The following is to break the circular reference
-		this.preprocessedDataSource = null;
+		if (this.preprocessedDataSource == this) {
+			this.preprocessedDataSource = null;
+		}
 		doClose();
 	}
 	

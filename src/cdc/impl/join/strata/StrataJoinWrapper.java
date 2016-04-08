@@ -39,6 +39,7 @@ package cdc.impl.join.strata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,9 +51,11 @@ import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.AtomicCondition;
 import cdc.components.JoinListener;
+import cdc.components.LinkageSummary;
 import cdc.configuration.Configuration;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.impl.join.common.DataSourceNotJoinedJoinListener;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -70,6 +73,8 @@ public class StrataJoinWrapper extends AbstractJoin {
 	
 	private boolean enabledLeft = false;
 	private boolean enabledRight = false;
+	
+	private int linked;
 	
 	public StrataJoinWrapper(DataStratum[] strata, AbstractJoin[] joins) throws IOException, RJException {
 		super(joins[0].getSourceA(), joins[0].getSourceB(), null, joins[0].getOutColumns(), null);
@@ -100,6 +105,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 		strata = new DataStratum[joins.length];
 		for (int i = 0; i < joins.length; i++) {
 			strata[i] = ((StrataJoinCondition)joins[i].getJoinCondition()).getStrata()[0];
+			joins[i].removeAllJoinListeners();
 			joins[i].setJoinCondition(((StrataJoinCondition)joins[i].getJoinCondition()).getJoinConditions()[0]);
 		}
 		set = new boolean[joins.length];
@@ -189,6 +195,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 				setFilter(activeJoin.get());
 			}
 		}
+		linked = 0;
 	}
 
 	public DataRow doJoinNext() throws IOException, RJException {
@@ -210,6 +217,9 @@ public class StrataJoinWrapper extends AbstractJoin {
 					setFilter(activeJoin.get());
 				}
 			}
+		}
+		if (next != null) {
+			linked++;
 		}
 		return next;
 	}
@@ -302,10 +312,12 @@ public class StrataJoinWrapper extends AbstractJoin {
 	public void enableSummaryForLeftSource(String filePrefix) throws RJException {
 		if (sameJoinConfigs) {
 			optimizedJoins[0].enableSummaryForLeftSource("");
+			addAllMinusListeners(optimizedJoins[0].getListeners(), optimizedJoins[0].getJoinCondition().getLeftJoinColumns()[0].getSourceName());
 		} else {
 			DataStratum[] strata = getStrata();
 			for (int i = 0; i < optimizedJoins.length; i++) {
 				optimizedJoins[i].enableSummaryForLeftSource("[" + strata[i].getName() + "]");
+				addAllMinusListeners(optimizedJoins[i].getListeners(), optimizedJoins[i].getJoinCondition().getLeftJoinColumns()[0].getSourceName());
 			}
 		}
 		enabledLeft = true;
@@ -314,17 +326,30 @@ public class StrataJoinWrapper extends AbstractJoin {
 	public void enableSummaryForRightSource(String filePrefix) throws RJException {
 		if (sameJoinConfigs) {
 			optimizedJoins[0].enableSummaryForRightSource("");
+			addAllMinusListeners(optimizedJoins[0].getListeners(), optimizedJoins[0].getJoinCondition().getRightJoinColumns()[0].getSourceName());
 		} else {
 			DataStratum[] strata = getStrata();
 			for (int i = 0; i < optimizedJoins.length; i++) {
 				optimizedJoins[i].enableSummaryForRightSource("[" + strata[i].getName() + "]");
+				addAllMinusListeners(optimizedJoins[i].getListeners(), optimizedJoins[i].getJoinCondition().getRightJoinColumns()[0].getSourceName());
 			}
 		}
 		enabledRight = true;
 	}
 	
 	
-	
+	private void addAllMinusListeners(List listeners, String sourceName) throws RJException {
+		for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
+			JoinListener listener = (JoinListener) iterator.next();
+			if (listener instanceof DataSourceNotJoinedJoinListener) {
+				DataSourceNotJoinedJoinListener nJL = (DataSourceNotJoinedJoinListener)listener;
+				if (nJL.getSource().getSourceName().equals(sourceName)) {
+					super.addJoinListener(nJL);
+				}
+			}
+		}
+	}
+
 	public static AbstractJoin fromXML(AbstractDataSource leftSource, AbstractDataSource rightSource, Element node) throws RJException {
 		boolean summaryLeft = Boolean.parseBoolean(DOMUtils.getAttribute(node, "summary-left"));
 		boolean summaryRight = Boolean.parseBoolean(DOMUtils.getAttribute(node, "summary-right"));
@@ -360,6 +385,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 	
 	public void addJoinListener(JoinListener listener) throws RJException {
 		synchronized (set) {
+			super.addJoinListener(listener);
 			synchronized (this) {
 				if (optimizedJoins != null) {
 					for (int i = 0; i < optimizedJoins.length; i++) {
@@ -372,6 +398,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 	
 	public void removeJoinListener(JoinListener listener) throws RJException {
 		synchronized (set) {
+			super.removeJoinListener(listener);
 			synchronized (this) {
 				if (optimizedJoins != null) {
 					for (int i = 0; i < optimizedJoins.length; i++) {
@@ -529,5 +556,9 @@ public class StrataJoinWrapper extends AbstractJoin {
 			}
 		}
 		return super.getProgress();
+	}
+	
+	public LinkageSummary getLinkageSummary() {
+		return new LinkageSummary(-1, -1, linked);
 	}
 }

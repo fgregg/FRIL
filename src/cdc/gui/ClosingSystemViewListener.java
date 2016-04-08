@@ -34,42 +34,8 @@
  * ***** END LICENSE BLOCK ***** */ 
 
 
-package cdc.gui.wizards.specific.actions;
+package cdc.gui;
 
-import java.awt.Dimension;
-
-import javax.swing.DefaultListModel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
-
-import cdc.datamodel.DataColumnDefinition;
-
-public class AvaialbleColumnsPanel extends JPanel {
-	
-	private DefaultListModel model = new DefaultListModel();
-	private JList list;
-	
-	public AvaialbleColumnsPanel(DataColumnDefinition[] columns) {
-		
-		for (int i = 0; i < columns.length; i++) {
-			model.addElement(columns[i]);
-		}
-		
-		list = new JList(model);
-		list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		JScrollPane scroll = new JScrollPane(list);
-		scroll.setPreferredSize(new Dimension(200, 200));
-		this.add(scroll);
-	}
-
-	public DataColumnDefinition[] getSelectedColumns() {
-		Object[] selected = list.getSelectedValues();
-		DataColumnDefinition[] out = new DataColumnDefinition[selected.length];
-		for (int i = 0; i < selected.length; i++) {
-			out[i] = (DataColumnDefinition)selected[i];
-		}
-		return out;
-	}
+public interface ClosingSystemViewListener {
+	public boolean closing();
 }

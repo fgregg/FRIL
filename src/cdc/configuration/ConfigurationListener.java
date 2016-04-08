@@ -37,5 +37,7 @@
 package cdc.configuration;
 
 public interface ConfigurationListener {
-		public void configurationEvent(Configuration configuration, ConfigurationPhase phase, int state);
+	public void configurationModeDetermined(boolean deduplication);
+	public void systemUpdated(ConfiguredSystem system);
+	public void configurationEvent(Configuration configuration, ConfigurationPhase phase, int state);
 }

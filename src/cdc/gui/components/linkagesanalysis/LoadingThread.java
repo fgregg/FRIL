@@ -8,4 +8,6 @@ public abstract class LoadingThread extends Thread {
 	public abstract void updateCursor();
 	public abstract void cancelReading();
 	
+	public abstract void saveToFile(String fileName, boolean all);
+	
 }

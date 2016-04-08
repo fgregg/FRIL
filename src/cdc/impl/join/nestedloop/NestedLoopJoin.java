@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -95,6 +96,10 @@ public class NestedLoopJoin extends AbstractJoin {
 	private ArrayBlockingQueue buffer = new ArrayBlockingQueue(Props.getInteger("intrathread-buffer"));
 	private boolean closed = false;
 
+	private int readA;
+	private int readB;
+	private int linked;
+	
 	private NLJConnector connector = new NLJConnector();
 	
 	public NestedLoopJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition outFormat[], AbstractJoinCondition cond, Map props) throws RJException {
@@ -116,8 +121,10 @@ public class NestedLoopJoin extends AbstractJoin {
 				DataRow row = (DataRow) buffer.poll(100, TimeUnit.MILLISECONDS);
 				calculateProgress();
 				if (row != null) {
+					linked++;
 					return row;
 				} else if (isCancelled()) {
+					updateSrcStats();
 					return null;
 				} else {
 					for (int i = 0; i < workers.length; i++) {
@@ -125,6 +132,7 @@ public class NestedLoopJoin extends AbstractJoin {
 							continue main;
 						}
 					}
+					updateSrcStats();
 					return null;
 				}
 			}
@@ -132,6 +140,13 @@ public class NestedLoopJoin extends AbstractJoin {
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	private void updateSrcStats() {
+		for (int i = 0; i < workers.length; i++) {
+			readA += workers[i].getReadA();
+		}
+		readB = workers[0].getReadB();
 	}
 
 	protected DataRow[] doJoinNext(int size) throws IOException, RJException {
@@ -176,6 +191,9 @@ public class NestedLoopJoin extends AbstractJoin {
 			}
 			workers = null;
 		}
+		readA = 0;
+		readB = 0;
+		linked = 0;
 		createWorkersIfNeeded();
 	}
 	
@@ -217,6 +235,10 @@ public class NestedLoopJoin extends AbstractJoin {
 	
 	public boolean isProgressSupported() {
 		return true;
+	}
+	
+	public LinkageSummary getLinkageSummary() {
+		return new LinkageSummary(readA, readB, linked);
 	}
 	
 }

@@ -1,4 +1,4 @@
-package cdc.gui.components.filtereditor;
+package cdc.gui.components.uicomponents;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;

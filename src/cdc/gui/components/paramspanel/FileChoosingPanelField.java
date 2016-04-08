@@ -86,9 +86,12 @@ public class FileChoosingPanelField extends ParamPanelField {
 	private JLabel error;
 	private JLabel paramName;
 	
-	public FileChoosingPanelField(JComponent parent, String param, String label, String defaultValue) {
+	private int type;
+	
+	public FileChoosingPanelField(JComponent parent, int type, String param, String label, String defaultValue) {
 		
 		this.userLabel = label;
+		this.type = type;
 		
 		panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		field = new JTextField(GuiUtils.EMPTY);
@@ -148,8 +151,8 @@ public class FileChoosingPanelField extends ParamPanelField {
 		JButton button = new JButton("...");
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser chooser = new JFileChooser(new File("."));				
-				int retVal = chooser.showOpenDialog(null);
+				JFileChooser chooser = new JFileChooser(new File("."));	
+				int retVal = (FileChoosingPanelField.this.type == FileChoosingPanelFieldCreator.OPEN ? chooser.showOpenDialog(null) : chooser.showSaveDialog(null));
 				if (retVal == JFileChooser.APPROVE_OPTION) {
 					field.setText(chooser.getSelectedFile().getAbsolutePath());
 				}

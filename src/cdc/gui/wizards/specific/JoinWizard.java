@@ -44,9 +44,9 @@ import cdc.components.AbstractJoin;
 import cdc.gui.Configs;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.gui.wizards.specific.actions.JoinChooseConditionsAction;
-import cdc.gui.wizards.specific.actions.JoinConfigurationAction;
-import cdc.gui.wizards.specific.actions.JoinStrataChooser;
+import cdc.gui.wizards.specific.actions.LinkageConfigureStrataAction;
+import cdc.gui.wizards.specific.actions.LinkageConfigureConditionsAction;
+import cdc.gui.wizards.specific.actions.LinkageConfigureSearchAction;
 
 public class JoinWizard {
 	
@@ -58,14 +58,14 @@ public class JoinWizard {
 	
 	private AbstractWizard wizard;
 	
-	private JoinConfigurationAction joinConfiguration;
-	private JoinChooseConditionsAction joinFieldsConfiguration;
-	private JoinStrataChooser joinStratificationConfiguration;
+	private LinkageConfigureSearchAction joinConfiguration;
+	private LinkageConfigureConditionsAction joinFieldsConfiguration;
+	private LinkageConfigureStrataAction joinStratificationConfiguration;
 	
 	public JoinWizard(JFrame parent, AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoin join, JComponent component) {
-		joinStratificationConfiguration = new JoinStrataChooser(sourceA, sourceB);
-		joinFieldsConfiguration = new JoinChooseConditionsAction(sourceA, sourceB, joinStratificationConfiguration);
-		joinConfiguration = new JoinConfigurationAction(sourceA, sourceB, joinStratificationConfiguration, joinFieldsConfiguration);
+		joinStratificationConfiguration = new LinkageConfigureStrataAction(sourceA, sourceB);
+		joinFieldsConfiguration = new LinkageConfigureConditionsAction(sourceA, sourceB, joinStratificationConfiguration);
+		joinConfiguration = new LinkageConfigureSearchAction(sourceA, sourceB, joinStratificationConfiguration, joinFieldsConfiguration);
 		if (join != null) {
 			joinStratificationConfiguration.setJoin(join);
 			joinFieldsConfiguration.setJoin(join);

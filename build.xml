@@ -70,6 +70,7 @@
         <copy todir="build">
             <fileset dir="run"/>
         </copy>
+        <chmod file="build/fril.sh*" perm="755" verbose="yes"/>
         <jar destfile="build/jars/join.jar" basedir="bin"/>
     </target>
 </project>

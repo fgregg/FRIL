@@ -53,6 +53,9 @@ public class HashingThread extends Thread {
 	private CountDownLatch latch;
 	private BucketManager manager;
 	
+	private int readA = 0;
+	private int readB = 0;
+	
 	private volatile RJException error;
 	
 	public HashingThread(AbstractJoin join, CountDownLatch latch, BucketManager manager) {
@@ -70,9 +73,11 @@ public class HashingThread extends Thread {
 			DataRow row;
 			while ((row = sourceA.getNextRow()) != null && !join.isCancelled()) {
 				manager.addToBucketLeftSource(row);
+				readA++;
 			}
 			while ((row = sourceB.getNextRow()) != null && !join.isCancelled()) {
 				manager.addToBucketRightSource(row);
+				readB++;
 			}
 		} catch (RJException e) {
 			error = e;
@@ -91,4 +96,13 @@ public class HashingThread extends Thread {
 	public RJException getError() {
 		return error;
 	}
+	
+	public int getReadA() {
+		return readA;
+	}
+	
+	public int getReadB() {
+		return readB;
+	}
+	
 }

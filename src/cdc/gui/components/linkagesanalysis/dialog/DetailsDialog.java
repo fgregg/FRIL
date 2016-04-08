@@ -4,13 +4,13 @@ import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Window;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.BorderFactory;
-import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -20,7 +20,7 @@ import javax.swing.table.TableModel;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 
-public class DetailsDialog extends JDialog {
+public class DetailsDialog extends AbstractDetailsDialog {
 	
 	private DataColumnDefinition[][] comparedCols;
 	private DataColumnDefinition[][] dataModel;
@@ -29,7 +29,7 @@ public class DetailsDialog extends JDialog {
 	private JTable left;
 	private JTable right;
 	
-	public DetailsDialog(JDialog parent, DataColumnDefinition[][] comparedColumns, DataColumnDefinition[][] dataModel) {
+	public DetailsDialog(Window parent, DataColumnDefinition[][] comparedColumns, DataColumnDefinition[][] dataModel) {
 		super(parent, "Linkage details");
 		setSize(500, 300);
 		this.comparedCols = comparedColumns;

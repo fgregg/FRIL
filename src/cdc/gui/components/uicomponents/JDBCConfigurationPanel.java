@@ -34,7 +34,7 @@
  * ***** END LICENSE BLOCK ***** */ 
 
 
-package cdc.gui.components.jdbc;
+package cdc.gui.components.uicomponents;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;

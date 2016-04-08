@@ -49,9 +49,11 @@ import cdc.components.AbstractResultsSaver;
 import cdc.datamodel.DataRow;
 import cdc.gui.components.progress.DedupeInfoPanel;
 import cdc.gui.external.JXErrorDialog;
+import cdc.impl.deduplication.DeduplicationDataSource;
 import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.Log;
 import cdc.utils.RJException;
+import cdc.utils.Utils;
 
 public class DeduplicationThread extends StoppableThread {
 	
@@ -63,11 +65,12 @@ public class DeduplicationThread extends StoppableThread {
 	private long t1;
 	private long t2;
 	private int n;
+	int nDup;
 	
-	public DeduplicationThread(AbstractDataSource source, String resultsFile, DedupeInfoPanel info) {
+	public DeduplicationThread(AbstractDataSource source, DedupeInfoPanel info) {
 		this.source = source;
 		this.info = info;
-		this.fileLocation = resultsFile;
+		this.fileLocation = source.getDeduplicationConfig().getDeduplicatedFileName();
 	}
 	
 	public void run() {
@@ -84,12 +87,15 @@ public class DeduplicationThread extends StoppableThread {
 				}
 			});
 			
+			new PollingThread(info, (DeduplicationDataSource)source.getPreprocessedDataSource()).start();
+			
 			System.gc();
 			
 			source = source.getPreprocessedDataSource();
 			
 			Map props = new HashMap();
 			props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+			props.put(CSVFileSaver.SAVE_CONFIDENCE, "false");
 			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileLocation);
 			AbstractResultsSaver saver = new CSVFileSaver(props);
 			
@@ -106,17 +112,16 @@ public class DeduplicationThread extends StoppableThread {
 			saver.flush();
 			saver.close();
 			
-			Log.log(getClass(), "Deduplication completed. Elapsed time: " + (t2 - t1) + "ms.", 1);
+			nDup = ((DeduplicationDataSource)source).getDuplicatesCount();
+			Log.log(getClass(), "Deduplication completed. Identified " + nDup + " duplicates. Elapsed time: " + (t2 - t1) + "ms.", 1);
 			closeProgress();
 			//animation.stopAnimation();
-			SwingUtilities.invokeLater(new Runnable() {
+			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					if (stopped) {
 						Log.log(getClass(), "Deduplication was cancelled", 1);
-						JOptionPane.showMessageDialog(MainFrame.main, "Deduplication was cancelled.\nTime: " + (t2-t1) + "ms");
-					} else {
-						JOptionPane.showMessageDialog(MainFrame.main, "Deduplication complete." + "\nProcess took " + (t2-t1) + "ms");
 					}
+					JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(MainFrame.main.getConfiguredSystem(), stopped, t2-t1, n));
 				}
 			});
 			
@@ -161,6 +166,38 @@ public class DeduplicationThread extends StoppableThread {
 	public void scheduleStop() {
 		this.stopped = true;
 		//this.interrupt();
+	}
+	
+	private class PollingThread extends Thread {
+		
+		private DedupeInfoPanel panel;
+		private DeduplicationDataSource source;
+		
+		public PollingThread(DedupeInfoPanel panel, DeduplicationDataSource system) {
+			this.panel = panel;
+			this.source = system;
+		}
+		
+		public void run() {
+			while (DeduplicationThread.this.info != null) {
+				try {
+					SwingUtilities.invokeAndWait(new Runnable() {
+						public void run() {
+							panel.getProgressBar().setValue(source.getProgress());
+							panel.setDuplicatesCount(source.getDuplicatesCount());
+						}
+					});
+					sleep(100);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				}
+			}
+			this.panel = null;
+			this.source = null;
+		}
+		
 	}
 	
 }

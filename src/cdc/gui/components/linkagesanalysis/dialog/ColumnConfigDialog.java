@@ -6,6 +6,7 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -14,7 +15,6 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -23,12 +23,8 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.Configs;
 import cdc.gui.components.table.TablePanel;
 
-public class ColumnConfigDialog extends JDialog {
+public class ColumnConfigDialog extends AbstractColumnConfigDialog {
 
-	public static final int RESULT_OK = 1;
-	public static final int RESULT_CANCEL = 2;
-	private static final Dimension PREFERRED_SIZE = new Dimension(100, 20);
-	
 	private int result = RESULT_CANCEL;
 	
 	private TablePanel comparedAttributes;
@@ -45,8 +41,8 @@ public class ColumnConfigDialog extends JDialog {
 	
 	private ColorConfig colors = ColorConfig.getDefault();
 	
-	public ColumnConfigDialog(JDialog parent, ColorConfig colors, DataColumnDefinition[][] comparedColumns, DataColumnDefinition[][] dataModel, DataColumnDefinition[][] usedModel) {
-		super(parent, "Preferences");
+	public ColumnConfigDialog(Window viewLinkagesDialog, ColorConfig colors, DataColumnDefinition[][] comparedColumns, DataColumnDefinition[][] dataModel, DataColumnDefinition[][] usedModel) {
+		super(viewLinkagesDialog, "Preferences");
 		setModal(true);
 		setSize(600, 500);
 		this.colors = colors;

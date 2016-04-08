@@ -42,7 +42,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import cdc.components.AbstractJoin;
@@ -129,12 +131,20 @@ public class RowUtils {
 		return 0;
 	}
 
-	public static DataRow buildSubrow(DataRow row, DataColumnDefinition[] activeAttrJoin) {
-		DataCell[] cells = new DataCell[activeAttrJoin.length];
+	public static DataRow buildSubrow(DataRow row, DataColumnDefinition[] model) {
+		return buildSubrow(row, model, false);
+	}
+	
+	public static DataRow buildSubrow(DataRow row, DataColumnDefinition[] model, boolean copyParams) {
+		DataCell[] cells = new DataCell[model.length];
 		for (int i = 0; i < cells.length; i++) {
-			cells[i] = row.getData(activeAttrJoin[i]);
+			cells[i] = row.getData(model[i]);
 		}
-		return new DataRow(activeAttrJoin, cells, row.getSourceName());
+		DataRow newR = new DataRow(model, cells, row.getSourceName());
+		if (copyParams) {
+			newR.setProperies(row.getProperties());
+		}
+		return newR;
 	}
 
 	public static void fixConverter(AbstractColumnConverter conv, JDataSource model, int convId) {
@@ -224,6 +234,19 @@ public class RowUtils {
 		} catch (EOFException e) {
 			return null;
 		}
+	}
+
+	
+	public static DataColumnDefinition[] getModelForSave(DataColumnDefinition[][] usedModel) {
+		List l = new ArrayList();
+		for (int i = 0; i < usedModel[0].length; i++) {
+			for (int j = 0; j < usedModel.length; j++) {
+				if (usedModel[j][i] != null) {
+					l.add(usedModel[j][i]);
+				}
+			}
+		}
+		return (DataColumnDefinition[]) l.toArray(new DataColumnDefinition[] {});
 	}
 
 }

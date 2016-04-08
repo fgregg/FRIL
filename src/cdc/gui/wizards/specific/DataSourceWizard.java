@@ -45,9 +45,9 @@ import cdc.components.Filter;
 import cdc.gui.Configs;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.gui.wizards.specific.actions.ChooseSourceAction;
-import cdc.gui.wizards.specific.actions.ChooseSourceFieldsAction;
-import cdc.gui.wizards.specific.actions.DataSourcePreprocessing;
+import cdc.gui.wizards.specific.actions.DSConfigureTypeAction;
+import cdc.gui.wizards.specific.actions.DSConfigureAttrsAction;
+import cdc.gui.wizards.specific.actions.DSConfigurePreprocessingAction;
 import cdc.impl.deduplication.DeduplicationConfig;
 
 public class DataSourceWizard {
@@ -60,15 +60,19 @@ public class DataSourceWizard {
 	
 	private AbstractWizard wizard;
 	
-	private ChooseSourceAction sourceAction;
-	private ChooseSourceFieldsAction sourceFieldsAction;
-	private DataSourcePreprocessing sourceDeduplication;
+	private DSConfigureTypeAction sourceAction;
+	private DSConfigureAttrsAction sourceFieldsAction;
+	private DSConfigurePreprocessingAction sourceDeduplication;
 	
 	public DataSourceWizard(int id, Window parent, AbstractDataSource source, JComponent component, String defaultName) {
+		this(id, parent, source, component, defaultName, true);
+	}
+	
+	public DataSourceWizard(int id, Window parent, AbstractDataSource source, JComponent component, String defaultName, boolean showDedupeOption) {
 		
-		sourceAction = new ChooseSourceAction(defaultName);
-		sourceFieldsAction = new ChooseSourceFieldsAction(id, sourceAction);
-		sourceDeduplication = new DataSourcePreprocessing(sourceAction, source);
+		sourceAction = new DSConfigureTypeAction(defaultName);
+		sourceFieldsAction = new DSConfigureAttrsAction(id, sourceAction, showDedupeOption);
+		sourceDeduplication = new DSConfigurePreprocessingAction(sourceAction, source, showDedupeOption);
 		sourceAction.setDataSource(source);
 		
 		WizardAction[] actions = new WizardAction[] {

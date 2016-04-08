@@ -40,8 +40,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -51,9 +53,11 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.Popup;
 import javax.swing.PopupFactory;
+import javax.swing.Timer;
 
 import cdc.components.AbstractDataSource;
 import cdc.datamodel.DataCell;
@@ -71,60 +75,73 @@ public class SummaryThread extends StoppableThread {
 	private static final String LABEL_TYPE_STRINGS = "String";
 	private static final String LABEL_TYPE_VARIOUS = "Varies";
 
-	private class MouseListenerImpl implements MouseListener {
+	private class MouseListenerImpl extends MouseAdapter {
 		
-//		private Timer timer = new Timer(100, new ActionListener() {
-//			public void actionPerformed(ActionEvent arg0) {
-//				if (popup != null) {
-//					popup.hide();
-//					popup = null;
-//				}
-//				timer.stop();
-//			}
-//		});
+		private class ExitDisabler extends MouseAdapter {
+			public void mouseEntered(MouseEvent e) {
+				if (timer != null) {
+					timer.stop();
+				}
+			}
+			public void mouseExited(MouseEvent e) {
+				newKillerTimer();
+			}
+		}
 		
-		private Popup popup;
 		private int id;
+		private Timer timer;
+		private Popup popup;
 		
 		public MouseListenerImpl(int id) {
 			this.id = id;
 		}
 		
-		public void mouseClicked(MouseEvent e) {}
 		public void mouseEntered(MouseEvent e) {
+			if (timer != null) {
+				timer.stop();
+			}
+			if (popup != null) {
+				popup.hide();
+			}
 			JScrollPane scroll = new JScrollPane(lists[id-1]);
 			scroll.setPreferredSize(new Dimension(150, 150));
-			JPanel tooltip = new JPanel(new BorderLayout());
+			JRootPane tooltip = new JRootPane();
+			tooltip.setLayout(new BorderLayout());
 			tooltip.setBackground(Color.white);
 			tooltip.setBorder(BorderFactory.createLineBorder(Color.black));
 			tooltip.add(new JLabel("Attribute: " + columns[id-1].getColumnName()), BorderLayout.NORTH);
 			tooltip.add(Box.createRigidArea(new Dimension(10, 10)), BorderLayout.CENTER);
 			tooltip.add(scroll, BorderLayout.SOUTH);
-//			tooltip.addMouseListener(new MouseListener() {
-//				public void mouseClicked(MouseEvent e) {}
-//				public void mouseEntered(MouseEvent e) {
-//					timer.stop();
-//				}
-//				public void mouseExited(MouseEvent e) {
-//					timer.start();
-//				}
-//				public void mousePressed(MouseEvent e) {}
-//				public void mouseReleased(MouseEvent e) {}
-//			});
+			
+			tooltip.addMouseListener(new ExitDisabler());
+			lists[id-1].addMouseListener(new ExitDisabler());
+			scroll.getVerticalScrollBar().addMouseListener(new ExitDisabler());
+
+			
 			JComponent src = (JComponent) e.getSource();
 			popup = PopupFactory.getSharedInstance().getPopup(e.getComponent(), tooltip, 
 					(int)src.getLocationOnScreen().getX() + src.getWidth(), (int)src.getLocationOnScreen().getY());
 			popup.show();
 		}
+		
 		public void mouseExited(MouseEvent e) {
-			if (popup != null) {
-				popup.hide();
-				popup = null;
-			}
-//		}
+			newKillerTimer();
 		}
-		public void mousePressed(MouseEvent e) {}
-		public void mouseReleased(MouseEvent e) {}
+
+		private void newKillerTimer() {
+			if (timer != null) {
+				timer.stop();
+			}
+			timer = new Timer(100, new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (popup != null) {
+						popup.hide();
+						popup = null;
+					}
+					timer.stop();
+				}});
+			timer.start();
+		}
 			
 	}
 	
@@ -290,7 +307,7 @@ public class SummaryThread extends StoppableThread {
 					percNonEmpty[i+1].setText(String.valueOf((100000 - Math.round(notnulls[i+1]/(double)rows * 100000)) / (double)1000));
 				}
 			}
-			status.setText("Full analysis done.");
+			status.setText("Analysis done. Source size: " + rows + " rows.");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JXErrorDialog.showDialog(this.window, "Error", e);

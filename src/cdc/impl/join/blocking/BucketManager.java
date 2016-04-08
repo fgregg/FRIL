@@ -167,7 +167,7 @@ public class BucketManager {
 				thread = null;
 				return;
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				Log.log(getClass(), "Thread was interrupted.", 2);
 			} catch (IOException e) {
 				error = true;
 				synchronized(BucketManager.this) {

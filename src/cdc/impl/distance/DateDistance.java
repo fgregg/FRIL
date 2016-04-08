@@ -69,6 +69,7 @@ import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.validation.Validator;
+import cdc.impl.MainApp;
 import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.impl.distance.parampanel.DateFormatPanelField;
 import cdc.impl.distance.parampanel.DateFormatPanelFieldCreator;
@@ -107,7 +108,7 @@ public class DateDistance extends AbstractDistance {
 				}
 				public void run() {
 					//System.out.println("Started...");
-					ConfiguredSystem system = MainFrame.main.getJoin();
+					ConfiguredSystem system = MainFrame.main.getConfiguredSystem();
 					AbstractDataSource source = null;
 					if (system.getSourceA().getSourceName().equals(column.getSourceName())) {
 						source = system.getSourceA();
@@ -447,15 +448,22 @@ public class DateDistance extends AbstractDistance {
 		return new DateGUIVisibleComponent();
 	}
 	
+	public CompareFunctionInterface getCompareFunction() {
+		return new DateComparator(f1, f2);
+	}
+	
 	public CompareFunctionInterface getCompareFunction(DataColumnDefinition colA, DataColumnDefinition colB) {
 		String form1 = null;
 		String form2 = null;
-		if (colA.getSourceName().equals(ConfiguredSystem.getActiveSystem().getSourceA().getSourceName())) {
+		
+		//if (colA.getSourceName().equals(MainApp.main.getConfigured))
+		
+		if (colA.getSourceName().equals(MainApp.main.getConfiguredSystem().getSourceA().getSourceName())) {
 			form1 = f1;
 		} else {
 			form1 = f2;
 		}
-		if (colB.getSourceName().equals(ConfiguredSystem.getActiveSystem().getSourceB().getSourceName())) {
+		if (colB.getSourceName().equals(MainApp.main.getConfiguredSystem().getSourceB().getSourceName())) {
 			form2 = f2;
 		} else {
 			form2 = f1;

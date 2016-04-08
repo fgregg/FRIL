@@ -41,7 +41,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import cdc.components.AbstractDataSource;
+import cdc.components.AbstractJoin;
+import cdc.components.AbstractResultsSaver;
+import cdc.configuration.ConfiguredSystem;
 import cdc.gui.MainFrame;
+import cdc.impl.deduplication.DeduplicationDataSource;
+import cdc.impl.join.strata.StrataJoinWrapper;
+import cdc.impl.resultsavers.DeduplicatingResultsSaver;
 
 public class Utils {
 
@@ -83,4 +90,75 @@ public class Utils {
 		return fout;
 	}
 
+	public static String getSummaryMessage(ConfiguredSystem system, boolean cancelled, long elapsedTime, int nn) {
+		if (system.isDeduplication()) {
+			return prepareDeduplicationMessage(system, cancelled, elapsedTime, nn);
+		} else {
+			return prepareLinkageMessage(system, cancelled, elapsedTime, nn);
+		}
+	}
+
+	private static String prepareLinkageMessage(ConfiguredSystem system, boolean cancelled, long elapsedTime, int nn) {
+		String msg = cancelled ? "Linkage cancelled by user.\n\n" : "Linkage successfully completed :)\n\n";
+		
+		if (!(system.getJoin() instanceof StrataJoinWrapper)) {
+			msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcA(), system.getSourceA());
+			msg += "\n\n";
+			msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcB(), system.getSourceB());
+			msg += "\n\n";
+		}
+		msg += getLinkageSummary(system.getJoin(), system.getResultSaver());
+		msg += "\n\n";
+		msg += (cancelled ? "The linkage process interrupted after " : "Overall the linkage process took ") + elapsedTime + "ms.";
+		
+		return msg;
+	}
+
+	private static String getLinkageSummary(AbstractJoin join, AbstractResultsSaver resultSaver) {
+		String msg = "";
+		if (resultSaver instanceof DeduplicatingResultsSaver) {
+			DeduplicatingResultsSaver dedupe = (DeduplicatingResultsSaver)resultSaver;
+			msg += "Linkage process initially identified " + join.getLinkageSummary().getCntLinked() + " linkages.";
+			msg += "\nThe results deduplication identified " + dedupe.getDuplicatesCnt() + " duplicates.";
+			msg += "\n" + dedupe.getSavedCnt() + " final linkages were saved.";
+		} else {
+			msg += "Linkage process identified " + join.getLinkageSummary().getCntLinked() + " linkages.";
+		}
+		if (join.isSummaryForLeftSourceEnabled() && join.isSummaryForRightSourceEnabled()) {
+			msg += "\nSummary information for not joined data for both \nsources was generated.";
+		} else if (join.isSummaryForLeftSourceEnabled()) {
+			msg += "\nSummary information for not joined data for source \n" + join.getSourceA().getSourceName() + " was generated.";
+		} else if (join.isSummaryForRightSourceEnabled()) {
+			msg += "\nSummary information for not joined data for source \n" + join.getSourceB().getSourceName() + " was generated.";
+		} else {
+			msg += "\nNo summary information for not joined data was generated.";
+		}
+		return msg;
+	}
+
+	private static String getSourceSummary(int srcRecordsCnt, AbstractDataSource src) {
+		if (!(src.getPreprocessedDataSource() instanceof DeduplicationDataSource)) {
+			return "Source " + src.getSourceName() + " provided " + srcRecordsCnt + " records.\nNo deduplication of data source was performed.";
+		} else {
+			DeduplicationDataSource dedupe = (DeduplicationDataSource)src.getPreprocessedDataSource();
+			String msg = "Source " + src.getSourceName() + " provided " + dedupe.getInputRecordsCount() + " records.\n" + 
+					"The deduplication process identified " + dedupe.getDuplicatesCount() + " duplicates";
+			if (src.getDeduplicationConfig().getMinusFile() != null) {
+				msg += "\nThe report containing duplicates was saved into file.";
+			}
+			return msg;
+		}
+	}
+
+	private static String prepareDeduplicationMessage(ConfiguredSystem system, boolean cancelled, long elapsedTime, int nn) {
+		AbstractDataSource src = system.getSourceA();
+		
+		String msg = cancelled ? "Deduplication cancelled by user.\n\n" : "Deduplication successfully completed :)\n\n";
+		msg += getSourceSummary(-1, src);
+		msg += "\n\n";
+		msg += (cancelled ? "The deduplication process interrupted after " : "Overall the deduplication process took ") + elapsedTime + "ms.";
+		
+		return msg;
+	}
+	
 }

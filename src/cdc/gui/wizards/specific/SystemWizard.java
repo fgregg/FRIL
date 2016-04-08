@@ -44,12 +44,12 @@ import cdc.configuration.ConfiguredSystem;
 import cdc.gui.Configs;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.gui.wizards.specific.actions.ChooseResultSaversAction;
-import cdc.gui.wizards.specific.actions.ChooseSourceAction;
-import cdc.gui.wizards.specific.actions.ChooseSourceFieldsAction;
-import cdc.gui.wizards.specific.actions.JoinChooseConditionsAction;
-import cdc.gui.wizards.specific.actions.JoinConfigurationAction;
-import cdc.gui.wizards.specific.actions.JoinStrataChooser;
+import cdc.gui.wizards.specific.actions.ResultsConfigureSaversAction;
+import cdc.gui.wizards.specific.actions.DSConfigureTypeAction;
+import cdc.gui.wizards.specific.actions.DSConfigureAttrsAction;
+import cdc.gui.wizards.specific.actions.LinkageConfigureConditionsAction;
+import cdc.gui.wizards.specific.actions.LinkageConfigureSearchAction;
+import cdc.gui.wizards.specific.actions.LinkageConfigureStrataAction;
 
 public class SystemWizard {
 	
@@ -65,25 +65,25 @@ public class SystemWizard {
 	
 	private AbstractWizard wizard;
 	
-	private ChooseSourceAction leftSourceAction;
-	private ChooseSourceFieldsAction leftSourceFieldsAction;
-	private ChooseSourceAction rightSourceAction;
-	private ChooseSourceFieldsAction rightSourceFieldsAction;
-	private JoinConfigurationAction joinConfiguration;
-	private JoinChooseConditionsAction joinFieldsConfiguration;
-	private ChooseResultSaversAction resultSaversActions;
-	private JoinStrataChooser joinStratificationConfiguration;
+	private DSConfigureTypeAction leftSourceAction;
+	private DSConfigureAttrsAction leftSourceFieldsAction;
+	private DSConfigureTypeAction rightSourceAction;
+	private DSConfigureAttrsAction rightSourceFieldsAction;
+	private LinkageConfigureSearchAction joinConfiguration;
+	private LinkageConfigureConditionsAction joinFieldsConfiguration;
+	private ResultsConfigureSaversAction resultSaversActions;
+	private LinkageConfigureStrataAction joinStratificationConfiguration;
 	
 	public SystemWizard(JFrame parent) {
 		
-		leftSourceAction = new ChooseSourceAction("sourceA");
-		leftSourceFieldsAction = new ChooseSourceFieldsAction(-1, leftSourceAction);
-		rightSourceAction = new ChooseSourceAction("sourceB");
-		rightSourceFieldsAction = new ChooseSourceFieldsAction(-1, rightSourceAction);
-		joinStratificationConfiguration = new JoinStrataChooser(leftSourceAction, rightSourceAction);
-		joinFieldsConfiguration = new JoinChooseConditionsAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration);
-		joinConfiguration = new JoinConfigurationAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration, joinFieldsConfiguration);
-		resultSaversActions = new ChooseResultSaversAction();
+		leftSourceAction = new DSConfigureTypeAction("sourceA");
+		leftSourceFieldsAction = new DSConfigureAttrsAction(-1, leftSourceAction);
+		rightSourceAction = new DSConfigureTypeAction("sourceB");
+		rightSourceFieldsAction = new DSConfigureAttrsAction(-1, rightSourceAction);
+		joinStratificationConfiguration = new LinkageConfigureStrataAction(leftSourceAction, rightSourceAction);
+		joinFieldsConfiguration = new LinkageConfigureConditionsAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration);
+		joinConfiguration = new LinkageConfigureSearchAction(leftSourceAction, rightSourceAction, joinStratificationConfiguration, joinFieldsConfiguration);
+		resultSaversActions = new ResultsConfigureSaversAction();
 		
 		WizardAction[] actions = new WizardAction[] {
 				leftSourceAction,

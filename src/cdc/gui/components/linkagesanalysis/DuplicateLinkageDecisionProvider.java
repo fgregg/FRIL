@@ -8,6 +8,7 @@ import java.util.List;
 import javax.swing.JDialog;
 
 import cdc.components.AbstractDataSource;
+import cdc.components.AbstractDistance;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.Filter;
@@ -16,6 +17,7 @@ import cdc.datamodel.DataRow;
 import cdc.datamodel.PropertyBasedColumn;
 import cdc.gui.MainFrame;
 import cdc.gui.components.linkagesanalysis.dialog.DecisionListener;
+import cdc.gui.components.linkagesanalysis.dialog.LinkagesWindowPanel;
 import cdc.gui.components.linkagesanalysis.dialog.ViewLinkagesDialog;
 import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.RJException;
@@ -27,6 +29,8 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 	private DataColumnDefinition stratum;
 	private DataColumnDefinition[][] comparedColumns;
 	
+	private AbstractDistance[] distances;
+	
 	private ViewLinkagesDialog dialog;
 	private List internalData = new ArrayList();
 	
@@ -34,7 +38,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 	
 	public DuplicateLinkageDecisionProvider(DecisionListener decisionListener) {
 		
-		AbstractJoin join = MainFrame.main.getJoin().getJoin();
+		AbstractJoin join = MainFrame.main.getConfiguredSystem().getJoin();
 		dataModel = readModel(join.getOutColumns(), join.getJoinCondition());
 		
 		AbstractJoinCondition cond = join.getJoinCondition();
@@ -52,10 +56,12 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 			stratum = new PropertyBasedColumn(StrataJoinWrapper.PROPERTY_STRATUM_NAME, "src", "Stratum name");
 		}
 		
-		dialog = new ViewLinkagesDialog(dataModel, true, confidence, stratum, comparedColumns, this, true);
+		distances = matchDistances(join.getJoinCondition().getDistanceFunctions(), new DataColumnDefinition[][] {join.getJoinCondition().getLeftJoinColumns(), join.getJoinCondition().getRightJoinColumns()}, comparedColumns);
+		
+		dialog = new ViewLinkagesDialog(dataModel, true, confidence, stratum, comparedColumns, distances, this, true);
 		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-		dialog.addDecisionListener(decisionListener);
-		dialog.addDecisionListener(new DecisionListener() {
+		dialog.getLinkageWindowPanel().addDecisionListener(decisionListener);
+		dialog.getLinkageWindowPanel().addDecisionListener(new DecisionListener() {
 			public void linkageAccepted(DataRow linkage) {
 				activeThread.removeLinkage(linkage);
 			}
@@ -63,11 +69,25 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 				activeThread.removeLinkage(linkage);
 			}
 		});
+		dialog.setTitle("Linkage decision");
 		new Thread() {
 		 public void run() {
 			 dialog.setVisible(true);
 		 }
 		}.start();
+	}
+	
+	private AbstractDistance[] matchDistances(AbstractDistance[] oldDst, DataColumnDefinition[][] oldCols, DataColumnDefinition[][] compared) {
+		List dsts = new ArrayList();
+		for (int i = 0; i < compared[0].length; i++) {
+			for (int j = 0; j < oldCols[0].length; j++) {
+				if (compared[0][i].equals(oldCols[0][j]) && compared[1][i].equals(oldCols[1][j])) {
+					dsts.add(oldDst[j]);
+					break;
+				}
+			}
+		}
+		return (AbstractDistance[]) dsts.toArray(new AbstractDistance[] {});
 	}
 
 	private DataColumnDefinition[][] removeNotAvailableColumns(DataColumnDefinition[][] compared, DataColumnDefinition[][] model) {
@@ -105,7 +125,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 		return new DataColumnDefinition[][] {(DataColumnDefinition[])l1.toArray(new DataColumnDefinition[] {}), (DataColumnDefinition[])l2.toArray(new DataColumnDefinition[] {})};
 	}
 	
-	public LoadingThread createNewThread(ThreadCreatorInterface provider, ViewLinkagesDialog parent, Filter filter, DataColumnDefinition[] sort, int[] order) {
+	public LoadingThread createNewThread(ThreadCreatorInterface provider, LinkagesWindowPanel parent, Filter filter, DataColumnDefinition[] sort, int[] order) {
 		return activeThread = new DuplicateLinkageLoadingThread(internalData, provider, parent, filter, sort, order);
 	}
 

@@ -49,6 +49,7 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.EvaluatedCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.impl.datasource.wrappers.ExternallySortingDataSource;
@@ -56,7 +57,7 @@ import cdc.utils.Log;
 import cdc.utils.RJException;
 import cdc.utils.RowUtils;
 
-public class SNMJoin extends AbstractJoin {
+public class SNMJoin_OLD extends AbstractJoin {
 
 	private static final int DEFAULT_WINDOW_SIZE = 8;
 	public static final String PARAM_WINDOW_SIZE = "window";
@@ -95,7 +96,7 @@ public class SNMJoin extends AbstractJoin {
 
 	private ActivePair pair = null;
 
-	public SNMJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition outFormat[], AbstractJoinCondition condition, Map params) throws IOException, RJException {
+	public SNMJoin_OLD(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition outFormat[], AbstractJoinCondition condition, Map params) throws IOException, RJException {
 		super(fixSource(sourceA, condition.getLeftJoinColumns()), 
 				fixSource(sourceB, condition.getRightJoinColumns()), condition, outFormat, params);
 		nextA = getSourceA().getNextRow();
@@ -107,7 +108,7 @@ public class SNMJoin extends AbstractJoin {
 		Log.log(getClass(), "SNM join created, window size = " + window, 1);
 	}
 	
-	public SNMJoin(AbstractDataSource sourceA, 
+	public SNMJoin_OLD(AbstractDataSource sourceA, 
 			AbstractDataSource sourceB, 
 			DataColumnDefinition outFormat[], 
 			AbstractJoinCondition condition, int windowSize) throws IOException, RJException {
@@ -356,5 +357,10 @@ public class SNMJoin extends AbstractJoin {
 	protected void finalize() throws Throwable {
 		System.out.println(getClass() + " finalize");
 		close();
+	}
+	
+	public LinkageSummary getLinkageSummary() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -11,11 +11,13 @@ import java.awt.event.ActionListener;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.Filter;
-import cdc.gui.components.filtereditor.FilterExpressionEditor;
+import cdc.gui.components.uicomponents.FileLocationPanel;
+import cdc.gui.components.uicomponents.FilterExpressionEditor;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
@@ -23,68 +25,68 @@ import cdc.impl.deduplication.DeduplicationConfig;
 import cdc.impl.deduplication.gui.DeduplicationWizard;
 import cdc.utils.RJException;
 
-public class DataSourcePreprocessing extends WizardAction {
+public class DSConfigurePreprocessingAction extends WizardAction {
 	
-	private ChooseSourceAction sourceAction;
+	private DSConfigureTypeAction sourceAction;
 	private JButton button;
 	private DeduplicationConfig config;
 	private Filter filterExpression = null;
 	private AbstractWizard activeWizard;
 	private JCheckBox dedupOn;
 	private AbstractDataSource originalDataSource;
-	private boolean enabled = true;
+	private boolean showDedupe = true;
+	
+	//private JLabel duplicatesFileLabel;
+	
+	//private JButton chooseFileButton;
+	private JCheckBox saveDuplicates;
+	//private JTextField duplicatesFile;
 	
 	private JCheckBox filterOn;
 	private FilterExpressionEditor expressionEditor;
+	private FileLocationPanel filePanel;
 	
-	public DataSourcePreprocessing(ChooseSourceAction sourceAction, AbstractDataSource originalDataSource) {
+	public DSConfigurePreprocessingAction(DSConfigureTypeAction sourceAction, AbstractDataSource originalDataSource) {
 		this.sourceAction = sourceAction;
 		this.originalDataSource = originalDataSource;
 	}
 
-	public DataSourcePreprocessing(ChooseSourceAction sourceAction, AbstractDataSource originalDataSource, boolean enabled) {
+	public DSConfigurePreprocessingAction(DSConfigureTypeAction sourceAction, AbstractDataSource originalDataSource, boolean enabled) {
 		this.sourceAction = sourceAction;
 		this.originalDataSource = originalDataSource;
-		this.enabled = enabled;
+		this.showDedupe = enabled;
 	}
 	
 	public JPanel beginStep(AbstractWizard wizard) {
 		this.activeWizard = wizard;
-		JPanel dedupePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel dedupePanel = new JPanel(new GridBagLayout());
 		dedupePanel.setBorder(BorderFactory.createTitledBorder("Data source deduplication"));
+		
 		dedupOn = new JCheckBox("Perform de-duplication for the data source");
+		saveDuplicates = new JCheckBox("Save duplicates into file");
+		filePanel = new FileLocationPanel("Duplicates file:", "duplicates.csv", 20, FileLocationPanel.SAVE);
 		button = new JButton("Preferences");
+		JPanel dedupeEnable = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		button.setPreferredSize(new Dimension(button.getPreferredSize().width, 20));
-		if (!enabled) {
+		dedupeEnable.add(dedupOn);
+		dedupeEnable.add(button);
+		dedupePanel.add(dedupeEnable, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		
+		saveDuplicates.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				enableMinusFileOption();
+			}
+		});
+		dedupePanel.add(saveDuplicates, new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		
+		
+		dedupePanel.add(filePanel, new GridBagConstraints(0, 2, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,10,0,0), 0, 0));
+		
+		if (!showDedupe) {
 			dedupOn.setEnabled(false);
 			dedupOn.setSelected(true);
-			config = new DeduplicationConfig(sourceAction.getDataSource());
-		} else {
-			if (originalDataSource != null && originalDataSource.getDeduplicationConfig() != null) {
-				config = originalDataSource.getDeduplicationConfig();
-				config.fixIfNeeded(sourceAction.getDataSource());
-				dedupOn.setSelected(true);
-				button.setEnabled(true);
-			} else {
-				config = new DeduplicationConfig(sourceAction.getDataSource());
-				dedupOn.setSelected(false);
-				button.setEnabled(false);
-			}
+			button.setVisible(false);
 		}
-		dedupOn.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				button.setEnabled(((JCheckBox)e.getSource()).isSelected());
-			}
-		});
-		button.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				AbstractDataSource source = sourceAction.getDataSource();
-				DeduplicationWizard wizard = new DeduplicationWizard(source, activeWizard);
-				config = wizard.getDeduplicationConfig(config);
-			}
-		});
-		dedupePanel.add(dedupOn);
-		dedupePanel.add(button);
 		
 		JPanel filterPanel = new JPanel(new GridBagLayout());
 		filterPanel.setBorder(BorderFactory.createTitledBorder("Data source filtering"));
@@ -95,6 +97,42 @@ public class DataSourcePreprocessing extends WizardAction {
 			}
 		});
 		
+//		if (!showDedupe) {
+//			enableDuplicatesComponents(true);
+//			dedupOn.setEnabled(false);
+//			dedupOn.setSelected(true);
+//			config = new DeduplicationConfig(sourceAction.getDataSource());
+//		} else {
+//			dedupOn.setEnabled(true);
+			if (originalDataSource != null && originalDataSource.getDeduplicationConfig() != null) {
+				config = originalDataSource.getDeduplicationConfig();
+				config.fixIfNeeded(sourceAction.getDataSource());
+				if (config.getMinusFile() != null) {
+					saveDuplicates.setSelected(true);
+					filePanel.setFileName(config.getMinusFile());
+				}
+				enableDuplicatesComponents(true);
+				dedupOn.setSelected(true);
+				button.setEnabled(true);
+			} else {
+				config = new DeduplicationConfig(sourceAction.getDataSource());
+				enableDuplicatesComponents(dedupOn.isSelected());
+			}
+//		}
+		dedupOn.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				enableDuplicatesComponents(((JCheckBox)e.getSource()).isSelected());
+			}
+		});
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				AbstractDataSource source = sourceAction.getDataSource();
+				DeduplicationWizard wizard = new DeduplicationWizard(source, config, activeWizard, button);
+				if (wizard.getResult() == AbstractWizard.RESULT_OK) {
+					config = wizard.getDeduplicationConfig();
+				}
+			}
+		});
 		
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
@@ -133,11 +171,32 @@ public class DataSourcePreprocessing extends WizardAction {
 		return main;
 	}
 
+	private void enableDuplicatesComponents(boolean enabled) {
+		button.setEnabled(enabled);
+		saveDuplicates.setEnabled(enabled);
+		enableMinusFileOption();
+	}
+
+	private void enableMinusFileOption() {
+		filePanel.setEnabled(saveDuplicates.isSelected());
+	}
+
 	public void dispose() {
 		this.sourceAction = null;
 	}
 
 	public boolean endStep(AbstractWizard wizard) {
+		
+		if (saveDuplicates.isSelected() && !correct(filePanel.getFileName())) {
+			filePanel.setError(true);
+			JOptionPane.showMessageDialog(activeWizard, "Duplicates file name cannot be empty.");
+			return false;
+		} else if (saveDuplicates.isSelected()){
+			config.setMinusFile(filePanel.getFileName().isEmpty() ? null : filePanel.getFileName());
+		} else {
+			config.setMinusFile(null);
+		}
+		
 		try {
 			if (filterOn.isSelected()) {
 				this.filterExpression = expressionEditor.getFilter();
@@ -149,6 +208,10 @@ public class DataSourcePreprocessing extends WizardAction {
 			JXErrorDialog.showDialog(activeWizard, "Error in fiter expression", e);
 			return false;
 		}
+	}
+
+	private boolean correct(String text) {
+		return !text.trim().isEmpty();
 	}
 
 	public void setSize(int width, int height) {

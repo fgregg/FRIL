@@ -156,6 +156,9 @@ public class ComboBoxParamPanelField extends ParamPanelField {
 	}
 
 	public String getValue() {
+		if (combo.getSelectedItem() == null) {
+			((Option) combo.getSelectedItem()).getValue();
+		}
 		return ((Option) combo.getSelectedItem()).getValue();
 	}
 

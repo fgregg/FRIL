@@ -55,6 +55,7 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 	private AbstractDataSource source;
 	private CSVFileSaver saver;
 	private String filePrefix;
+	private String fileName;
 	
 	public DataSourceNotJoinedJoinListener(String filePrefix, AbstractDataSource source) throws RJException {
 		this.source = source;
@@ -67,11 +68,12 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 		}
 		Map props = new HashMap();
 		if (!StringUtils.isNullOrEmpty(filePrefix)) {
-			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainApp.main.getMinusDirectory() + File.separator + filePrefix + "-minus-" + source.getSourceName() + ".csv");
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileName = MainApp.main.getMinusDirectory() + File.separator + filePrefix + "-minus-" + source.getSourceName() + ".csv");
 		} else {
-			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, MainApp.main.getMinusDirectory() + File.separator + "minus-" + source.getSourceName() + ".csv");
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileName = MainApp.main.getMinusDirectory() + File.separator + "minus-" + source.getSourceName() + ".csv");
 		}
 		props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+		props.put(CSVFileSaver.SAVE_CONFIDENCE, "false");
 		saver = new CSVFileSaver(props);
 		System.out.println("Saver created: " + props);
 	}
@@ -119,6 +121,10 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 			}
 		}
 	}
+	
+	public AbstractDataSource getSource() {
+		return source;
+	}
 
 	public void joinConfigured() throws RJException {
 	}
@@ -132,6 +138,14 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 //			return false;
 //		}
 		return this.filePrefix.equals(that.filePrefix) && this.source.getSourceName().equals(that.source.getSourceName());
+	}
+
+	public String getFileName() {
+		return fileName;
+	}
+	
+	public String toString() {
+		return "DataSourceNotJoinedJoinListener: " + filePrefix + fileName;
 	}
 	
 }

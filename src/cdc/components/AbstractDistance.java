@@ -54,4 +54,8 @@ public abstract class AbstractDistance extends SystemComponent {
 	public CompareFunctionInterface getCompareFunction(DataColumnDefinition colA, DataColumnDefinition colB) {
 		return new StringComparator();
 	}
+	
+	public CompareFunctionInterface getCompareFunction() {
+		return new StringComparator();
+	}
 }

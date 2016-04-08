@@ -77,13 +77,20 @@ public class ProgressDialog extends JDialog {
 	
 	private boolean detailsOn = false;
 	private boolean detailsActiolListenerSet = false;
+	private boolean showStatsButton = true;
 	
 	private int currY = 0;
 	
 	public ProgressDialog(Window parent, String title, boolean resizable) {
+		this(parent, title, resizable, true);
+	}
+	
+	public ProgressDialog(Window parent, String title, boolean resizable, boolean showStatsButton) {
 		super(parent);
 		setModal(true);
 		setTitle(title);
+		
+		this.showStatsButton = showStatsButton;
 		
 		mainPanel = new JPanel();
 		mainPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
@@ -170,7 +177,7 @@ public class ProgressDialog extends JDialog {
 				if (statistics != null) {
 					statistics.toFront();
 				} else {
-					statistics = new HistogramDialog(ProgressDialog.this, "Linkage statistics", MainFrame.main.getJoin().getJoin().getJoinStatisticsListener());
+					statistics = new HistogramDialog(ProgressDialog.this, "Linkage statistics", MainFrame.main.getConfiguredSystem().getJoin().getJoinStatisticsListener());
 					statistics.addWindowListener(new WindowAdapter() {
 						public void windowClosing(WindowEvent e) {
 							statistics = null;
@@ -193,7 +200,9 @@ public class ProgressDialog extends JDialog {
 		buttons.add(Box.createRigidArea(new Dimension(30, 30)));
 		//buttons.add(linkages);
 		//buttons.add(Box.createRigidArea(new Dimension(10, 10)));
-		buttons.add(stats);
+		if (showStatsButton) {
+			buttons.add(stats);
+		}
 		mainPanel.add(buttons, getDefaultConstraints());
 		
 		if (detailsOn) {

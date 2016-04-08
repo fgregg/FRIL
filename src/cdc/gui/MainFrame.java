@@ -39,12 +39,17 @@ package cdc.gui;
 import java.awt.BorderLayout;
 import java.awt.CheckboxMenuItem;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.Menu;
 import java.awt.MenuBar;
 import java.awt.MenuItem;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
@@ -72,17 +77,14 @@ import javax.swing.JTextArea;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 
-import cdc.components.AbstractDataSource;
 import cdc.components.AbstractResultsSaver;
 import cdc.configuration.Configuration;
 import cdc.configuration.ConfigurationPhase;
 import cdc.configuration.ConfiguredSystem;
-import cdc.gui.components.progress.DedupeInfoPanel;
-import cdc.gui.components.progress.ProgressDialog;
-import cdc.gui.components.properties.PropertiesPanel;
+import cdc.gui.components.dialogs.OneTimeTipDialog;
+import cdc.gui.components.uicomponents.MemoryInfoComponent;
+import cdc.gui.components.uicomponents.PropertiesPanel;
 import cdc.gui.external.JXErrorDialog;
-import cdc.gui.wizards.AbstractWizard;
-import cdc.gui.wizards.specific.DedupeSourceWizard;
 import cdc.impl.FrilAppInterface;
 import cdc.impl.MainApp;
 import cdc.impl.resultsavers.CSVFileSaver;
@@ -107,11 +109,6 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	public static final String VERSION_PROPERTY_CODENAME = "codename";
 	public static final String VERSION_PROPERTY_V = "version";
 	public static final String VERSION_LIST_OF_CHANGES_FILE = "changelog.txt";
-
-	// private static final String PERSISTENT_PARAM_CPU_NUMBER = "cpu-number";
-
-	// private static final String[] cpusLabels = new String[] {"--", "1", "2",
-	// "4", "8+"};
 
 	private class GUILogSink extends LogSink {
 
@@ -141,8 +138,10 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 
 	private MenuBar menuBar = new MenuBar();
 	private CheckboxMenuItem autosave;
+	private CheckboxMenuItem linkage;
+	private CheckboxMenuItem dedupe;
 	
-	private SystemPanel appPanel;
+	private SystemPanel applicationPanel;
 	private JPanel logPanel;
 
 	private List closingListeners = new ArrayList();
@@ -155,6 +154,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 
 	private boolean configurationRead = false;
 	private boolean configurationSaved = false;
+	private JPanel applicationWrappingPanel;
 
 	public void setPersistentParam(String paramName, String paramValue) {
 		if (persistentParams == null) {
@@ -224,6 +224,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		this.setVisible(true);
 
 		doStartup();
+		
 	}
 
 	private void doStartup() {
@@ -231,11 +232,14 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		this.cpus = CPUInfo.testNumberOfCPUs();
 		Log.log(getClass(), "Number of available CPUs: " + this.cpus);
 		
-		if (getPersistentParam(PERSISTENT_PARAM_FIRST_TIME) == null) {
+		if (getPersistentParam(PERSISTENT_PARAM_FIRST_TIME + propertiesVersion.getProperty(VERSION_PROPERTY_V)) == null) {
 			new AboutWindow().setVisible(true);
-			setPersistentParam(PERSISTENT_PARAM_FIRST_TIME, "false");
+			setPersistentParam(PERSISTENT_PARAM_FIRST_TIME + propertiesVersion.getProperty(VERSION_PROPERTY_V), "false");
+			OneTimeTipDialog.showInfoDialogIfNeeded(OneTimeTipDialog.LINKAGE_MODE_DEFAULT, OneTimeTipDialog.LINKAGE_MODE_MESSAGE);
 			return;
 		}
+		
+		OneTimeTipDialog.showInfoDialogIfNeeded(OneTimeTipDialog.LINKAGE_MODE_DEFAULT, OneTimeTipDialog.LINKAGE_MODE_MESSAGE);
 
 		if (getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG) != null && 
 				getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG).endsWith("~~")) {
@@ -261,14 +265,13 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 				loadConfiguration(new File(getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG)));
 			}
 		}
+		
 	}
 
 	private void createMainWindow() {
 
-		this.appPanel = new SystemPanel(this);
-		JScrollPane appScroll = new JScrollPane(appPanel);
-		JPanel appPanel = new JPanel(new BorderLayout());
-		appPanel.add(appScroll, BorderLayout.CENTER);
+		applicationWrappingPanel = new JPanel(new BorderLayout());	
+		createSystemPanel();
 
 		logPanel = new JPanel(new BorderLayout());
 		JTextArea logArea = new JTextArea();
@@ -278,11 +281,17 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		logPanel.add(scroll, BorderLayout.CENTER);
 		Log.setSinks(new LogSink[] { new GUILogSink(logArea) });
 
-		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-				appPanel, logPanel);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, applicationWrappingPanel, logPanel);
 		splitPane.setDividerLocation(400);
 
-		getContentPane().add(splitPane);
+		setLayout(new BorderLayout());
+		add(splitPane, BorderLayout.CENTER);
+		
+		JPanel statusBar = new JPanel(new GridBagLayout());
+		JPanel mm = new MemoryInfoComponent(1000);
+		mm.setBorder(BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
+		statusBar.add(mm, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		add(statusBar, BorderLayout.SOUTH);
 	}
 
 	private void createMenu() {
@@ -316,38 +325,93 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			}
 		});
 
-		Menu[] menu = new Menu[3];
+		Menu[] menu = new Menu[4];
 
 		menu[0] = new Menu("File");
 		loadFileMenu(menu[0]);
+		
+		menu[1] = new Menu("Mode");
+		loadModeMenu(menu[1]);
 
-		menu[1] = new Menu("Tools");
-		loadToolsMenu(menu[1]);
+		menu[2] = new Menu("Tools");
+		loadToolsMenu(menu[2]);
 
-		menu[2] = new Menu("Help");
-		loadHelpMenu(menu[2]);
+		menu[3] = new Menu("Help");
+		loadHelpMenu(menu[3]);
 
 		for (int i = 0; i < menu.length; i++) {
 			menuBar.add(menu[i]);
 		}
 	}
 
+	private void loadModeMenu(Menu menu) {
+		linkage = new CheckboxMenuItem("Linkage mode", true);
+		dedupe = new CheckboxMenuItem("Deduplcation mode");
+		linkage.setEnabled(false);
+		dedupe.setEnabled(true);
+		
+		linkage.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (linkage.getState()) {
+					if (applicationPanel instanceof DedupeSystemPanel) {
+						//need to save config...
+						if (!fireClosingSystemViewListeners()) {
+							linkage.setState(false);
+							return;
+						}
+						clearClosingSystemViewListeners();
+					}
+					activateLinkagePanel();
+				}
+				configureSystemView();
+			}
+		});
+		
+		dedupe.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (dedupe.getState()) {
+					if (applicationPanel instanceof LinkageSystemPanel) {
+						//need to save config...
+						if (!fireClosingSystemViewListeners()) {
+							dedupe.setState(false);
+							return;
+						}
+						clearClosingSystemViewListeners();
+					}
+					activateDeduplicationPanel();
+				}
+				configureSystemView();
+				
+			}
+		});
+		
+		menu.add(linkage);
+		menu.add(dedupe);
+		
+	}
+
 	private void loadFileMenu(Menu menu) {
 		MenuItem newItem = new MenuItem("New");
 		newItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (appPanel.saveIfNeeded()) {
+				if (applicationPanel.saveIfNeeded()) {
 					try {
-						appPanel.setSystem(new ConfiguredSystem(null, null, null, null));
+						applicationPanel.setSystem(new ConfiguredSystem(null, null, null, null));
+						applicationPanel.unloadConfiguration();
 					} catch (RJException e1) {
 						e1.printStackTrace();
-				}
+					}
 				}
 			}
 		});
 		MenuItem open = new MenuItem("Open");
 		open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				
+				if (!applicationPanel.saveIfNeeded()) {
+					return;
+				}
+				
 				File dir = null;
 				if (getPersistentParam(PERSISTENT_PARAM_RECENT_PATH) != null) {
 					dir = new File(
@@ -361,10 +425,10 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 				JFileChooser chooser = new JFileChooser(dir);
 				if (chooser.showOpenDialog(main) == JFileChooser.APPROVE_OPTION) {
 					// will load configuration
-					if (appPanel.getSystem() != null
-							&& appPanel.getSystem().getJoin() != null) {
+					if (applicationPanel.getSystem() != null
+							&& applicationPanel.getSystem().getJoin() != null) {
 						try {
-							appPanel.getSystem().getJoin().close();
+							applicationPanel.getSystem().getJoin().close();
 						} catch (IOException e1) {
 							e1.printStackTrace();
 						} catch (RJException e1) {
@@ -413,39 +477,6 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 
 	private void loadToolsMenu(Menu menu) {
-//		MenuItem wizard = new MenuItem("Start wizard");
-//		wizard.addActionListener(new ActionListener() {
-//			public void actionPerformed(ActionEvent e) {
-//				try {
-//					SystemWizard wizard = new SystemWizard(MainFrame.this);
-//					if (wizard.getResult() == AbstractWizard.RESULT_OK) {
-//						appPanel.setSystem(wizard.getConfiguredSystem());
-//					}
-//				} catch (RJException ex) {
-//					JXErrorDialog.showDialog(main, "Error", ex);
-//				}
-//			}
-//		});
-//		menu.add(wizard);
-
-		MenuItem dedupe = new MenuItem("Deduplicate data");
-		dedupe.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				DedupeSourceWizard wizard = new DedupeSourceWizard(main, null, "source-to-deduplication");
-				if (wizard.getResult() == AbstractWizard.RESULT_OK) {
-					AbstractDataSource dedupeSrc = wizard.getConfiguredDataSource();
-					String resultsLocation = wizard.getResultsLocation();
-					wizard.dispose();
-					ProgressDialog progress = new ProgressDialog(main, "Deduplication progress");
-					DedupeInfoPanel infoPanel = new DedupeInfoPanel(progress);
-					DeduplicationThread thread = new DeduplicationThread(dedupeSrc, resultsLocation, infoPanel);
-					thread.start();
-					progress.setInfoPanel(infoPanel);
-					progress.setVisible(true);
-				}
-			}
-		});
-		menu.add(dedupe);
 		
 		MenuItem gc = new MenuItem("Run garbage collection");
 		gc.addActionListener(new ActionListener() {
@@ -506,8 +537,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		MenuItem help = new MenuItem("Help");
 		help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JOptionPane.showMessageDialog(MainFrame.this,
-						"Help not yet available");
+				JOptionPane.showMessageDialog(MainFrame.this, "Help not yet available");
 			}
 		});
 		MenuItem about = new MenuItem("About...");
@@ -520,30 +550,41 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		menu.add(about);
 	}
 
-	public void addClosingListener(ClosingListener listener) {
+	public void addClosingSystemViewListener(ClosingSystemViewListener listener) {
 		closingListeners.add(listener);
 	}
 
 	private boolean closing() {
 		System.out.println("Application closing. Please wait for cleanup.");
 		Log.log(MainFrame.this.getClass(), "Application is being closed. Please wait for cleanup...", 1);
-		for (Iterator iterator = closingListeners.iterator(); iterator.hasNext();) {
-			ClosingListener listener = (ClosingListener) iterator.next();
-			if (!listener.closing()) {
-				return false;
-			}
+		if (!fireClosingSystemViewListeners()) {
+			return false;
 		}
-		if (MainFrame.this.getJoin() != null) {
-			MainFrame.this.getJoin().close();
+		if (MainFrame.this.getConfiguredSystem() != null) {
+			MainFrame.this.getConfiguredSystem().close();
 		}
 		Log.log(MainFrame.this.getClass(), "Cleanup completed.", 1);
 
 		return true;
 	}
 
+	private boolean fireClosingSystemViewListeners() {
+		for (Iterator iterator = closingListeners.iterator(); iterator.hasNext();) {
+			ClosingSystemViewListener listener = (ClosingSystemViewListener) iterator.next();
+			if (!listener.closing()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private void clearClosingSystemViewListeners() {
+		closingListeners.clear();
+	}
+
 	public boolean saveCurrentConfiguration(boolean newName) {
 		
-		if (appPanel.getSystem() == null) {
+		if (applicationPanel.getSystem() == null) {
 			return true;
 		}
 
@@ -584,7 +625,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			if (configurationSaved) {
 				deleteBackupConfig();
 			}
-			appPanel.systemSaved();
+			applicationPanel.systemSaved();
 			configurationReadDone();
 			String recentPath = f.getParent();
 			if (recentPath != null) {
@@ -635,14 +676,14 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 	
 	private boolean saveConfiguration(File file) {
-		ConfiguredSystem system = appPanel.getSystem();
+		ConfiguredSystem system = applicationPanel.getSystem();
 		Configuration.saveToXML(system, file);
 		Log.log(getClass(), "Configuration was saved to file: " + file);
 		return true;
 	}
 
 	private void loadConfiguration(File f) {
-		appPanel.unloadConfiguration();
+		applicationPanel.unloadConfiguration();
 		
 		//check backup
 		String backup = f.getAbsolutePath() + "~";
@@ -659,19 +700,19 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			phases[i] = ConfigurationPhase.phases[i].getPhaseName();
 		}
 		ConfigLoadDialog progressReporter = new ConfigLoadDialog(phases);
-		ConfigLoaderThread thread = new ConfigLoaderThread(f, appPanel, progressReporter);
+		ConfigLoaderThread thread = new ConfigLoaderThread(f, progressReporter);
 		progressReporter.addCancelListener(new CancelThreadListener(thread));
 		thread.start();
 		progressReporter.setLocation(GuiUtils.getCenterLocation(this, progressReporter));
 		progressReporter.started();
 	}
 
-	public ConfiguredSystem getJoin() {
-		return appPanel.getSystem();
+	public ConfiguredSystem getConfiguredSystem() {
+		return applicationPanel.getSystem();
 	}
 
 	public String getMinusDirectory() {
-		AbstractResultsSaver savers = this.appPanel.getSystem().getResultSaver();
+		AbstractResultsSaver savers = this.applicationPanel.getSystem().getResultSaver();
 		AbstractResultsSaver[] group = null;
 		if (savers instanceof CSVFileSaver) {
 			return ((CSVFileSaver) savers).getActiveDirectory();
@@ -695,12 +736,12 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 				!getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG).endsWith("~~")) {
 			configurationRead = true;
 		} else {
-			appPanel.setAltered(true);
+			applicationPanel.setAltered(true);
 		}
 	}
 	
 	public SystemPanel getSystemPanel() {
-		return appPanel;
+		return applicationPanel;
 	}
 	
 	public void autosaveIfNeeded() {
@@ -710,16 +751,67 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		}
 	}
 
-	public void appendLinkageSummary(String text) {
-		appPanel.getProcessPanel().appendSummaryMessage(text);
-	}
+//	public void appendLinkageSummary(String text) {
+//		applicationPanel.getProcessPanel().appendSummaryMessage(text);
+//	}
 
 	public Properties getPropertiesVersion() {
 		return propertiesVersion;
 	}
 
 	public void openLinkagesDialog() {
-		appPanel.openLinkagesDialog();
+		((LinkageSystemPanel)applicationPanel).openLinkagesDialog();
+	}
+
+	public void setSystem(ConfiguredSystem system) throws RJException {
+		if (system.isDeduplication() && !dedupe.getState()) {
+			clearClosingSystemViewListeners();
+			activateDeduplicationPanel();
+			configureSystemView();
+		} else if (!system.isDeduplication() && !linkage.getState()) {
+			clearClosingSystemViewListeners();
+			activateLinkagePanel();
+			configureSystemView();
+		}
+		applicationPanel.setSystem(system);
+	}
+
+	private void activateDeduplicationPanel() {
+		linkage.setState(false);
+		dedupe.setState(true);
+		dedupe.setEnabled(false);
+		linkage.setEnabled(true);
+	}
+
+	private void activateLinkagePanel() {
+		linkage.setState(true);
+		dedupe.setState(false);
+		dedupe.setEnabled(true);
+		linkage.setEnabled(false);
+	}
+	
+	private void createSystemPanel() {
+		this.applicationPanel = linkage.getState() ? (SystemPanel)new LinkageSystemPanel(this) : new DedupeSystemPanel(this);
+		JScrollPane appScroll = new JScrollPane(applicationPanel);
+		applicationWrappingPanel.removeAll();
+		applicationWrappingPanel.add(appScroll, BorderLayout.CENTER);
+		configurationRead = false;
+	}
+	
+	private void configureSystemView() {
+		createSystemPanel();
+		applicationWrappingPanel.validate();
+		applicationWrappingPanel.repaint();
+	}
+
+	public void setDeduplicationMode(boolean deduplication) {
+		clearClosingSystemViewListeners();
+		if (deduplication) {
+			activateDeduplicationPanel();
+		} else {
+			activateLinkagePanel();
+		}
+		configureSystemView();
 	}
 
 }

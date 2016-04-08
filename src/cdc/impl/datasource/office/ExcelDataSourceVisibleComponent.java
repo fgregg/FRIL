@@ -65,7 +65,7 @@ public class ExcelDataSourceVisibleComponent extends GUIVisibleComponent {
 	public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 		
 		Map creators = new HashMap();
-		creators.put(ExcelDataSource.PARAM_FILE, new FileChoosingPanelFieldCreator());
+		creators.put(ExcelDataSource.PARAM_FILE, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.OPEN));
 		creators.put(ExcelDataSource.PARAM_SHEET, new SheetChooserCreator());
 		
 		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, ExcelDataSource.PARAM_FILE, ExcelDataSource.PARAM_SHEET};

@@ -34,7 +34,7 @@
  * ***** END LICENSE BLOCK ***** */ 
 
 
-package cdc.gui.components.properties;
+package cdc.gui.components.uicomponents;
 
 import java.awt.BorderLayout;
 import java.io.File;

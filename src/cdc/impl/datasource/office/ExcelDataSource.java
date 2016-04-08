@@ -197,6 +197,7 @@ public class ExcelDataSource extends AbstractDataSource {
 	public AbstractDataSource copy() throws IOException, RJException {
 		ExcelDataSource source = new ExcelDataSource(getSourceName(), getProperties());
 		source.setModel(getDataModel());
+		source.setFilter(getFilter());
 		return source;
 		
 	}

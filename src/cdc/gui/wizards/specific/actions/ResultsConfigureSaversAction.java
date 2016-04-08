@@ -75,7 +75,7 @@ import cdc.impl.resultsavers.ResultSaversGroup;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
 
-public class ChooseResultSaversAction extends WizardAction {
+public class ResultsConfigureSaversAction extends WizardAction {
 	
 	class RadioSelector implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
@@ -266,8 +266,8 @@ public class ChooseResultSaversAction extends WizardAction {
 	}
 
 	private void prepareDeduplication(JPanel deduplication) {
-		String s1 = MainFrame.main.getJoin().getSourceA().getSourceName();
-		String s2 = MainFrame.main.getJoin().getSourceB().getSourceName();;
+		String s1 = MainFrame.main.getConfiguredSystem().getSourceA().getSourceName();
+		String s2 = MainFrame.main.getConfiguredSystem().getSourceB().getSourceName();;
 		noDedupe = new JRadioButton("No deduplication");
 		dedupeLeft = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s1, s2}));
 		dedupeRight = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s2, s1}));

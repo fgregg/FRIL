@@ -48,8 +48,9 @@ import cdc.gui.components.progress.JoinInfoPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.Log;
 import cdc.utils.RJException;
+import cdc.utils.Utils;
 
-public class JoinThread extends StoppableThread {
+public class LinkageThread extends StoppableThread {
 	
 	private class PollingThread extends Thread {
 		JoinInfoPanel panel;
@@ -59,7 +60,7 @@ public class JoinThread extends StoppableThread {
 			this.system = system;
 		}
 		public void run() {
-			while (JoinThread.this.info != null) {
+			while (LinkageThread.this.info != null) {
 				try {
 					SwingUtilities.invokeAndWait(new Runnable() {
 						public void run() {
@@ -85,9 +86,8 @@ public class JoinThread extends StoppableThread {
 	private long t1;
 	private long t2;
 	private int n;
-	private StringBuilder summaryMessage = new StringBuilder();
 	
-	public JoinThread(ConfiguredSystem system, JoinInfoPanel info) {
+	public LinkageThread(ConfiguredSystem system, JoinInfoPanel info) {
 		this.system = system;
 		this.info = info;
 	}
@@ -135,14 +135,12 @@ public class JoinThread extends StoppableThread {
 			Log.log(getClass(), system.getJoin() + ": Algorithm produced " + n + " joined tuples. Elapsed time: " + (t2 - t1) + "ms.", 1);
 			closeProgress();
 			//animation.stopAnimation();
-			SwingUtilities.invokeLater(new Runnable() {
+			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					if (stopped) {
-						Log.log(getClass(), "JOIN was cancelled", 1);
-						JOptionPane.showMessageDialog(MainFrame.main, "Join cancelled by user\nNumber of joined records: " + n + getMessage() + "\nLinkage process interrupted after " + (t2-t1) + "ms");
-					} else {
-						JOptionPane.showMessageDialog(MainFrame.main, "Join successfully completed :)\nNumber of joined records: " + n + getMessage() + "\nLinkage process took " + (t2-t1) + "ms");
+						Log.log(getClass(), "Linkage was cancelled", 1);
 					}
+					JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(system, stopped, t2 - t1, n));
 				}
 
 			});
@@ -163,14 +161,6 @@ public class JoinThread extends StoppableThread {
 		system = null;
 	}
 
-	private String getMessage() {
-		if (summaryMessage.length() != 0) {
-			return "\n" + summaryMessage.toString();
-		} else {
-			return "";
-		}
-	}
-
 	private void closeProgress() {
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
@@ -189,10 +179,6 @@ public class JoinThread extends StoppableThread {
 		this.stopped = true;
 		this.system.getJoin().setCancelled(true);
 		//this.interrupt();
-	}
-
-	public void appendSummaryMessage(String msg) {
-		summaryMessage.append(msg);
 	}
 	
 }

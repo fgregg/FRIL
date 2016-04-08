@@ -40,8 +40,17 @@ import javax.swing.JComponent;
 
 public class FileChoosingPanelFieldCreator implements FieldCreator {
 
+	public static final int SAVE = 2;
+	public static final int OPEN = 1;
+
+	private int type;
+	
+	public FileChoosingPanelFieldCreator(int type) {
+		this.type = type;
+	}
+	
 	public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-		return new FileChoosingPanelField(parent, param, label, defaultValue);
+		return new FileChoosingPanelField(parent, type, param, label, defaultValue);
 	}
 
 }

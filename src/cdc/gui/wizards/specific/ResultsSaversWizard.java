@@ -43,7 +43,7 @@ import cdc.components.AbstractResultsSaver;
 import cdc.gui.Configs;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.gui.wizards.specific.actions.ChooseResultSaversAction;
+import cdc.gui.wizards.specific.actions.ResultsConfigureSaversAction;
 
 public class ResultsSaversWizard {
 	
@@ -53,11 +53,11 @@ public class ResultsSaversWizard {
 	
 	private AbstractWizard wizard;
 	
-	private ChooseResultSaversAction resultSaversActions;
+	private ResultsConfigureSaversAction resultSaversActions;
 	
 	public ResultsSaversWizard(JFrame parent, JComponent source) {
 		
-		resultSaversActions = new ChooseResultSaversAction();
+		resultSaversActions = new ResultsConfigureSaversAction();
 		
 		WizardAction[] actions = new WizardAction[] {
 				resultSaversActions

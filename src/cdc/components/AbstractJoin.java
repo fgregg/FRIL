@@ -202,6 +202,7 @@ public abstract class AbstractJoin extends SystemComponent {
 	}
 	
 	public void addJoinListener(JoinListener listener) throws RJException {
+		//System.out.println("Adding: " + listener);
 		synchronized (mutex) {
 			if (listeners == null) {
 				listeners = new ArrayList();
@@ -268,6 +269,12 @@ public abstract class AbstractJoin extends SystemComponent {
 					listeners = null;
 				}
 			}
+		}
+	}
+	
+	public List getListeners() {
+		synchronized (listeners) {
+			return new ArrayList(listeners);
 		}
 	}
 	
@@ -428,5 +435,13 @@ public abstract class AbstractJoin extends SystemComponent {
 		addJoinListener(statsListener);
 		return statsListener;
 	}
+
+	public void removeAllJoinListeners() {
+		synchronized (mutex) {
+			listeners.clear();
+		}
+	}
+	
+	public abstract LinkageSummary getLinkageSummary();
 	
 }

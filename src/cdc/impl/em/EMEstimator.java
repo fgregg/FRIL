@@ -313,6 +313,19 @@ public class EMEstimator {
 		for (int i = 0; i < w0100.length; i++) {
 			w0100[i] = (int)Math.round((adjusted[i] / sum) * 100);
 		}
+		int mySum = 0;
+		int max = -1;
+		for (int i = 0; i < w0100.length; i++) {
+			mySum += w0100[i];
+			if (max == -1 || w0100[max] < w0100[i]) {
+				max = i;
+			}
+		}
+		if (mySum < 100) {
+			w0100[max] += 100 - mySum;
+		} else if (mySum > 100) {
+			w0100[max] -= mySum - 100;
+		}
 		return w0100;
 	}
 	

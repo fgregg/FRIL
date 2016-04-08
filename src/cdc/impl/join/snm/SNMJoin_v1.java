@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -80,7 +81,7 @@ public class SNMJoin_v1 extends AbstractJoin {
 
 		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
 			synchronized (mutex) {
-				joined++;
+				linked++;
 			}
 			SNMJoin_v1.this.notifyJoined(rowA, rowB, row);
 		}
@@ -141,9 +142,12 @@ public class SNMJoin_v1 extends AbstractJoin {
 	private DataColumnDefinition[] rightOrder;
 	private CompareFunctionInterface[] functions;
 	
-	private int joined = 0;
+	private int linked = 0;
 	private int minusA = 0;
 	private int minusB = 0;
+	
+	private int readA;
+	private int readB;
 	
 	public SNMJoin_v1(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition outFormat[], AbstractJoinCondition condition, Map params) throws IOException, RJException {
 		super(fixSource(sourceA, parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()), condition.getCompareFunctions(parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()), parseOrder((String)params.get(PARAM_SORT_ORDER_A), sourceA, condition.getLeftJoinColumns()))), 
@@ -231,10 +235,11 @@ public class SNMJoin_v1 extends AbstractJoin {
 	}
 
 	private void endSequence() {
-		Log.log(getClass(), "Summary of linkage: linked=" + joined + ", size(" + getSourceA().getSourceName() + ")=" + getSourceA().position()
-				   + ", size(" + getSourceB().getSourceName() + ")=" + getSourceB().position()
-				   + ", minus(" + getSourceA().getSourceName() + ")=" + minusA
-				   + ", minus(" + getSourceB().getSourceName() + ")=" + minusB, 1);
+		Log.log(getClass(), "Linkage finished", 1);
+		for (int i = 0; i < workers.length; i++) {
+			readA += workers[i].getReadA();
+			readB += workers[i].getReadB();
+		}
 	}
 
 	private void createWorkersIfNeeded() throws IOException, RJException {
@@ -410,8 +415,14 @@ public class SNMJoin_v1 extends AbstractJoin {
 		buffer = new ArrayBlockingQueue(100);
 		//createWorkersIfNeeded();
 		
-		joined = 0;
+		linked = 0;
 		minusA = 0;
 		minusB = 0;
+		readA = 0;
+		readB = 0;
+	}
+	
+	public LinkageSummary getLinkageSummary() {
+		return new LinkageSummary(readA, readB, linked);
 	}
 }

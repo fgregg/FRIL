@@ -203,7 +203,7 @@ public class Main implements FrilAppInterface {
 		return runJoin();
 	}
 
-	public ConfiguredSystem getJoin() {
+	public ConfiguredSystem getConfiguredSystem() {
 		return system;
 	}
 	

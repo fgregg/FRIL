@@ -2,23 +2,29 @@ package cdc.gui.components.linkagesanalysis;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.SwingUtilities;
+
 import cdc.components.AbstractDataSource;
+import cdc.components.AbstractResultsSaver;
 import cdc.components.Filter;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
-import cdc.gui.components.linkagesanalysis.dialog.ViewLinkagesDialog;
+import cdc.gui.components.linkagesanalysis.dialog.LinkagesWindowPanel;
 import cdc.gui.external.JXErrorDialog;
-import cdc.impl.datasource.wrappers.SortingDataSource;
+import cdc.impl.datasource.wrappers.ExternallySortingDataSource;
+import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.CompareFunctionInterface;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 import cdc.utils.comparators.NumberComparator;
 import cdc.utils.comparators.StringComparator;
 
 public class LinkageLoadingThread extends LoadingThread {
 
-	private ViewLinkagesDialog dialog;
+	private LinkagesWindowPanel dialog;
 	private ThreadCreatorInterface tCInterface;
 	private AbstractDataSource results;
 	private volatile boolean cancel;
@@ -31,7 +37,7 @@ public class LinkageLoadingThread extends LoadingThread {
 	private AtomicInteger move = new AtomicInteger(1);
 	private int currentPage = 1;
 
-	public LinkageLoadingThread(ThreadCreatorInterface interf, ViewLinkagesDialog viewLinkagesDialog, Filter filter, DataColumnDefinition[] sort, int[] order) {
+	public LinkageLoadingThread(ThreadCreatorInterface interf, LinkagesWindowPanel viewLinkagesDialog, Filter filter, DataColumnDefinition[] sort, int[] order) {
 		this.tCInterface = interf;
 		this.dialog = viewLinkagesDialog;
 		this.filter = filter;
@@ -48,9 +54,9 @@ public class LinkageLoadingThread extends LoadingThread {
 			results.reset();
 			maxPage = (int) Math.ceil(totalRecords / (double)dialog.getRecordsPerPage());
 		} catch (IOException e) {
-			JXErrorDialog.showDialog(dialog, "Error reading linkage results", e);
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error reading linkage results", e);
 		} catch (RJException e) {
-			JXErrorDialog.showDialog(dialog, "Error reading linkage results", e);
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error reading linkage results", e);
 		}
 	}
 
@@ -85,7 +91,7 @@ public class LinkageLoadingThread extends LoadingThread {
 						compareFunctions[i] = new StringComparator(order[i]);
 					}
 				}
-				results = new SortingDataSource("results", results, sort, compareFunctions, new HashMap());
+				results = new ExternallySortingDataSource("results", results, sort, compareFunctions, new HashMap());
 			}
 			int loaded = 0;
 			while (!cancel) {
@@ -125,11 +131,10 @@ public class LinkageLoadingThread extends LoadingThread {
 					loaded++;
 				}
 			}
-			
 		} catch (IOException e) {
-			JXErrorDialog.showDialog(dialog, "Error reading linkage results", e);
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error reading linkage results", e);
 		} catch (RJException e) {
-			JXErrorDialog.showDialog(dialog, "Error reading linkage results", e);
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error reading linkage results", e);
 		} finally {
 			if (results != null) {
 				try {
@@ -202,6 +207,36 @@ public class LinkageLoadingThread extends LoadingThread {
 		synchronized (this) {
 			notifyAll();
 		}
+	}
+	
+	public void saveToFile(String fileName, boolean all) {
+		try {
+			Map props = new HashMap();
+			props.put(CSVFileSaver.OUTPUT_FILE_PROPERTY, fileName);
+			props.put(CSVFileSaver.SAVE_CONFIDENCE, "true");
+			props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
+			AbstractResultsSaver saver = new CSVFileSaver(props);
+			DataColumnDefinition[] model = RowUtils.getModelForSave(dialog.getUsedModel());
+			if (all) {
+				AbstractDataSource src = results.copy();
+				DataRow row;
+				while ((row = src.getNextRow()) != null) {
+					saver.saveRow(RowUtils.buildSubrow(row, model, true));
+				}
+			} else {
+				DataRow[] rows = dialog.getVisibleRows();
+				for (int i = 0; i < rows.length; i++) {
+					saver.saveRow(RowUtils.buildSubrow(rows[i], model, true));
+				}
+			}
+			saver.flush();
+			saver.close();
+		} catch (IOException e) {
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error saving data", e);
+		} catch (RJException e) {
+			JXErrorDialog.showDialog(SwingUtilities.getWindowAncestor(dialog), "Error saving data", e);
+		}
+		
 	}
 	
 }

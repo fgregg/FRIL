@@ -170,6 +170,10 @@ public class JaroWinkler extends AbstractDistance {
 		return new JaroWinklerGUIComponent();
 	}
 	
+	public String toString() {
+		return "Jaro-Winkler " + getProperties();
+	}
+	
 	public static void main(String[] args) {
 		JaroWinkler dst = new JaroWinkler(new HashMap());
 		System.out.println(dst.distance("William YOUNG", "William YOUNG"));

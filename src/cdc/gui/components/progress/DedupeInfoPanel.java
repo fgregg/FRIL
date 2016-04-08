@@ -78,7 +78,7 @@ public class DedupeInfoPanel extends JPanel {
 		c.weightx = 1.0;
 		add(new JPanel(), c);
 		
-		add(new JLabel("Number of joined records:"), getDefaultConstraints());
+		add(new JLabel("Number of duplicates:"), getDefaultConstraints());
 		add(Box.createRigidArea(new Dimension(10,10)), getDefaultConstraints());
 		
 		duplicatesNumber.setPreferredSize(new Dimension(100, 20));
@@ -95,9 +95,8 @@ public class DedupeInfoPanel extends JPanel {
 		return c;
 	}
 	
-	public void incrementJoined() {
-		int curr = Integer.parseInt(duplicatesNumber.getText());
-		duplicatesNumber.setText(String.valueOf(curr + 1));
+	public void setDuplicatesCount(int cnt) {
+		duplicatesNumber.setText(String.valueOf(cnt));
 	}
 	
 	public void addPriorityListener(ThreadPriorityChangedListener listener) {

@@ -46,6 +46,7 @@ import cdc.components.AbstractDistance;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
 import cdc.components.EvaluatedCondition;
+import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
@@ -336,5 +337,9 @@ public class DNMJoin extends AbstractJoin {
 		builder.append(HTMLUtils.encodeJoinCondition(getJoinCondition()));
 		builder.append("</html>");
 		return builder.toString();
+	}
+	
+	public LinkageSummary getLinkageSummary() {
+		return null;
 	}
 }

@@ -25,10 +25,17 @@ public class DeduplicationConfig {
 	public static final String CONDITION_TAG = "condition";
 	private static final String COLUMN_TAG = "column";
 	private static final String HASHING_FUNCTION_TAG = "hashing-function";
+	private static final String MINUS_ELEMENT_TAG = "minus-file";
+	private static final String FILE_ELEMENT_TAG = "dedupe-file";
 	private static final String COLUMNS_TAG = "columns";
 	private static final String HASH_TAG = "hash";
 	private static final String SOUNDEX_PREFIX = "soundex";
 	private static final String EQUALITY_PREFIX = "equality";
+	private static final String FILE = "file";
+	
+	private String minusFile = null;
+	private String dedupeFile = null;
+	
 	private DataColumnDefinition[] testedColumns;
 	private AbstractDistance[] testCondition;
 	
@@ -78,6 +85,14 @@ public class DeduplicationConfig {
 		return snm;
 	}
 	
+	public void setMinusFile(String minusFile) {
+		this.minusFile = minusFile;
+	}
+	
+	public String getMinusFile() {
+		return minusFile;
+	}
+	
 	public static DeduplicationConfig fromXML(AbstractDataSource source, Element dedupElement) throws RJException {
 		Element cond = DOMUtils.getChildElement(dedupElement, CONDITIONS_TAG);
 		Element[] children = DOMUtils.getChildElements(cond);
@@ -110,6 +125,17 @@ public class DeduplicationConfig {
 		}
 		DeduplicationConfig config = new DeduplicationConfig(cols, dists);
 		config.setHashingConfig(blockingFunction);
+		
+		Element minusElement = DOMUtils.getChildElement(dedupElement, MINUS_ELEMENT_TAG);
+		if (minusElement != null) {
+			config.setMinusFile(DOMUtils.getAttribute(minusElement, FILE));
+		}
+		
+		Element fileElement = DOMUtils.getChildElement(dedupElement, FILE_ELEMENT_TAG);
+		if (fileElement != null) {
+			config.setDeduplicatedFileName(DOMUtils.getAttribute(fileElement, FILE));
+		}
+		
 		return config;
 	}
 
@@ -139,7 +165,16 @@ public class DeduplicationConfig {
 		} else {
 			DOMUtils.setAttribute(hashingFunct, HASH_TAG, EQUALITY_PREFIX);
 		}
-			
+		
+		if (minusFile != null) {
+			Element minusElement = DOMUtils.createChildElement(doc, dedupElement, MINUS_ELEMENT_TAG);
+			DOMUtils.setAttribute(minusElement, FILE, minusFile);
+		}
+		
+		if (dedupeFile != null) {
+			Element minusElement = DOMUtils.createChildElement(doc, dedupElement, FILE_ELEMENT_TAG);
+			DOMUtils.setAttribute(minusElement, FILE, dedupeFile);
+		}
 	}
 
 	private String encode(DataColumnDefinition[] dataColumnDefinitions) {
@@ -185,6 +220,14 @@ public class DeduplicationConfig {
 			testCondition = newTestCondition; 
 		}
 		
+	}
+
+	public void setDeduplicatedFileName(String fileName) {
+		this.dedupeFile = fileName;
+	}
+	
+	public String getDeduplicatedFileName() {
+		return dedupeFile;
 	}
 	
 }

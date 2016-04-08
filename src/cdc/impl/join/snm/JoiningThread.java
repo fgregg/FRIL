@@ -100,7 +100,7 @@ public class JoiningThread extends Thread {
 	
 	private boolean leftEnded = false;
 	private int rightAfterLeftEnded = 0;
-	private long readFromLeft = 0;
+	private long readA = 0;
 	private long readB = 0;
 
 	public JoiningThread(int id, AbstractDataSource sourceA, AbstractDataSource sourceB, long[] startIndexes, long workSize, ArrayBlockingQueue buffer, SNMJoinConnector connector) {
@@ -144,16 +144,16 @@ public class JoiningThread extends Thread {
 			finished = true;
 			notifyAll();
 		}
-		Log.log(getClass(), "Thread " + getName() + " finishes. Size of data read: " + sourceA.getSourceName() + "=" + readFromLeft + ", " + sourceB.getSourceName() + "=" + readB, 2);
+		Log.log(getClass(), "Thread " + getName() + " finishes. Size of data read: " + sourceA.getSourceName() + "=" + readA + ", " + sourceB.getSourceName() + "=" + readB, 2);
 	}
 
 	private void finishProcess() throws IOException, RJException {
 		int n = 0;
 		boolean first = true;
 		DataRow row;
-		Log.log(getClass(), "Thread finished linkage. Draining data sources. (readFromLeft=" + readFromLeft + ")", 1);
+		Log.log(getClass(), "Thread finished linkage. Draining data sources. (readFromLeft=" + readA + ")", 1);
 		while ((row = sourceA.getNextRow()) != null) {
-			readFromLeft++;
+			readA++;
 			if (first) {
 				Log.log(getClass(), "First leftover in " + sourceA.getSourceName() + ": " + row, 2);
 			}
@@ -385,9 +385,9 @@ public class JoiningThread extends Thread {
 		if (leftEnded) {
 			rightAfterLeftEnded++;
 		}
-		readB++;
 		DataRow nextRow = sourceB.getNextRow();
 		if (nextRow != null) {
+			readB++;
 			nextRow.setProperty(PROP_IS_OUT_OF_BUFFER, "f");
 		}
 		return nextRow;
@@ -397,8 +397,8 @@ public class JoiningThread extends Thread {
 		DataRow row = sourceA.getNextRow();
 		if (row != null) {
 			row.setProperty(PROP_IS_OUT_OF_BUFFER, "f");
+			readA++;
 		}
-		readFromLeft++;
 		if (row == null) {
 			leftEnded  = true;
 		}
@@ -494,4 +494,11 @@ public class JoiningThread extends Thread {
 		return progress.get();
 	}
 	
+	public long getReadA() {
+		return readA;
+	}
+	
+	public long getReadB() {
+		return readB;
+	}
 }

@@ -233,6 +233,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 	public AbstractDataSource copy() throws IOException, RJException {
 		AbstractDataSource dataSource = new FixedColumnWidthFileDataSource(getSourceName(), getProperties());
 		dataSource.setModel(getDataModel());
+		dataSource.setFilter(getFilter());
 		return dataSource;
 	}
 	
