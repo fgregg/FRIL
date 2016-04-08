@@ -36,7 +36,6 @@
 
 package cdc.gui.wizards.specific.actions;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -53,14 +52,12 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
@@ -86,12 +83,13 @@ public class ChooseResultSaversAction extends WizardAction {
 		}
 	}
 	
-	private static final String resolve = "<html><font color=\"#%s\">When two different records are linked with the same record from other file and have the same match score:</html>";
+	private static final String resolve = "<html>When two different records are linked with the same record from other file and have the same match score:</html>";
 	private static final String dedupeParam = "deduplication";
 	private static final String dedupeLeftConfig = "left";
 	private static final String dedupeRightConfig = "right";
 	private static final String dedupeBothConfig = "both";
 	private static final String resolveParam = "delete-duplicates";
+	private static final String resolveParamAsk = "ask";
 	
 	private TablePanel table;
 	
@@ -103,8 +101,7 @@ public class ChooseResultSaversAction extends WizardAction {
 	private JLabel resolveLabel;
 	private JRadioButton resolveDelete;
 	private JRadioButton resolveDoNothing;
-	
-	private JComponent separator;
+	private JRadioButton resolveManual;
 
 	private AbstractWizard parent;
 	
@@ -205,7 +202,11 @@ public class ChooseResultSaversAction extends WizardAction {
 		JPanel deduplication = new JPanel();
 		deduplication.setBorder(BorderFactory.createTitledBorder("Results deduplication"));
 		
+		JPanel conflicts = new JPanel();
+		conflicts.setBorder(BorderFactory.createTitledBorder("Deduplication conflicts"));
+		
 		prepareDeduplication(deduplication);
+		prepareConflictResolving(conflicts);
 		
 		JPanel buffer = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
@@ -223,12 +224,50 @@ public class ChooseResultSaversAction extends WizardAction {
 		c.fill = GridBagConstraints.BOTH;
 		buffer.add(deduplication, c);
 		
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 2;
+		c.weightx = 1;
+		c.weighty = 0;
+		c.fill = GridBagConstraints.BOTH;
+		buffer.add(conflicts, c);
+		
 		return buffer;
 	}
 
+	private void prepareConflictResolving(JPanel conflicts) {
+		
+		resolveLabel = new JLabel();
+		resolveLabel.setHorizontalAlignment(JLabel.LEFT);
+		resolveDoNothing = new JRadioButton("Do nothing");
+		resolveDelete = new JRadioButton("Choose one linkage randomly and delete others");
+		resolveManual = new JRadioButton("Ask me what to do");
+		
+		ButtonGroup group1 = new ButtonGroup();
+		group1.add(resolveDoNothing);
+		group1.add(resolveDelete);
+		group1.add(resolveManual);
+		resolveDoNothing.setSelected(true);
+		resolveDelete.setEnabled(false);
+		resolveDoNothing.setEnabled(false);
+		resolveManual.setEnabled(false);
+		resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
+		
+		conflicts.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 20, 0, 20), 0, 0);
+		conflicts.add(resolveLabel, c);
+		c = new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		conflicts.add(resolveDoNothing, c);
+		c = new GridBagConstraints(0, 2, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		conflicts.add(resolveDelete, c);
+		c = new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		conflicts.add(resolveManual, c);
+		
+	}
+
 	private void prepareDeduplication(JPanel deduplication) {
-		String s1 = MainFrame.main.getSystem().getSourceA().getSourceName();
-		String s2 = MainFrame.main.getSystem().getSourceB().getSourceName();;
+		String s1 = MainFrame.main.getJoin().getSourceA().getSourceName();
+		String s2 = MainFrame.main.getJoin().getSourceB().getSourceName();;
 		noDedupe = new JRadioButton("No deduplication");
 		dedupeLeft = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s1, s2}));
 		dedupeRight = new JRadioButton(String.format("<html>Every record from source '%s' can be linked with at most one record from source '%s'</html>", new Object[] {s2, s1}));
@@ -240,18 +279,6 @@ public class ChooseResultSaversAction extends WizardAction {
 		group.add(dedupeLeft);
 		group.add(dedupeRight);
 		group.add(dedupeBoth);
-		
-		resolveLabel = new JLabel();
-		resolveDoNothing = new JRadioButton("Do nothing.");
-		resolveDelete = new JRadioButton("Choose one linkage randomly and delete others.");
-		
-		ButtonGroup group1 = new ButtonGroup();
-		group1.add(resolveDoNothing);
-		group1.add(resolveDelete);
-		resolveDoNothing.setSelected(true);
-		resolveDelete.setEnabled(false);
-		resolveDoNothing.setEnabled(false);
-		resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
 		
 		noDedupe.addActionListener(new RadioSelector());
 		dedupeLeft.addActionListener(new RadioSelector());
@@ -269,19 +296,6 @@ public class ChooseResultSaversAction extends WizardAction {
 		c = new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
 		deduplication.add(dedupeBoth, c);
 		dedupeBoth.setVerticalTextPosition(SwingConstants.TOP);
-		
-		separator = new JPanel(new BorderLayout());
-		separator.add(new JSeparator());
-		separator.setMinimumSize(new Dimension(10, 10));
-		c = new GridBagConstraints(0, 4, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
-		deduplication.add(separator, c);
-		
-		c = new GridBagConstraints(0, 5, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 20, 0, 20), 0, 0);
-		deduplication.add(resolveLabel, c);
-		c = new GridBagConstraints(0, 6, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 40, 0, 40), 0, 0);
-		deduplication.add(resolveDoNothing, c);
-		c = new GridBagConstraints(0, 7, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 40, 0, 40), 0, 0);
-		deduplication.add(resolveDelete, c);
 	}
 
 	private String getColor(JRadioButton label) {
@@ -323,17 +337,27 @@ public class ChooseResultSaversAction extends WizardAction {
 		Map map = new HashMap();
 		if (dedupeLeft.isSelected()) {
 			map.put(dedupeParam, dedupeLeftConfig);
-			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+			map.put(resolveParam, getParamResolve());
 		} else if (dedupeRight.isSelected()) {
 			map.put(dedupeParam, dedupeRightConfig);
-			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+			map.put(resolveParam, getParamResolve());
 		} else if (dedupeBoth.isSelected()) {
 			map.put(dedupeParam, dedupeBothConfig);
-			map.put(resolveParam, String.valueOf(resolveDelete.isSelected()));
+			map.put(resolveParam, getParamResolve());
 		}
 		return map;
 	}
 	
+	private String getParamResolve() {
+		if (resolveDelete.isSelected()) {
+			return "true";
+		} else if (resolveManual.isSelected()) {
+			return resolveParamAsk;
+		} else {
+			return "false";
+		}
+	}
+
 	public void setResultSavers(AbstractResultsSaver savers) {
 		if (savers == null) return;
 		table.removeAllRows();
@@ -357,6 +381,8 @@ public class ChooseResultSaversAction extends WizardAction {
 			}
 			if (props.get(resolveParam).equals("true")) {
 				resolveDelete.setSelected(true);
+			} else if (props.get(resolveParam).equals(resolveParamAsk)) {
+				resolveManual.setSelected(true);
 			} else {
 				resolveDoNothing.setSelected(true);
 			}
@@ -373,8 +399,9 @@ public class ChooseResultSaversAction extends WizardAction {
 	private void updateSelection() {
 		resolveDoNothing.setEnabled(!noDedupe.isSelected());
 		resolveDelete.setEnabled(!noDedupe.isSelected());
-		separator.setEnabled(!noDedupe.isSelected());
-		resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
+		resolveManual.setEnabled(!noDedupe.isSelected());
+		//separator.setEnabled(!noDedupe.isSelected());
+		//resolveLabel.setText(String.format(resolve, new Object[] {getColor(resolveDoNothing)}));
 	}
 
 	public void dispose() {

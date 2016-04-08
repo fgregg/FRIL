@@ -73,7 +73,7 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 		if (on) {
 			button = (JButton)arg0.getSource();
 			button.setEnabled(false);
-			ConfiguredSystem system = MainFrame.main.getSystem();
+			ConfiguredSystem system = MainFrame.main.getJoin();
 			String error = null;
 			try {
 				panel.okPressed(null);
@@ -103,7 +103,7 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 		if (timer != null && timer.isRunning()) timer.stop();
 		timer = new Timer(700, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				ConfiguredSystem system = MainFrame.main.getSystem();
+				ConfiguredSystem system = MainFrame.main.getJoin();
 				panel.okPressed(null);
 				ConditionItem item = panel.getConditionItem();
 				if (item != null) {

@@ -170,7 +170,7 @@ public class ProgressDialog extends JDialog {
 				if (statistics != null) {
 					statistics.toFront();
 				} else {
-					statistics = new HistogramDialog(ProgressDialog.this, "Linkage statistics", MainFrame.main.getSystem().getJoin().getJoinStatisticsListener());
+					statistics = new HistogramDialog(ProgressDialog.this, "Linkage statistics", MainFrame.main.getJoin().getJoin().getJoinStatisticsListener());
 					statistics.addWindowListener(new WindowAdapter() {
 						public void windowClosing(WindowEvent e) {
 							statistics = null;
@@ -180,8 +180,19 @@ public class ProgressDialog extends JDialog {
 				}
 			}
 		});
+		
+//		JButton linkages = new JButton(Configs.analysisButtonIcon);
+//		linkages.setPreferredSize(new Dimension(30, 30));
+//		linkages.addActionListener(new ActionListener() {
+//			public void actionPerformed(ActionEvent e) {
+//				MainFrame.main.openLinkagesDialog();
+//			}
+//		});
+		
 		//stats.setPreferredSize(new Dimension(160, 20));
 		buttons.add(Box.createRigidArea(new Dimension(30, 30)));
+		//buttons.add(linkages);
+		//buttons.add(Box.createRigidArea(new Dimension(10, 10)));
 		buttons.add(stats);
 		mainPanel.add(buttons, getDefaultConstraints());
 		

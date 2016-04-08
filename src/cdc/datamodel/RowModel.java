@@ -83,7 +83,7 @@ public class RowModel {
 	public int getCellId(DataColumnDefinition cell) {
 		int index = columns.indexOf(cell);
 		if (index == -1) {
-			throw new RuntimeException("Column " + cell.getColumnName() + " not provided by data source " + cell + ". Columns are: " + PrintUtils.printArray(columnsInt));
+			throw new RuntimeException("Column " + cell.getColumnName() + " not provided by data source " + cell.getSourceName() + ". Columns are: " + PrintUtils.printArray(columnsInt));
 		}
 		return index;
 	}

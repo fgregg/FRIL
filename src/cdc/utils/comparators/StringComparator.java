@@ -40,9 +40,19 @@ import cdc.datamodel.DataCell;
 import cdc.utils.CompareFunctionInterface;
 
 public class StringComparator implements CompareFunctionInterface {
-
+	
+	private int order;
+	
+	public StringComparator() {
+		order = ORDER_ASC;
+	}
+	
+	public StringComparator(int order) {
+		this.order = order;
+	}
+	
 	public int compare(DataCell cellA, DataCell cellB) {
-		return ((String)cellA.getValue()).toLowerCase().compareTo(((String)cellB.getValue()).toLowerCase());
+		return order * ((String)cellA.getValue()).toLowerCase().compareTo(((String)cellB.getValue()).toLowerCase());
 	}
 
 	public String toString() {

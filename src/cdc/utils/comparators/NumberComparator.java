@@ -42,14 +42,23 @@ import cdc.utils.CompareFunctionInterface;
 public class NumberComparator implements CompareFunctionInterface {
 
 	private CompareFunctionInterface specialCase = new StringComparator();
+	private int order;
+	
+	public NumberComparator() {
+		order = CompareFunctionInterface.ORDER_ASC;
+	}
+	
+	public NumberComparator(int order) {
+		this.order = order;
+	}
 	
 	public int compare(DataCell cellA, DataCell cellB) {
 		try {
 			Double n1 = new Double(cellA.getValue().toString());
 			Double n2 = new Double(cellB.getValue().toString());
-			return n1.compareTo(n2);
+			return order * n1.compareTo(n2);
 		} catch (NumberFormatException e) {
-			return specialCase.compare(cellA, cellB);
+			return order * specialCase.compare(cellA, cellB);
 		}
 	}
 	

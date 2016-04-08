@@ -63,8 +63,6 @@ import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 
 public class TablePanel extends JPanel {
 
-	private static final Dimension PREFERRED_SIZE = new Dimension(20, 20);
-
 	public class TableModelProxy implements TableModelListener {
 
 		private ChangedConfigurationListener listener;
@@ -103,23 +101,52 @@ public class TablePanel extends JPanel {
 	private JButton edit = new JButton(Configs.editButtonIcon);
 	private JButton remove = new JButton(Configs.removeButtonIcon);
 	
+	private Class[] columnClasses;
+	private int[] editableColumns;
+	
+	
+	
 	public TablePanel(String[] columns, boolean editOn) {
 		this(columns, editOn, BUTTONS_LEFT);
 	}
 	
 	public TablePanel(String[] columns, boolean editOn, int buttonsOrientation) {
-		this(columns, editOn, true, buttonsOrientation);
+		this(columns, editOn, true, buttonsOrientation, null, true);
 	}
 	
 	public TablePanel(String[] columns, boolean editOn, boolean addRemoveOn) {
-		this(columns, editOn, addRemoveOn, BUTTONS_LEFT);
+		this(columns, editOn, addRemoveOn, BUTTONS_LEFT, null, true);
+	}
+	
+	public TablePanel(String[] columns, boolean editOn, boolean addRemoveOn, boolean upDownEnabled) {
+		this(columns, editOn, addRemoveOn, BUTTONS_LEFT, null, upDownEnabled);
+	}
+	
+	public TablePanel(String[] columns, Class[] columnClasses) {
+		this(columns, true, columnClasses);
+	}
+	
+	public TablePanel(String[] columns, boolean editOn, Class[] columnClasses) {
+		this(columns, editOn, BUTTONS_LEFT, columnClasses);
+	}
+	
+	public TablePanel(String[] columns, boolean editOn, int buttonsOrientation, Class[] columnClasses) {
+		this(columns, editOn, true, buttonsOrientation, columnClasses, true);
+	}
+	
+	public TablePanel(String[] columns, boolean editOn, boolean addRemoveOn, Class[] columnClasses) {
+		this(columns, editOn, addRemoveOn, BUTTONS_LEFT, columnClasses, true);
 	}
 	
 	public TablePanel(String[] columns) {
 		this(columns, true);
 	}
-
+	
 	public TablePanel(String[] columns, boolean editOn, boolean addRemoveOn, int buttonsOrientation) {
+		this(columns, editOn, addRemoveOn, buttonsOrientation, null, true);
+	}
+
+	public TablePanel(String[] columns, boolean editOn, boolean addRemoveOn, int buttonsOrientation, Class[] columnClasses, boolean upDownEnabled) {
 		
 		edit.setToolTipText("Edit selected entry");
 		add.setToolTipText("Add new entry");
@@ -128,10 +155,27 @@ public class TablePanel extends JPanel {
 		edit.setEnabled(false);
 		remove.setEnabled(false);
 		
-		tableModel = new DefaultTableModel(columns, 0);
+		setColumnClasses(columnClasses);
+		tableModel = new DefaultTableModel(columns, 0) {
+			public Class getColumnClass(int columnIndex) {
+				if (TablePanel.this.columnClasses == null || TablePanel.this.columnClasses.length <= columnIndex) {
+					return super.getColumnClass(columnIndex);
+				} else {
+					return TablePanel.this.columnClasses[columnIndex];
+				}
+			}
+		};
+		
 		table = new JTable() {
 			 public boolean isCellEditable(int row, int column) {
-					return false;
+				 if (editableColumns != null) {
+					 for (int i = 0; i < editableColumns.length; i++) {
+						if (editableColumns[i] == column) {
+							return true;
+						}
+					}
+				 }
+				return false; 
 			}
 		};
 		
@@ -141,70 +185,73 @@ public class TablePanel extends JPanel {
 		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(edit));
 		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(remove));
 		
-		JButton up = new JButton(Configs.upArrow);
-		JButton down = new JButton(Configs.downArrow);
-		up.setPreferredSize(new Dimension(20, 20));
-		down.setPreferredSize(new Dimension(20, 20));
-		up.setEnabled(false);
-		down.setEnabled(false);
+		GridBagConstraints c = null;
 		JPanel upDownPanel = new JPanel();
-		upDownPanel.setLayout(new GridBagLayout());
-		GridBagConstraints c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 0;
-		c.anchor = GridBagConstraints.PAGE_START;
-		c.weightx = 0;
-		c.weighty = 1;
-		upDownPanel.add(up, c);
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 1;
-		c.anchor = GridBagConstraints.PAGE_END;
-		c.weightx = 0;
-		c.weighty = 1;
-		upDownPanel.add(down, c);
-		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(up));
-		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(down));
-		up.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				int[] row = table.getSelectedRows();
-				table.clearSelection();
-				for (int i = 0; i < row.length; i++) {
-					if (row[i] > 0) {
-						Vector data = (Vector) tableModel.getDataVector();
-						Vector v = (Vector)data.get(row[i]);
-						tableModel.removeRow(row[i]);
-						tableModel.insertRow(row[i]-1, (Vector)v);
-						table.addRowSelectionInterval(row[i]-1, row[i]-1);
-						table.scrollRectToVisible(table.getCellRect(row[i]-1, 0, true));
+		if (upDownEnabled) {
+			JButton up = new JButton(Configs.upArrow);
+			JButton down = new JButton(Configs.downArrow);
+			up.setPreferredSize(new Dimension(20, 20));
+			down.setPreferredSize(new Dimension(20, 20));
+			up.setEnabled(false);
+			down.setEnabled(false);
+			upDownPanel.setLayout(new GridBagLayout());
+			c = new GridBagConstraints();
+			c.gridx = 0;
+			c.gridy = 0;
+			c.anchor = GridBagConstraints.PAGE_START;
+			c.weightx = 0;
+			c.weighty = 1;
+			upDownPanel.add(up, c);
+			c = new GridBagConstraints();
+			c.gridx = 0;
+			c.gridy = 1;
+			c.anchor = GridBagConstraints.PAGE_END;
+			c.weightx = 0;
+			c.weighty = 1;
+			upDownPanel.add(down, c);
+			table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(up));
+			table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(down));
+			up.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					int[] row = table.getSelectedRows();
+					table.clearSelection();
+					for (int i = 0; i < row.length; i++) {
+						if (row[i] > 0) {
+							Vector data = (Vector) tableModel.getDataVector();
+							Vector v = (Vector)data.get(row[i]);
+							tableModel.removeRow(row[i]);
+							tableModel.insertRow(row[i]-1, (Vector)v);
+							table.addRowSelectionInterval(row[i]-1, row[i]-1);
+							table.scrollRectToVisible(table.getCellRect(row[i]-1, 0, true));
+						}
+					}
+					if (row.length != 0 && row[0] > 1) {
+						table.scrollRectToVisible(table.getCellRect(row[0] - 2, 0, true));
 					}
 				}
-				if (row.length != 0 && row[0] > 1) {
-					table.scrollRectToVisible(table.getCellRect(row[0] - 2, 0, true));
-				}
-			}
-		});
-		down.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				int[] row = table.getSelectedRows();
-				table.clearSelection();
-				for (int i = 0; i < row.length; i++) {
-					if (row[i] < tableModel.getRowCount()-1) {
-						Vector data = (Vector) tableModel.getDataVector();
-						Vector v = (Vector)data.get(row[i]);
-						tableModel.removeRow(row[i]);
-						tableModel.insertRow(row[i]+1, (Vector)v);
-						table.addRowSelectionInterval(row[i]+1, row[i]+1);
-						table.scrollRectToVisible(table.getCellRect(row[i]+1, 0, true));
+			});
+			down.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					int[] row = table.getSelectedRows();
+					table.clearSelection();
+					for (int i = 0; i < row.length; i++) {
+						if (row[i] < tableModel.getRowCount()-1) {
+							Vector data = (Vector) tableModel.getDataVector();
+							Vector v = (Vector)data.get(row[i]);
+							tableModel.removeRow(row[i]);
+							tableModel.insertRow(row[i]+1, (Vector)v);
+							table.addRowSelectionInterval(row[i]+1, row[i]+1);
+							table.scrollRectToVisible(table.getCellRect(row[i]+1, 0, true));
+						}
+					}
+					if (row.length != 0) {
+						table.scrollRectToVisible(table.getCellRect(row[0] + 2, 0, true));
 					}
 				}
-				if (row.length != 0) {
-					table.scrollRectToVisible(table.getCellRect(row[0] + 2, 0, true));
-				}
-			}
-		});
-		
-		upDownPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 10));
+			});
+			
+			upDownPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 10));
+		}
 		
 		JScrollPane scroll = new JScrollPane(table);
 		
@@ -226,15 +273,17 @@ public class TablePanel extends JPanel {
 		c.weighty = 1;
 		c.anchor = GridBagConstraints.FIRST_LINE_START;
 		c.fill = GridBagConstraints.BOTH;
-		this.add(upDownPanel, c);
+		if (upDownEnabled) {
+			this.add(upDownPanel, c);
+		}
 		if (addRemoveOn) {
 			if (buttonsOrientation == BUTTONS_LEFT) {
-				add.setPreferredSize(PREFERRED_SIZE);
-				edit.setPreferredSize(PREFERRED_SIZE);
-				remove.setPreferredSize(PREFERRED_SIZE);
-				add.setMaximumSize(PREFERRED_SIZE);
-				edit.setMaximumSize(PREFERRED_SIZE);
-				remove.setMaximumSize(PREFERRED_SIZE);
+				add.setPreferredSize(Configs.PREFERRED_SIZE);
+				edit.setPreferredSize(Configs.PREFERRED_SIZE);
+				remove.setPreferredSize(Configs.PREFERRED_SIZE);
+				add.setMaximumSize(Configs.PREFERRED_SIZE);
+				edit.setMaximumSize(Configs.PREFERRED_SIZE);
+				remove.setMaximumSize(Configs.PREFERRED_SIZE);
 				JPanel buttons = new JPanel();
 				buttons.setLayout(new GridBagLayout());
 				buttons.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 0));
@@ -280,9 +329,9 @@ public class TablePanel extends JPanel {
 				c.gridx = 2;
 				c.gridy = 0;
 				buttons.add(remove, c);
-				add.setPreferredSize(PREFERRED_SIZE);
-				edit.setPreferredSize(PREFERRED_SIZE);
-				remove.setPreferredSize(PREFERRED_SIZE);
+				add.setPreferredSize(Configs.PREFERRED_SIZE);
+				edit.setPreferredSize(Configs.PREFERRED_SIZE);
+				remove.setPreferredSize(Configs.PREFERRED_SIZE);
 				
 				c = new GridBagConstraints();
 				c.gridx = 1;
@@ -398,5 +447,17 @@ public class TablePanel extends JPanel {
 
 	public void addTablePropertyChangeListener(ChangedConfigurationListener propertyListener) {
 		table.getModel().addTableModelListener(new TableModelProxy(propertyListener));
+	}
+	
+	public void setColumnClasses(Class[] classes) {
+		this.columnClasses = classes;
+	}
+	
+	public void setEditableColumns(int[] editableColumns) {
+		this.editableColumns = editableColumns;
+	}
+
+	public JTable getTable() {
+		return table;
 	}
 }

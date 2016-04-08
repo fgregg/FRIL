@@ -45,6 +45,8 @@ import java.util.Map;
 
 public class DataRow implements Externalizable {
 	
+	private static int id = 1;
+	
 	private String sourceName;
 	
 	private int recordId;
@@ -55,22 +57,22 @@ public class DataRow implements Externalizable {
 	
 	private Map properties = null;
 	
+	public synchronized static final int getId() {
+		return id++;
+	}
+	
 	public DataRow() {
-		//System.out.println("Constructor!!!!!");
-		this.recordId = super.hashCode();
 	}
 	
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data) {
 		this(rowModel, data, "Unknown data source");
-		this.recordId = super.hashCode();
 	}
 	
 	public DataRow(DataColumnDefinition[] rowModel, DataCell[] data, String sourceName) {
 		model = RowModel.getRowModel(rowModel);
 		cells = data;
-		//System.out.println("Setting data row: " + PrintUtils.printArray(data));
 		this.sourceName = sourceName;
-		this.recordId = super.hashCode();
+		this.recordId = getId();
 		if (rowModel.length != data.length) {
 			throw new RuntimeException("Row model has to have the same number of items as row cells number.");
 		}
@@ -163,7 +165,7 @@ public class DataRow implements Externalizable {
 		hashString = null;
 	}
 	
-	public void setProperty(String name, String value) {
+	public void setProperty(String name, Object value) {
 		if (properties == null) {
 			properties = new HashMap();
 		}
@@ -173,6 +175,11 @@ public class DataRow implements Externalizable {
 	public String getProperty(String name) {
 		if (properties == null) return null;
 		return (String)properties.get(name);
+	}
+	
+	public Object getObjectProperty(String name) {
+		if (properties == null) return null;
+		return properties.get(name);
 	}
 
 	public Map getProperties() {
@@ -206,6 +213,7 @@ public class DataRow implements Externalizable {
 		}
 		sourceName = (String) in.readObject();
 		properties = (Map) in.readObject();
+		recordId = in.readInt();
 	}
 
 	public void writeExternal(ObjectOutput oo) throws IOException {
@@ -222,6 +230,7 @@ public class DataRow implements Externalizable {
 		}
 		oo.writeObject(sourceName);
 		oo.writeObject(properties);
+		oo.writeInt(recordId);
 	}
 	
 }

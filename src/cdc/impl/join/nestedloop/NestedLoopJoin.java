@@ -80,8 +80,8 @@ public class NestedLoopJoin extends AbstractJoin {
 		public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
 			NestedLoopJoin.this.notifyNotJoined(rowA, rowB);
 		}
-		public void notifyJoined(DataRow rowA, DataRow rowB) throws RJException {
-			NestedLoopJoin.this.notifyJoined(rowA, rowB);
+		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
+			NestedLoopJoin.this.notifyJoined(rowA, rowB, row);
 		}
 		public void notifyTrashingNotJoined(DataRow dataRow) throws RJException {
 			NestedLoopJoin.this.notifyTrashingNotJoined(dataRow);

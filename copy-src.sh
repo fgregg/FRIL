@@ -4,6 +4,12 @@ echo
 echo
 echo "This script will copy and prepare src of FRIL for release"
 
+echo "Removing current icons directory"
+rm -r icons
+
+echo "Copying icons directory"
+cp -r ~/Documents/workspace/CDC/icons .
+
 echo "Removing current src repository from local directory..."
 rm -r src
 

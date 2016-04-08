@@ -41,7 +41,7 @@ import cdc.utils.RJException;
 
 public interface JoinListener {
 	
-	public void rowsJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) throws RJException;
+	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow joinedRow, AbstractJoinCondition condition) throws RJException;
 	public void rowsNotJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) throws RJException;
 	public void trashingJoinedTuple(DataRow row) throws RJException;
 	public void trashingNotJoinedTuple(DataRow row) throws RJException;

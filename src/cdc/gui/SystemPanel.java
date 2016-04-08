@@ -46,9 +46,12 @@ import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -57,11 +60,13 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractResultsSaver;
 import cdc.configuration.ConfiguredSystem;
+import cdc.gui.components.linkagesanalysis.LinkageResultsAnalysisProvider;
 import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.specific.DataSourceWizard;
 import cdc.gui.wizards.specific.JoinWizard;
 import cdc.gui.wizards.specific.ResultsSaversWizard;
+import cdc.impl.resultsavers.DeduplicatingResultsSaver;
 import cdc.utils.RJException;
 
 public class SystemPanel extends JPanel {
@@ -77,20 +82,7 @@ public class SystemPanel extends JPanel {
 
 	private class ConfigClosingListener implements ClosingListener {
 		public boolean closing() {
-			if (altered) {
-				int result = JOptionPane.showConfirmDialog(SystemPanel.this, "Configuration was changed. Do you want to save it?", "Confirm exit", JOptionPane.YES_NO_CANCEL_OPTION);
-				if (result == JOptionPane.YES_OPTION) {
-					if (MainFrame.main.saveCurrentConfiguration(true)) {
-						systemSaved();
-					}
-				} else if (result == JOptionPane.CANCEL_OPTION) {
-					return false;
-				} else {
-					//delete tmp config
-					MainFrame.main.deleteBackupConfig();
-				}
-			}
-			return true;
+			return saveIfNeeded();
 		}
 	}
 	
@@ -202,6 +194,24 @@ public class SystemPanel extends JPanel {
 		}
 	}
 	
+	private class ViewResultsButtonListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			LinkageResultsAnalysisProvider provider;
+			try {
+				provider = new LinkageResultsAnalysisProvider(getSystem().getJoin());
+				viewResultsButton.setEnabled(false);
+				JDialog dialog = provider.getDialogWindow();
+				viewResultsButton.setEnabled(false);
+				dialog.setVisible(true);
+				viewResultsButton.setEnabled(true);
+			} catch (IOException e1) {
+				JXErrorDialog.showDialog(MainFrame.main, "Error when opening the view", e1);
+			} catch (RJException e1) {
+				JXErrorDialog.showDialog(MainFrame.main, "Exception when opening the view", e1);
+			}
+		}
+	}
+	
 	//System specification
 	private JLabel sourceALabel;
 	private JLabel sourceBLabel;
@@ -220,6 +230,13 @@ public class SystemPanel extends JPanel {
 	private JButton sourceBButton;
 	private JButton joinButton;
 	private JButton saversButton;
+	private JButton viewResultsButton;
+	
+	private JLabel filterSrcA;
+	private JLabel filterSrcB;
+	private JLabel dedupeSrcA;
+	private JLabel dedupeSrcB;
+	private JLabel dedupeSaver;
 	
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
@@ -257,23 +274,39 @@ public class SystemPanel extends JPanel {
 		statJoinLabel = new JLabel(STATUS_NOT_CONFIGURED);
 		statSaversLabel = new JLabel(STATUS_NOT_CONFIGURED);
 		
+		filterSrcA = new JLabel(Configs.bulbOff);
+		filterSrcB = new JLabel(Configs.bulbOff);
+		dedupeSrcA = new JLabel(Configs.bulbOff);
+		dedupeSrcB = new JLabel(Configs.bulbOff);
+		dedupeSaver = new JLabel(Configs.bulbOff);
+		
 		sourceAButton = Configs.getConfigurationButton();
 		sourceBButton = Configs.getConfigurationButton();
 		joinButton = Configs.getConfigurationButton();
 		saversButton = Configs.getConfigurationButton();
+		viewResultsButton = Configs.getViewResultsButton();
+		sourceAButton.setToolTipText("Configure data source");
+		sourceBButton.setToolTipText("Configure data source");
+		joinButton.setToolTipText("Configure linkage");
+		saversButton.setToolTipText("Configure results savers");
+		viewResultsButton.setToolTipText("View results");
 		sourceAButton.addActionListener(new SourceAButtonListener());
 		sourceBButton.addActionListener(new SourceBButtonListener());
 		joinButton.addActionListener(new JoinButtonListener());
 		saversButton.addActionListener(new ResultsSaversButtonListener());
+		viewResultsButton.addActionListener(new ViewResultsButtonListener());
+		viewResultsButton.setEnabled(false);
 		
 		sourceAButton.setHorizontalAlignment(JLabel.CENTER);
 		sourceBButton.setHorizontalAlignment(JLabel.CENTER);
 		joinButton.setHorizontalAlignment(JLabel.CENTER);
 		saversButton.setHorizontalAlignment(JLabel.CENTER);
+		viewResultsButton.setHorizontalAlignment(JLabel.CENTER);
 		sourceAButton.setBounds(110, 105, 30, 30);
 		sourceBButton.setBounds(110, 305, 30, 30);
 		joinButton.setBounds(410, 205, 30, 30);
-		saversButton.setBounds(660, 205, 30, 30);
+		saversButton.setBounds(640, 205, 30, 30);
+		viewResultsButton.setBounds(680, 205, 30, 30);
 		
 		sourceALabel.setBounds(50, 50, 150, 20);
 		sourceBLabel.setBounds(50, 250, 150, 20);
@@ -296,6 +329,20 @@ public class SystemPanel extends JPanel {
 		statSourceBLabel.setVerticalTextPosition(JLabel.CENTER);
 		statSourceBLabel.setForeground(COLOR_DISABLED);
 		
+		JLabel filterSrcALabel = new JLabel("Filter", JLabel.LEFT);
+		filterSrcALabel.setBounds(80, 145, 100, 20);
+		filterSrcA.setBounds(60, 145, 20, 20);
+		JLabel dedupeSrcALabel = new JLabel("Deduplication", JLabel.LEFT);
+		dedupeSrcALabel.setBounds(80, 165, 100, 20);
+		dedupeSrcA.setBounds(60, 165, 20, 20);
+		
+		JLabel filterSrcBLabel = new JLabel("Filter", JLabel.LEFT);
+		filterSrcBLabel.setBounds(80, 345, 100, 20);
+		filterSrcB.setBounds(60, 345, 20, 20);
+		JLabel dedupeSrcBLabel = new JLabel("Deduplication", JLabel.LEFT);
+		dedupeSrcBLabel.setBounds(80, 365, 100, 20);
+		dedupeSrcB.setBounds(60, 365, 20, 20);
+		
 		statJoinLabel.setLocation(350, 145);
 		statJoinLabel.setSize(150, 100);
 		statJoinLabel.setIcon(Configs.systemComponentNotConfigured);
@@ -310,6 +357,10 @@ public class SystemPanel extends JPanel {
 		statSaversLabel.setVerticalTextPosition(JLabel.CENTER);
 		statSaversLabel.setForeground(COLOR_DISABLED);
 		
+		JLabel dedupeSaverLabel = new JLabel("Deduplication", JLabel.LEFT);
+		dedupeSaverLabel.setBounds(630, 245, 140, 20);
+		dedupeSaver.setBounds(610, 245, 20, 20);
+		
 		add(sourceALabel);
 		add(sourceBLabel);
 		add(sourceAName);
@@ -320,6 +371,20 @@ public class SystemPanel extends JPanel {
 		add(sourceBButton);
 		add(joinButton);
 		add(saversButton);
+		add(viewResultsButton);
+		
+		add(filterSrcALabel);
+		add(filterSrcA);
+		add(dedupeSrcALabel);
+		add(dedupeSrcA);
+		
+		add(filterSrcBLabel);
+		add(filterSrcB);
+		add(dedupeSrcBLabel);
+		add(dedupeSrcB);
+		
+		add(dedupeSaverLabel);
+		add(dedupeSaver);
 		
 		add(statSourceALabel);
 		add(statSourceBLabel);
@@ -438,6 +503,41 @@ public class SystemPanel extends JPanel {
 	
 	private boolean checkSystemStatus() {
 		processPanel.setConfiguredSystem(getSystem());
+		
+		if (getSystem().getSourceA() != null) {
+			if (getSystem().getSourceA().getDeduplicationConfig() != null) {
+				dedupeSrcA.setIcon(Configs.bulbOn);
+			} else {
+				dedupeSrcA.setIcon(Configs.bulbOff);
+			}
+			if (getSystem().getSourceA().getFilter() != null && !getSystem().getSourceA().getFilter().isEmpty()) {
+				filterSrcA.setIcon(Configs.bulbOn);
+			} else {
+				filterSrcA.setIcon(Configs.bulbOff);
+			}
+		}
+		
+		if (getSystem().getSourceB() != null) {
+			if (getSystem().getSourceB().getDeduplicationConfig() != null) {
+				dedupeSrcB.setIcon(Configs.bulbOn);
+			} else {
+				dedupeSrcB.setIcon(Configs.bulbOff);
+			}
+			if (getSystem().getSourceB().getFilter() != null && !getSystem().getSourceB().getFilter().isEmpty()) {
+				filterSrcB.setIcon(Configs.bulbOn);
+			} else {
+				filterSrcB.setIcon(Configs.bulbOff);
+			}
+		}
+		
+		if (getSystem().getResultSaver() != null) {
+			if (getSystem().getResultSaver() instanceof DeduplicatingResultsSaver) {
+				dedupeSaver.setIcon(Configs.bulbOn);
+			} else {
+				dedupeSaver.setIcon(Configs.bulbOff);
+			}
+		}
+		
 		if (join != null && sourceA != null && sourceB != null && resultSavers != null) {
 			processPanel.setReady(true);
 			return true;
@@ -507,5 +607,47 @@ public class SystemPanel extends JPanel {
 
 	public void setAltered(boolean b) {
 		altered = true;
+	}
+
+	public boolean saveIfNeeded() {
+		if (altered) {
+			int result = JOptionPane.showConfirmDialog(SystemPanel.this, "Configuration was changed. Do you want to save it?", "Confirm exit", JOptionPane.YES_NO_CANCEL_OPTION);
+			if (result == JOptionPane.YES_OPTION) {
+				if (MainFrame.main.saveCurrentConfiguration(true)) {
+					systemSaved();
+				}
+			} else if (result == JOptionPane.CANCEL_OPTION) {
+				return false;
+			} else {
+				//delete tmp config
+				MainFrame.main.deleteBackupConfig();
+			}
+		}
+		return true;
+	}
+
+	public void openLinkagesDialog() {
+		try {
+			LinkageResultsAnalysisProvider provider = new LinkageResultsAnalysisProvider(getSystem().getJoin());
+			JDialog dialog = provider.getDialogWindow();
+			viewResultsButton.setEnabled(false);
+			dialog.addWindowListener(new WindowAdapter() {
+				public void windowClosing(WindowEvent e) {
+					viewResultsButton.setEnabled(true);
+				}
+				public void windowClosed(WindowEvent e) {
+					viewResultsButton.setEnabled(true);
+				}
+			});
+			dialog.setVisible(true);
+		} catch (IOException e1) {
+			JXErrorDialog.showDialog(MainFrame.main, "Error when opening the view", e1);
+		} catch (RJException e1) {
+			JXErrorDialog.showDialog(MainFrame.main, "Exception when opening the view", e1);
+		}
+	}
+
+	public void setViewButtonEnabled(boolean b) {
+		this.viewResultsButton.setEnabled(true);
 	}
 }

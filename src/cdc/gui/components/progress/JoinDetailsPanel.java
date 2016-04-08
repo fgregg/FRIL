@@ -129,7 +129,7 @@ public class JoinDetailsPanel extends JPanel {
 	}
 	
 	private class ReporterJoinListener implements JoinListener {
-		public void rowsJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) {
+		public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) {
 			try {
 				if (table == null) {
 					SwingUtilities.invokeAndWait(new TableCreator(condition));

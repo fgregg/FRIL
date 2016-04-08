@@ -65,6 +65,11 @@ public abstract class AbstractJoin extends SystemComponent {
 	public static final String PROPERTY_SRCB_ID = "id-b";
 	public static final String PROPERTY_JOINED = "was-joined";
 	
+	public static final String PROPERTY_RECORD_SRCA = "rec-a";
+	public static final String PROPERTY_RECORD_SRCB = "rec-b";
+	public static final String PROPERTY_JOIN_MULTIPLICITY = "j-times";
+	
+	
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
 	private DataColumnDefinition[] outColumns;
@@ -130,7 +135,7 @@ public abstract class AbstractJoin extends SystemComponent {
 	}
 	
 	public void enableSummaryForRightSource(String filePrefix) throws RJException {
-		System.out.println("Generic Enable on " + this.hashCode());
+		//System.out.println("Generic Enable on " + this.hashCode());
 		addJoinListener(new DataSourceNotJoinedJoinListener(filePrefix, getSourceB()));
 		summaryRight = true;
 	}
@@ -208,18 +213,18 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 	}
 	
-	protected void notifyJoined(DataRow rowA, DataRow rowB) throws RJException {
+	public void notifyJoined(DataRow rowA, DataRow rowB, DataRow joinedRow) throws RJException {
 		synchronized (mutex) {
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
 					JoinListener listener = (JoinListener) iterator.next();
-					listener.rowsJoined(rowA, rowB, joinCondition);
+					listener.rowsJoined(rowA, rowB, joinedRow, joinCondition);
 				}
 			}
 		}
 	}
 	
-	protected void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
+	public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
 		synchronized (mutex) {
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
@@ -230,7 +235,7 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 	}
 	
-	protected void notifyTrashingJoined(DataRow row) throws RJException {
+	public void notifyTrashingJoined(DataRow row) throws RJException {
 		synchronized (mutex) {
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
@@ -241,8 +246,9 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 	}
 	
-	protected void notifyTrashingNotJoined(DataRow row) throws RJException {
+	public void notifyTrashingNotJoined(DataRow row) throws RJException {
 		synchronized (mutex) {
+			//System.out.println("Saving minus: " + row);
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
 					//System.out.println("Listeners: " + listeners);
@@ -273,19 +279,32 @@ public abstract class AbstractJoin extends SystemComponent {
 	
 	
 	public void close() throws IOException, RJException {
-		if (statsListener != null) {
-			removeJoinListener(statsListener); 
-			statsListener = null;
-		};
+		doClose();
+//		if (statsListener != null) {
+//			removeJoinListener(statsListener); 
+//			statsListener = null;
+//		}
+//		synchronized(mutex) {
+//			if (listeners != null) {
+//				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
+//					JoinListener l = (JoinListener) iterator.next();
+//					l.close();
+//				}
+//			}
+//		}
+		closeListeners();
+	}
+	
+	public void closeListeners() throws RJException {
 		synchronized(mutex) {
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
 					JoinListener l = (JoinListener) iterator.next();
 					l.close();
 				}
+				//listeners.clear();
 			}
 		}
-		doClose();
 	}
 	
 	public void reset(boolean deep) throws IOException, RJException {
@@ -312,18 +331,6 @@ public abstract class AbstractJoin extends SystemComponent {
 		reset(false);
 	}
 	
-	public void closeListeners() throws RJException {
-		synchronized(mutex) {
-			if (listeners != null) {
-				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
-					JoinListener l = (JoinListener) iterator.next();
-					l.close();
-				}
-				listeners.clear();
-			}
-		}
-	}
-	
 	public void setCancelled(boolean cancel) {
 		this.cancel.set(cancel);
 		AbstractDataSource.requestStop(cancel);
@@ -335,9 +342,9 @@ public abstract class AbstractJoin extends SystemComponent {
 	
 	public DataRow joinNext() throws IOException, RJException {
 		DataRow row = doJoinNext();
-		if (row == null) {
-			closeListeners();
-		}
+//		if (row == null) {
+//			closeListeners();
+//		}
 		AbstractDataSource.requestStop(false);
 		return row;
 	}

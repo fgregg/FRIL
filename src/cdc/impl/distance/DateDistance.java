@@ -107,7 +107,7 @@ public class DateDistance extends AbstractDistance {
 				}
 				public void run() {
 					//System.out.println("Started...");
-					ConfiguredSystem system = MainFrame.main.getSystem();
+					ConfiguredSystem system = MainFrame.main.getJoin();
 					AbstractDataSource source = null;
 					if (system.getSourceA().getSourceName().equals(column.getSourceName())) {
 						source = system.getSourceA();
@@ -287,7 +287,7 @@ public class DateDistance extends AbstractDistance {
 			});
 			
 			panel = new ParamsPanel(new String[] {PROP_FORMAT1, PROP_FORMAT2, PROP_RANGE1, PROP_RANGE2, PROP_LINERAL}, 
-					new String[] {"Date/time format (left column)", "Date/time format (right column)", "Range before", "Range after", "Use lineral approximation"}, 
+					new String[] {"Date/time format (left column)", "Date/time format (right column)", "Range before", "Range after", "Use linear approximation"}, 
 					defs, creators);
 			panel.setValidators(validators);
 			

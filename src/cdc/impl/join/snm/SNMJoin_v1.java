@@ -78,11 +78,11 @@ public class SNMJoin_v1 extends AbstractJoin {
 			SNMJoin_v1.this.notifyNotJoined(rowA, rowB);
 		}
 
-		public void notifyJoined(DataRow rowA, DataRow rowB) throws RJException {
+		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
 			synchronized (mutex) {
 				joined++;
 			}
-			SNMJoin_v1.this.notifyJoined(rowA, rowB);
+			SNMJoin_v1.this.notifyJoined(rowA, rowB, row);
 		}
 
 		public DataColumnDefinition[] getOutColumns() {

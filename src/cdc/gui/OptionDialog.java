@@ -96,6 +96,7 @@ public class OptionDialog extends JDialog {
 		c.gridx = 0;
 		c.gridy = n++;
 		c.weightx = 1;
+		c.fill = GridBagConstraints.BOTH;
 		return c;
 	}
 

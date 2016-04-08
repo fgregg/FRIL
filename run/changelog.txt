@@ -1,4 +1,16 @@
-Version 1.0 patch3 (current):
+Version 1.0 patch4 (current)
+1. Fixed bug in results deduplication (error when no linkage results were produced)
+2. Fixed labels in data source wizard
+3. Added "File->New" option
+4. Added filtering of data source
+5. Fixed: minus reporting for blocking search method
+6. Fixed: results deduplication could identify false duplicates (bug in recID of DataRow).
+7. Added results analysis (results analysis dialog)
+8. Added option of manual review of results duplicates (a dialog with questions appears)
+9. Fixed: If necessary, results deduplication adds records to minus files
+10. Fixed: Few other minor bugs fixed
+
+Version 1.0 patch3:
 1. Added Jaro-Winkler distance support
 2. Added deduplication of linkage results (options in results savers config)
 3. Added autorecovery of unsaved configuration if application crashes

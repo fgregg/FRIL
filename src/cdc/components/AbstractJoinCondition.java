@@ -90,7 +90,8 @@ public abstract class AbstractJoinCondition extends SystemComponent  {
 				}
 			}
 			if (functions[i] == null) {
-				throw new RuntimeException("Requested columns " + columnsLeft[i] + " <--> " + columnsRight[i] + " was not added to join condition!");
+				return null;
+				//throw new RuntimeException("Requested columns " + columnsLeft[i] + " <--> " + columnsRight[i] + " was not added to join condition!");
 			}
 			
 		}

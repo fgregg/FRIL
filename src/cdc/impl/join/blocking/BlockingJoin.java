@@ -79,8 +79,8 @@ public class BlockingJoin extends AbstractJoin {
 			return BlockingJoin.this.isAnyJoinListenerRegistered();
 		}
 
-		public void notifyJoined(DataRow rowA, DataRow rowB) throws RJException {
-			BlockingJoin.this.notifyJoined(rowA, rowB);
+		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
+			BlockingJoin.this.notifyJoined(rowA, rowB, row);
 		}
 
 		public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {

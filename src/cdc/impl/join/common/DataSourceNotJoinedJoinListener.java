@@ -76,7 +76,7 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 		System.out.println("Saver created: " + props);
 	}
 
-	public void rowsJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) {
+	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) {
 	}
 
 	public void rowsNotJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) {
@@ -98,7 +98,7 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 	}
 
 	public void close() throws RJException {
-		System.out.println("Close in join listener listener.");
+		System.out.println("Minus saver closed.");
 		if (saver != null) {
 			try {
 				//saver.flush();

@@ -58,6 +58,7 @@ import cdc.utils.Log;
 import cdc.utils.PrintUtils;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 import cdc.utils.Utils;
 
 public class ExternallySortingDataSource extends AbstractDataSource {
@@ -272,6 +273,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 		
 		Log.log(getClass(), "getNextRow()", 3);
 		DataRow row = sortedData.getDataRow();
+		RowUtils.resetRow(row);
 		if (row == null) {
 			Log.log(getClass(), "Finished reading sorted data of source " + parentSource.getSourceName() + ". Read items = " + readItems, 1);
 			return null;
@@ -300,7 +302,7 @@ public class ExternallySortingDataSource extends AbstractDataSource {
 	public AbstractDataSource copy() throws IOException, RJException {
 		ExternallySortingDataSource that = new ExternallySortingDataSource(getSourceName(), parentSource, orderBy, functions, getProperties());
 		initialize();
-		that.setFilterCondition(getFilterCondition());
+		that.setStratumCondition(getFilterCondition());
 		that.initialized = initialized;
 		if (initialized) {
 			that.sortedData = sortedData.copy();

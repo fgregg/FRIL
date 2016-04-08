@@ -243,6 +243,7 @@ public class JDBCDataSource extends AbstractDataSource {
 				//activeResultSet.close();
 				activeStatement.close();
 			} catch (SQLException e) {
+				System.out.println("The error below is likely a warning only and is logged for information purposes. Ignore it.");
 				e.printStackTrace();
 			}
 		}
@@ -251,7 +252,8 @@ public class JDBCDataSource extends AbstractDataSource {
 				jdbcConnection.close();
 				jdbcConnection = null;
 			} catch (SQLException e) {
-				throw new RJException("Error closing the database connection", e);
+				System.out.println("The error below is likely a warning only and is logged for information purposes. Ignore it.");
+				e.printStackTrace();
 			}
 		}
 		connected = false;

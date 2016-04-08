@@ -186,7 +186,7 @@ public class DNMJoin extends AbstractJoin {
 						if (isAnyJoinListenerRegistered()) {
 							rowA.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 							rowB.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							notifyJoined(rowA, rowB);
+							notifyJoined(rowA, rowB, joined);
 						}
 						rowA.setProperty(PROPERTY_JOINED, "true");
 						rowB.setProperty(PROPERTY_JOINED, "true");

@@ -63,6 +63,8 @@ public class JoiningThread extends Thread {
 			return String.valueOf(n);
 		}
 	}
+
+	private static final String PROP_IS_OUT_OF_BUFFER = "out";
 	
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB; 
@@ -234,7 +236,7 @@ public class JoiningThread extends Thread {
 			first  = false;
 		}
 		while (true) {
-			
+//			boolean report = false;
 			if (connector.isCancelled() || stop) {
 				return;
 			}
@@ -247,6 +249,10 @@ public class JoiningThread extends Thread {
 			if (candidates == null) {
 				return;
 			}
+//			if (candidates[1].getData("id").getValue().equals("1101")) {
+//				System.out.println("Hello...");
+//				report = true;
+//			}
 			
 			if (candidates[0].getSourceName().equals(connector.getJoinCondition().getLeftJoinColumns()[0].getSourceName())) {
 				rowA = candidates[0];
@@ -264,12 +270,15 @@ public class JoiningThread extends Thread {
 			EvaluatedCondition eval;
 			//log(rowA.getData("ID").getValue() + "  " + rowB.getData("ID").getValue());
 			if ((eval = connector.getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
+//				if (report) {
+//					System.out.println("Joined: " + rowA.getData("id") + "  ---  " + rowB.getData("id"));
+//				}
 				DataRow joined = RowUtils.buildMergedRow(rowA, rowB, connector.getOutColumns());
 				joined.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 				if (connector.isAnyJoinListenerRegistered()) {
 					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-					connector.notifyJoined(rowA, rowB);
+					connector.notifyJoined(rowA, rowB, joined);
 					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
 					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
 				}
@@ -283,6 +292,14 @@ public class JoiningThread extends Thread {
 					connector.notifyNotJoined(rowA, rowB);
 					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
 					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
+				}
+				String property = rowA.getProperty(PROP_IS_OUT_OF_BUFFER);
+				if (property != null && property.equals("t")) {
+					dispose(rowA);
+				}
+				String property2 = rowB.getProperty(PROP_IS_OUT_OF_BUFFER);
+				if (property2 != null && property2.equals("t")) {
+					dispose(rowB);
 				}
 			}
 			//log("\n");
@@ -341,6 +358,7 @@ public class JoiningThread extends Thread {
 			lastIndex = getIndex(first, testedNumber);
 			if (lastIndex == -1) {
 				substractedFromBuffer((DataRow)buffer.removeFirst());
+				dispose(first);
 				testedNumber = 0;
 				prevIndex = 0;
 				continue;
@@ -368,11 +386,18 @@ public class JoiningThread extends Thread {
 			rightAfterLeftEnded++;
 		}
 		readB++;
-		return sourceB.getNextRow();
+		DataRow nextRow = sourceB.getNextRow();
+		if (nextRow != null) {
+			nextRow.setProperty(PROP_IS_OUT_OF_BUFFER, "f");
+		}
+		return nextRow;
 	}
 
 	private DataRow getNextA() throws IOException, RJException {
 		DataRow row = sourceA.getNextRow();
+		if (row != null) {
+			row.setProperty(PROP_IS_OUT_OF_BUFFER, "f");
+		}
 		readFromLeft++;
 		if (row == null) {
 			leftEnded  = true;
@@ -410,7 +435,8 @@ public class JoiningThread extends Thread {
 	}
 
 	private void substractedFromBuffer(DataRow row) throws RJException {
-		dispose(row);
+		//dispose(row);
+		row.setProperty(PROP_IS_OUT_OF_BUFFER, "t");
 		if (row.getSourceName().equals(sourceA.getSourceName())) {
 			bufferedLeft--;
 			mapLeft.remove(0);

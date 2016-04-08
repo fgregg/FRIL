@@ -94,6 +94,18 @@ public class BlockingJoinThread extends Thread {
 						break main;
 					}
 					tA += activeBucket[0].length; tB += activeBucket[1].length;
+					if (activeBucket[0].length == 0) {
+						//report to minus all the records
+						for (int i = 0; i < activeBucket[1].length; i++) {
+							join.notifyTrashingNotJoined(activeBucket[1][i]);
+						}
+					}
+					if (activeBucket[1].length == 0) {
+						//report to minus all the records
+						for (int i = 0; i < activeBucket[0].length; i++) {
+							join.notifyTrashingNotJoined(activeBucket[0][i]);
+						}
+					}
 				} while (activeBucket[0].length == 0 || activeBucket[1].length == 0);
 				index1 = index2 = 0;
 				//System.out.println("Buckets: " + activeBucket[0].length + " <--> " + activeBucket[1].length);
@@ -112,7 +124,7 @@ public class BlockingJoinThread extends Thread {
 						if (join.isAnyJoinListenerRegistered()) {
 							rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 							rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							join.notifyJoined(rowA, rowB);
+							join.notifyJoined(rowA, rowB, joined);
 						}
 						rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 						rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");

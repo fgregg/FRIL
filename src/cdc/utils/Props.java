@@ -75,6 +75,26 @@ public class Props {
 		return prop;
 	}
 	
+	public static int getInteger(String name, int defVal) {
+		String val = readProperty(name);
+		return val == null ? defVal : Integer.parseInt(val);
+	}
+	
+	public static double getDouble(String name, double defVal) {
+		String val = readProperty(name);
+		return val == null ? defVal : Double.parseDouble(val);
+	}
+	
+	public static long getLong(String name, long defVal) {
+		String val = readProperty(name);
+		return val == null ? defVal : Long.parseLong(val);
+	}
+	
+	public static String getString(String name, String defVal) {
+		String val = readProperty(name);
+		return val == null ? defVal : val;
+	}
+	
 	public static int getInteger(String name) {
 		return Integer.parseInt(readPropertyGuaranteed(name));
 	}

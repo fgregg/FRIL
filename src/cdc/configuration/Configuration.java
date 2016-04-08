@@ -99,6 +99,8 @@ public class Configuration {
 
 	public static final String DEDUPLICATION_TAG = "deduplication";
 
+	public static final String FILTER_TAG = "filter-condition";
+
 	public static boolean stopForced = false;
 	
 	private File config;

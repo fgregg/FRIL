@@ -42,6 +42,7 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractResultsSaver;
 import cdc.configuration.Configuration;
+import cdc.configuration.ConfiguredSystem;
 import cdc.datamodel.DataRow;
 import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.impl.resultsavers.DeduplicatingResultsSaver;
@@ -57,6 +58,7 @@ import cdc.utils.RJException;
 public class Main implements FrilAppInterface {
 	
 	private Configuration join;
+	private ConfiguredSystem system;
 	private StringBuilder linkageSummary;
 	
 	/**
@@ -68,6 +70,7 @@ public class Main implements FrilAppInterface {
 	 */
 	public Main(String configFile) throws RJException, IOException {
 		join = Configuration.getConfiguration(configFile);
+		system = new ConfiguredSystem(join.getDataSources()[0], join.getDataSources()[1], join.getJoin(), join.getResultsSaver());
 	}
 	
 	/**
@@ -198,6 +201,10 @@ public class Main implements FrilAppInterface {
 	public int rerun() throws IOException, RJException {
 		join.getJoin().reset();
 		return runJoin();
+	}
+
+	public ConfiguredSystem getJoin() {
+		return system;
 	}
 	
 }

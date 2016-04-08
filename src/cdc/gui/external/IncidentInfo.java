@@ -115,15 +115,19 @@ public class IncidentInfo {
     	}
 		if (localizedMessage.length() > 100) {
 			if (localizedMessage.indexOf(' ', 100) == -1) {
-				return localizedMessage.substring(0, 100) + "<br>" + 
+				return format(localizedMessage.substring(0, 100)) + "<br>" + 
 							breakLines(localizedMessage.substring(100));
 			} else {
-				return localizedMessage.substring(0, localizedMessage.indexOf(' ', 100)) + "<br>" + 
+				return format(localizedMessage.substring(0, localizedMessage.indexOf(' ', 100))) + "<br>" + 
 							breakLines(localizedMessage.substring(localizedMessage.indexOf(' ', 100)).trim());
 			}
 		} else {
 			return localizedMessage;
 		}
+	}
+
+	private String format(String substring) {
+		return substring.replaceAll("<", "&lt").replaceAll(">", "&gt");
 	}
 
 	public IncidentInfo(String header, String basicErrorMessage, String detailedErrorMessage) {

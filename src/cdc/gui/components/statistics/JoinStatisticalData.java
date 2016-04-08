@@ -80,7 +80,7 @@ public class JoinStatisticalData implements JoinListener {
 		initializeSettings();
 	}
 
-	public void rowsJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) throws RJException {
+	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) throws RJException {
 		linked.incrementAndGet();
 		int confidence = Integer.parseInt(rowA.getProperty(AbstractJoin.PROPERTY_CONFIDNCE).toString());
 		synchronized (this) {

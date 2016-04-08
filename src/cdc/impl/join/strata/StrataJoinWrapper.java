@@ -200,6 +200,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 				}
 				optimizedJoins[activeJoin.get()].getSourceA().reset();
 				optimizedJoins[activeJoin.get()].getSourceB().reset();
+				//optimizedJoins[activeJoin.get()].closeListeners();
 				synchronized (set) {
 					activeJoin.incrementAndGet();
 				}
@@ -240,8 +241,8 @@ public class StrataJoinWrapper extends AbstractJoin {
 			condsA = stratum.getSourceA();
 			condsB = stratum.getSourceB();
 		}
-		this.optimizedJoins[joinId].getSourceA().setFilterCondition(condsA);
-		this.optimizedJoins[joinId].getSourceB().setFilterCondition(condsB);
+		this.optimizedJoins[joinId].getSourceA().setStratumCondition(condsA);
+		this.optimizedJoins[joinId].getSourceB().setStratumCondition(condsB);
 		//this.optimizedJoins[joinId].reset();
 //		synchronized (set) {
 //			if (listener != null && !set[joinId]) {
@@ -311,7 +312,6 @@ public class StrataJoinWrapper extends AbstractJoin {
 	}
 	
 	public void enableSummaryForRightSource(String filePrefix) throws RJException {
-		System.out.println("Enable on " + this.hashCode());
 		if (sameJoinConfigs) {
 			optimizedJoins[0].enableSummaryForRightSource("");
 		} else {
@@ -362,12 +362,6 @@ public class StrataJoinWrapper extends AbstractJoin {
 		synchronized (set) {
 			synchronized (this) {
 				if (optimizedJoins != null) {
-//					this.listener = listener;
-//					int act = activeJoin.get();
-//					if (act < optimizedJoins.length) {
-//						set[act] = true;
-//						optimizedJoins[act].addJoinListener(listener);
-//					}
 					for (int i = 0; i < optimizedJoins.length; i++) {
 						optimizedJoins[i].addJoinListener(listener);
 					}
@@ -380,14 +374,30 @@ public class StrataJoinWrapper extends AbstractJoin {
 		synchronized (set) {
 			synchronized (this) {
 				if (optimizedJoins != null) {
-//					this.listener = null;
-//					set[activeJoin.get()] = false;
-//					optimizedJoins[activeJoin.get()].removeJoinListener(listener);
 					for (int i = 0; i < optimizedJoins.length; i++) {
 						optimizedJoins[i].removeJoinListener(listener);
 					}
 				}
 			}
+		}
+	}
+	
+	public void closeListeners() throws RJException {
+		synchronized(set) {
+			if (optimizedJoins != null)
+			for (int i = 0; i < optimizedJoins.length; i++) {
+				optimizedJoins[i].closeListeners();
+			}
+		}
+	}
+	
+	public void notifyTrashingNotJoined(DataRow row) throws RJException {
+		synchronized(set) {
+			int jId = activeJoin.get();
+			if (jId == optimizedJoins.length) {
+				jId--;
+			}
+			optimizedJoins[jId].notifyTrashingNotJoined(row);
 		}
 	}
 	

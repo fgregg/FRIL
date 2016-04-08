@@ -73,20 +73,35 @@ public class RowUtils {
 		row.setProperies(props);
 		row.setProperty(AbstractJoin.PROPERTY_SRCA_ID, String.valueOf(rowA.getRecordId()));
 		row.setProperty(AbstractJoin.PROPERTY_SRCB_ID, String.valueOf(rowB.getRecordId()));
+		
+		//experimental - to be able to save minus after deduplication
+		increment(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		increment(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCA, rowA);
+		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCB, rowB);
+		
 		return row;
 	}
 	
-//	public static boolean areRowsEqual(DataRow rowA, DataRow rowB, JoinCondition cond) {
-//		for (int i = 0; i < cond.getLeftJoinColumns().length; i++) {
-//			DataCell cellA = rowA.getData(cond.getLeftJoinColumns()[i]);
-//			DataCell cellB = rowB.getData(cond.getRightJoinColumns()[i]);
-//			if (!cond.getDistances()[i].distanceSatisfied(cellA, cellB)) {
-//				return false;
-//			}
-//		}
-//		return true;
-//	}
+	private static void increment(DataRow row, String prop) {
+		Integer cnt = (Integer) row.getObjectProperty(prop);
+		if (cnt == null) {
+			cnt = new Integer(1);
+			row.setProperty(prop, cnt);
+		} else {
+			row.setProperty(prop, new Integer(cnt.intValue() + 1));
+		}
+	}
 	
+	public static void resetRow(DataRow row) {
+		if (row == null) {
+			return;
+		}
+		row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, null);
+		row.setProperty(AbstractJoin.PROPERTY_JOINED, null);
+		row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, null);
+	}
+
 	public static int compareRows(DataRow rowA, DataRow rowB, DataColumnDefinition[] sourceAJoinCols, DataColumnDefinition[] sourceBJoinCols) {
 		return compareRows(rowA, rowB, sourceAJoinCols, sourceBJoinCols, null);
 	}

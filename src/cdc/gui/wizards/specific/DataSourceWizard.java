@@ -41,33 +41,34 @@ import java.awt.Window;
 import javax.swing.JComponent;
 
 import cdc.components.AbstractDataSource;
+import cdc.components.Filter;
 import cdc.gui.Configs;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
 import cdc.gui.wizards.specific.actions.ChooseSourceAction;
 import cdc.gui.wizards.specific.actions.ChooseSourceFieldsAction;
-import cdc.gui.wizards.specific.actions.DataSourceDeduplication;
+import cdc.gui.wizards.specific.actions.DataSourcePreprocessing;
 import cdc.impl.deduplication.DeduplicationConfig;
 
 public class DataSourceWizard {
 	
 	private static String[] steps = new String[] {
-		"Dedupe data source configuration (step 1 of 3)",
-		"Dedupe data source fields (step 2 of 3)",
-		"Dedupe configuration (step 3 of 3)"
+		"General data source configuration (step 1 of 3)",
+		"Data source fields (step 2 of 3)",
+		"Preprocessing configuration (step 3 of 3)"
 	};
 	
 	private AbstractWizard wizard;
 	
 	private ChooseSourceAction sourceAction;
 	private ChooseSourceFieldsAction sourceFieldsAction;
-	private DataSourceDeduplication sourceDeduplication;
+	private DataSourcePreprocessing sourceDeduplication;
 	
 	public DataSourceWizard(int id, Window parent, AbstractDataSource source, JComponent component, String defaultName) {
 		
 		sourceAction = new ChooseSourceAction(defaultName);
 		sourceFieldsAction = new ChooseSourceFieldsAction(id, sourceAction);
-		sourceDeduplication = new DataSourceDeduplication(sourceAction, source);
+		sourceDeduplication = new DataSourcePreprocessing(sourceAction, source);
 		sourceAction.setDataSource(source);
 		
 		WizardAction[] actions = new WizardAction[] {
@@ -87,8 +88,10 @@ public class DataSourceWizard {
 	
 	public AbstractDataSource getConfiguredDataSource() {
 		DeduplicationConfig deduplication = sourceDeduplication.getDeduplicationConfig();
+		Filter filter = sourceDeduplication.getFilter();
 		AbstractDataSource source = sourceAction.getDataSource();
 		source.setDeduplicationConfig(deduplication);
+		source.setFilter(filter);
 		return source;
 	}
 	

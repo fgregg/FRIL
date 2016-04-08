@@ -151,6 +151,7 @@ public class ProcessPanel extends JPanel {
 				working.setVisible(false);
 				status.setText(STATUS_IDLE);
 				start.setEnabled(true);
+				systemPanel.setViewButtonEnabled(true);
 				systemPanel.invalidate();
 				systemPanel.repaint();
 			}

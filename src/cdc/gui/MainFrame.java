@@ -102,6 +102,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	private static final String PERSISTENT_PARAM_RECENT_PATH = "recent-path";
 	private static final String PERSISTENT_PARAM_RECENT_CONFIG = "recent-config";
 	private static final String PERSISTENT_PARAM_RECENT_BACKUP_CONFIG = "recent-backup-config";
+	private static final String PERSISTENT_PARAM_FIRST_TIME = "new-run";
 	private static final String PERSISTENT_PROPERTIES_FILE_NAME = "properties.bin";
 	public static final String VERSION_PROPERTY_CODENAME = "codename";
 	public static final String VERSION_PROPERTY_V = "version";
@@ -229,6 +230,12 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 
 		this.cpus = CPUInfo.testNumberOfCPUs();
 		Log.log(getClass(), "Number of available CPUs: " + this.cpus);
+		
+		if (getPersistentParam(PERSISTENT_PARAM_FIRST_TIME) == null) {
+			new AboutWindow().setVisible(true);
+			setPersistentParam(PERSISTENT_PARAM_FIRST_TIME, "false");
+			return;
+		}
 
 		if (getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG) != null && 
 				getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG).endsWith("~~")) {
@@ -326,6 +333,18 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 
 	private void loadFileMenu(Menu menu) {
+		MenuItem newItem = new MenuItem("New");
+		newItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (appPanel.saveIfNeeded()) {
+					try {
+						appPanel.setSystem(new ConfiguredSystem(null, null, null, null));
+					} catch (RJException e1) {
+						e1.printStackTrace();
+				}
+				}
+			}
+		});
 		MenuItem open = new MenuItem("Open");
 		open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -385,6 +404,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			}
 		});
 
+		menu.add(newItem);
 		menu.add(open);
 		menu.add(save);
 		menu.add(saveAs);
@@ -513,8 +533,8 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 				return false;
 			}
 		}
-		if (MainFrame.this.getSystem() != null) {
-			MainFrame.this.getSystem().close();
+		if (MainFrame.this.getJoin() != null) {
+			MainFrame.this.getJoin().close();
 		}
 		Log.log(MainFrame.this.getClass(), "Cleanup completed.", 1);
 
@@ -646,7 +666,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		progressReporter.started();
 	}
 
-	public ConfiguredSystem getSystem() {
+	public ConfiguredSystem getJoin() {
 		return appPanel.getSystem();
 	}
 
@@ -696,6 +716,10 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 
 	public Properties getPropertiesVersion() {
 		return propertiesVersion;
+	}
+
+	public void openLinkagesDialog() {
+		appPanel.openLinkagesDialog();
 	}
 
 }

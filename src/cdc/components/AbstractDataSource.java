@@ -72,7 +72,8 @@ public abstract class AbstractDataSource extends SystemComponent {
 	
 	private int position = 0;
 	
-	private AtomicCondition[] filter;
+	private AtomicCondition[] filterStrata;
+	private Filter filter;
 
 	private AbstractDataSource preprocessedDataSource;
 	
@@ -102,12 +103,15 @@ public abstract class AbstractDataSource extends SystemComponent {
 		DataRow row;
 		while ((row = nextRow()) != null) {
 			position++;
-			if (filter == null || filter.length == 0) {
+			if (filter != null && !filter.isSatisfied(row)) {
+				continue;
+			}
+			if (filterStrata == null || filterStrata.length == 0) {
 				return row;
 			}
-			for (int i = 0; i < filter.length; i++) {
-				if (filter[i].isSatisfied(row)) {
-					row.setProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME, filter[i].getStratumName());
+			for (int i = 0; i < filterStrata.length; i++) {
+				if (filterStrata[i].isSatisfied(row)) {
+					row.setProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME, filterStrata[i].getStratumName());
 					return row;
 				}
 			}
@@ -145,10 +149,16 @@ public abstract class AbstractDataSource extends SystemComponent {
 			DOMUtils.setAttribute(conv, Configuration.CONVERTER_ATTR, convs[i].getClass().getName());
 			convs[i].saveToXML(doc, conv);
 		}
-		if (dedupConfig != null) {
+		if (dedupConfig != null || filter != null) {
 			Element preprocessing = DOMUtils.createChildElement(doc, node, Configuration.PREPROCESSING_TAG);
-			Element dedupElement = DOMUtils.createChildElement(doc, preprocessing, Configuration.DEDUPLICATION_TAG);
-			dedupConfig.saveToXML(doc, dedupElement);
+			if (dedupConfig != null) {
+				Element dedupElement = DOMUtils.createChildElement(doc, preprocessing, Configuration.DEDUPLICATION_TAG);
+				dedupConfig.saveToXML(doc, dedupElement);
+			}
+			if (filter != null) {
+				Element filterElement = DOMUtils.createChildElement(doc, preprocessing, Configuration.FILTER_TAG);
+				DOMUtils.setAttribute(filterElement, "condition", filter.toString());
+			}
 		}
 	}
 	
@@ -172,6 +182,10 @@ public abstract class AbstractDataSource extends SystemComponent {
 				Element dedup = DOMUtils.getChildElement(preprocessing, Configuration.DEDUPLICATION_TAG);
 				if (dedup != null) {
 					dataSource.setDeduplicationConfig(DeduplicationConfig.fromXML(dataSource, dedup));
+				}
+				Element filterElement = DOMUtils.getChildElement(preprocessing, Configuration.FILTER_TAG);
+				if (filterElement != null) {
+					dataSource.setFilter(new Filter(filterElement.getAttribute("condition"), dataSource.getDataModel().getOutputFormat()));
 				}
 			}
 			return dataSource;
@@ -245,15 +259,23 @@ public abstract class AbstractDataSource extends SystemComponent {
 		}
 	}
 	
-	public void setFilterCondition(AtomicCondition[] condition) throws IOException, RJException {
+	public void setFilter(Filter filter) {
+		this.filter = filter;
+	}
+	
+	public Filter getFilter() {
+		return filter;
+	}
+	
+	public void setStratumCondition(AtomicCondition[] condition) throws IOException, RJException {
 		//System.out.println(getClass().getName() + " Setting filter: " + PrintUtils.printArray(condition));
-		this.filter = condition;
+		this.filterStrata = condition;
 		//doReset();
 	}
 	
 
 	public AtomicCondition[] getFilterCondition() {
-		return this.filter;
+		return this.filterStrata;
 	}
 
 	public static void requestStop(boolean b) {

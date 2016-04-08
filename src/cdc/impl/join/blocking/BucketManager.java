@@ -63,6 +63,7 @@ import cdc.impl.datastream.DataRowOutputStream;
 import cdc.utils.Log;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 
 public class BucketManager {
 
@@ -104,6 +105,7 @@ public class BucketManager {
 				Log.log(getClass(), "Thread done with data reading. Now pushing results.", 2);
 				//System.out.println("Thread received left: " + addedLeft);
 				//System.out.println("Thread received right: " + addedRight);
+				//verifyBuckets();
 				counter.countDown();
 				addedLeft = addedRight = 0;
 				while (true && !stopped) {
@@ -127,7 +129,20 @@ public class BucketManager {
 							readBucketsFromMem(LEFT);
 							readBucketsFromMem(RIGHT);
 						}
+						
 						bucketsInMemory.addAll(read[LEFT].keySet());
+						for (Iterator iterator = read[RIGHT].keySet().iterator(); iterator.hasNext();) {
+							Bucket b = (Bucket) iterator.next();
+							if (!bucketsInMemory.contains(b)) {
+								bucketsInMemory.add(b);
+							}
+						}
+						
+//						if (read[LEFT].isEmpty()) {
+//							bucketsInMemory.addAll(read[RIGHT].keySet());
+//						} else {
+//							bucketsInMemory.addAll(read[LEFT].keySet());
+//						}
 					}
 					
 					if (bucketsInMemory.isEmpty()) {
@@ -136,6 +151,7 @@ public class BucketManager {
 					
 					DataRow[][] ret = new DataRow[2][];
 					Bucket b = (Bucket) bucketsInMemory.remove(0);
+					
 					ret[0] = getBucket(LEFT, b);
 					ret[1] = getBucket(RIGHT, b);
 					addedLeft += ret[0].length;
@@ -146,6 +162,7 @@ public class BucketManager {
 				Log.log(getClass(), "Thread has completed.", 2);
 				//System.out.println("Thread retrieved left: " + addedLeft);
 				//System.out.println("Thread retrieved right: " + addedRight);
+				//System.out.println("Not touched: " + buckets.size());
 				bufferBuckets.put(new DataRow[][] {});
 				thread = null;
 				return;
@@ -166,6 +183,32 @@ public class BucketManager {
 			thread = null;
 		}
 	}
+	
+//	private void verifyBuckets() {
+//		int l = 0;
+//		int r = 0;
+//		for (Iterator iterator = buckets.values().iterator(); iterator.hasNext();) {
+//			Bucket b = (Bucket) iterator.next();
+//			l += b.getLeftRowsCount();
+//			r += b.getRightRowsCount();
+//			if (b.getLeftRowsCount() == 0) {
+//				System.out.println("Bucket: " + b);
+//			}
+//		}
+//		System.out.println("::: " + l + "  --  " + r);
+//		
+//		r = 0;
+//		for (int i = 0; i < blocks[1].length; i++) {
+//			Map bb = blocks[1][i];
+//			for (Iterator iterator = bb.keySet().iterator(); iterator.hasNext();) {
+//				Bucket b = (Bucket) iterator.next();
+//				List list = (List) bb.get(b);
+//				r += list.size();
+//			}
+//		}
+//		System.out.println("RRRRRRRR: " + r);
+//		
+//	}
 	
 	//private static final int logLevel = Log.getLogLevel(BucketManager.class);
 	
@@ -266,6 +309,9 @@ public class BucketManager {
 		item.row = row;
 		item.id = RIGHT;
 		item.hash = blockingFunction.hash(row, RIGHT);
+		if (item.hash == null) {
+			item.hash = "";
+		}
 		rightSize.incrementAndGet();
 		try {
 			buffer.put(item);
@@ -292,6 +338,7 @@ public class BucketManager {
 					completed = true;
 					break;
 				} else {
+					resetRows(bucket);
 					return bucket;
 				}
 			}
@@ -301,6 +348,14 @@ public class BucketManager {
 		return null;
 	}
 	
+	private void resetRows(DataRow[][] bucket) {
+		for (int i = 0; i < bucket.length; i++) {
+			for (int j = 0; j < bucket[i].length; j++) {
+				RowUtils.resetRow(bucket[i][j]);
+			}
+		}
+	}
+
 	public void stopProcessing() {
 		stopped = true;
 	}

@@ -45,16 +45,16 @@ import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
 import cdc.gui.wizards.specific.actions.ChooseSourceAction;
 import cdc.gui.wizards.specific.actions.ChooseSourceFieldsAction;
-import cdc.gui.wizards.specific.actions.DataSourceDeduplication;
+import cdc.gui.wizards.specific.actions.DataSourcePreprocessing;
 import cdc.gui.wizards.specific.actions.DeduplicationResultsLocation;
 import cdc.impl.deduplication.DeduplicationConfig;
 
 public class DedupeSourceWizard {
 	
 	private static String[] steps = new String[] {
-		"Data source configuration (step 1 of 4)",
-		"Data source fields (step 2 of 4)",
-		"Data deduplication (step 3 of 4)",
+		"Dedupe data source configuration (step 1 of 4)",
+		"Dedupe data source fields (step 2 of 4)",
+		"Preprocessing configuration (step 3 of 4)",
 		"Deduplication results (step 4 of 4)"
 	};
 	
@@ -62,14 +62,14 @@ public class DedupeSourceWizard {
 	
 	private ChooseSourceAction sourceAction;
 	private ChooseSourceFieldsAction sourceFieldsAction;
-	private DataSourceDeduplication sourceDeduplication;
+	private DataSourcePreprocessing sourceDeduplication;
 	private DeduplicationResultsLocation dedupeLocation;
 	
 	public DedupeSourceWizard(JFrame parent, JComponent component, String defaultName) {
 		
 		sourceAction = new ChooseSourceAction(defaultName);
 		sourceFieldsAction = new ChooseSourceFieldsAction(-1, sourceAction);
-		sourceDeduplication = new DataSourceDeduplication(sourceAction, null, false);
+		sourceDeduplication = new DataSourcePreprocessing(sourceAction, null, false);
 		dedupeLocation = new DeduplicationResultsLocation();
 		sourceAction.setDataSource(null);
 		

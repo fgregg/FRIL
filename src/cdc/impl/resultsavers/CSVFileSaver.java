@@ -120,9 +120,6 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		if (file.exists() && !file.isFile()) {
 			throw new RJException("Output file cannot be directory or other special file");
 		}
-		if (file.exists()) {
-			file.delete();
-		}
 		if (properties.containsKey(SAVE_CONFIDENCE)) {
 			saveConfidence = properties.get(SAVE_CONFIDENCE).equals("true");
 		}
@@ -130,38 +127,44 @@ public class CSVFileSaver extends AbstractResultsSaver {
 	
 	public void saveRow(DataRow row) throws RJException, IOException {
 		//System.out.println(file.getName() + ": Adding row: " + row);
-		String stratum = row.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME);
-		if (printer == null) {
-			printer = new CSVWriter(new BufferedWriter(new FileWriter(file)));
-			String[] header = new String[row.getData().length + (saveConfidence ? 1 : 0) + (stratum != null?1:0)];
-			for (int i = 0; i < header.length - (stratum != null?1:0) - (saveConfidence ? 1 : 0); i++) {
-				if (saveSourceName) {
-					header[i] = row.getRowModel()[i].toString();
-				} else {
-					header[i] = row.getRowModel()[i].getColumnName();
+			//wait until we can safely write
+			
+			String stratum = row.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME);
+			if (printer == null) {
+//				if (file.exists()) {
+//					file.delete();
+//				}
+				printer = new CSVWriter(new BufferedWriter(new FileWriter(file)));
+				String[] header = new String[row.getData().length + (saveConfidence ? 1 : 0) + (stratum != null?1:0)];
+				for (int i = 0; i < header.length - (stratum != null?1:0) - (saveConfidence ? 1 : 0); i++) {
+					if (saveSourceName) {
+						header[i] = row.getRowModel()[i].toString();
+					} else {
+						header[i] = row.getRowModel()[i].getColumnName();
+					}
 				}
+				if (stratum != null) {
+					header[header.length - 2] = "Stratum name";
+				}
+				if (saveConfidence) {
+					header[header.length - 1] = "Confidence";
+				}
+				printer.writeNext(header);
+			}
+			DataCell[] cells = row.getData();
+			//System.out.println("Cells were in row (" + row.hashCode() + "):" + PrintUtils.printArray(cells));
+			String[] strRow = new String[cells.length + (saveConfidence ? 1 : 0) + (stratum != null ? 1 : 0)];
+			for (int i = 0; i < strRow.length - (stratum != null ? 1 : 0) - (saveConfidence ? 1 : 0); i++) {
+				strRow[i] = cells[i].getValue().toString();
 			}
 			if (stratum != null) {
-				header[header.length - 2] = "Stratum name";
+				strRow[strRow.length - 2] = stratum;
 			}
 			if (saveConfidence) {
-				header[header.length - 1] = "Confidence";
+				strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
 			}
-			printer.writeNext(header);
-		}
-		DataCell[] cells = row.getData();
-		//System.out.println("Cells were in row (" + row.hashCode() + "):" + PrintUtils.printArray(cells));
-		String[] strRow = new String[cells.length + (saveConfidence ? 1 : 0) + (stratum != null ? 1 : 0)];
-		for (int i = 0; i < strRow.length - (stratum != null ? 1 : 0) - (saveConfidence ? 1 : 0); i++) {
-			strRow[i] = cells[i].getValue().toString();
-		}
-		if (stratum != null) {
-			strRow[strRow.length - 2] = stratum;
-		}
-		if (saveConfidence) {
-			strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
-		}
-		printer.writeNext(strRow);
+			printer.writeNext(strRow);
+
 	}
 	
 	public void flush() throws IOException {
@@ -215,5 +218,9 @@ public class CSVFileSaver extends AbstractResultsSaver {
 
 	public String getActiveDirectory() {
 		return new File(file.getAbsolutePath()).getParent();
+	}
+
+	public boolean isClosed() {
+		return closed;
 	}
 }

@@ -65,7 +65,7 @@ public class Log {
 	static {
 		String f = Props.getString("log-date-format");
 		if (f == null || f.isEmpty()) {
-			f = "hh:MM:ss";
+			f = "hh:mm:ss";
 		}
 		format = new SimpleDateFormat(f);
 	}

@@ -203,9 +203,9 @@ public class JoinConfigurationAction extends WizardAction {
 			if (join.isSummaryForRightSourceEnabled() && rightJoinSupported) {
 				checkBoxRight.setSelected(true);
 			}
-			checkBoxLeft.setEnabled(leftJoinSupported);
-			checkBoxRight.setEnabled(rightJoinSupported);
 		}
+		checkBoxLeft.setEnabled(leftJoinSupported);
+		checkBoxRight.setEnabled(rightJoinSupported);
 	}
 
 	private void removeAll(JComboBox activeCombo) {

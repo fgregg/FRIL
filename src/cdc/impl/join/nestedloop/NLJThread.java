@@ -94,7 +94,7 @@ public class NLJThread extends Thread {
 								if (connector.isAnyJoinListenerRegistered()) {
 									rowA[i].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 									rowB[j].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-									connector.notifyJoined(rowA[i], rowB[j]);
+									connector.notifyJoined(rowA[i], rowB[j], row);
 								}
 								row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 								buffer.put(row);

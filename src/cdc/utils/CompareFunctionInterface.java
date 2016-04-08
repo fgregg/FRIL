@@ -39,5 +39,9 @@ package cdc.utils;
 import cdc.datamodel.DataCell;
 
 public interface CompareFunctionInterface {
+	
+	public static final int ORDER_ASC = 1;
+	public static final int ORDER_DESC = -1;
+	
 	int compare(DataCell cellA, DataCell cellB);
 }

@@ -132,7 +132,7 @@ public class CSVDataSource extends AbstractDataSource {
 				nn = i;
 				rowCols[i] = new DataCell(
 						generator.getInputFormat()[i].getColumnType(), 
-						parseData(generator.getInputFormat()[i].getColumnType(), csvRow[((CSVDataColumnDefinition)generator.getInputFormat()[i]).getColumnPosition()].trim()));
+						parseData(generator.getInputFormat()[i].getColumnType(), getValue(csvRow, ((CSVDataColumnDefinition)generator.getInputFormat()[i]).getColumnPosition())));
 			}
 		} catch (ArrayIndexOutOfBoundsException e) {
 			throw new RJException("Encountered error when parsing data source. Check field separator (currently set to '" + delim + "') and check data model. " +
@@ -145,6 +145,15 @@ public class CSVDataSource extends AbstractDataSource {
 		return row;
 	}
 	
+	private String getValue(String[] csvRow, int columnPosition) {
+		if (columnPosition >= csvRow.length) {
+			return "";
+		} else {
+			return csvRow[columnPosition].trim();
+		}
+		
+	}
+
 	private Object parseData(int columnType, String string) {
 		if (columnType == DataColumnDefinition.TYPE_NUMERIC) {
 			return new Double(string);

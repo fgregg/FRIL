@@ -15,6 +15,9 @@ import cdc.configuration.Configuration;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.datamodel.PropertyBasedColumn;
+import cdc.gui.MainFrame;
+import cdc.gui.components.linkagesanalysis.DuplicateLinkageDecisionProvider;
+import cdc.gui.components.linkagesanalysis.dialog.DecisionListener;
 import cdc.impl.MainApp;
 import cdc.impl.datasource.wrappers.SortedData;
 import cdc.utils.CompareFunctionInterface;
@@ -36,7 +39,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		public void finish() throws IOException, RJException {
 			data.complete();
 		}
-		public void writeRow(DataRow row) throws IOException {
+		public synchronized void writeRow(DataRow row) throws IOException {
 			data.addRow(row);
 		}
 	}
@@ -44,7 +47,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 	private class ResultsSaverDataWriter implements DataWriter {
 		public void finish() throws IOException, RJException {
 		}
-		public void writeRow(DataRow row) throws IOException, RJException {
+		public synchronized void writeRow(DataRow row) throws IOException, RJException {
 			savedCnt++;
 			for (int i = 0; i < savers.length; i++) {
 				savers[i].saveRow(row);
@@ -55,11 +58,19 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 	private int activePhase = 0;
 	private DataColumnDefinition[] sortPhases;
 	private boolean deleteDuplicates = false;
+	private boolean askBeforeDeleting = false;
+	private volatile RJException rjExc = null;
+	private volatile IOException ioExc = null;
 	
 	private int duplicatesCnt = 0;
 	private int savedCnt = 0;
 	
+	private int addedCnt = 0;
+	
 	private AbstractResultsSaver[] savers;
+	
+	//decision maker when deleting linkages with the same probability
+	private DuplicateLinkageDecisionProvider decisionProvider;
 	
 	//internal writer
 	private SortedData data;
@@ -86,7 +97,8 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		} else {
 			throw new RuntimeException("DeduplicationResultsSaver requires attrubute 'deduplication'");
 		}
-		deleteDuplicates = "true".equals(getProperty("delete-duplicates"));
+		deleteDuplicates = !"false".equals(getProperty("delete-duplicates"));
+		askBeforeDeleting = !"true".equals(getProperty("delete-duplicates"));
 	}
 
 	public void close() throws IOException, RJException {
@@ -100,8 +112,12 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 	}
 
 	private void doDeduplication() throws IOException, RJException {
+		//System.out.println("Deduplication starts. Added: " + addedCnt);
 		DataWriter writer;
 		SortedData nextPhaseData = null;
+		if (data == null) {
+			return;
+		}
 		while (activePhase <= sortPhases.length) {
 			Log.log(getClass(), "Results deduplication, phase " + activePhase + " out of " + sortPhases.length);
 			if (activePhase < sortPhases.length) {
@@ -114,7 +130,33 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 			data.cleanup();
 			data = nextPhaseData;
 			activePhase++;
+			
+			//just wait for the finish
+			try {
+				while (decisionProvider != null && !decisionProvider.isDone()) {
+					synchronized (this) {
+						wait(100);
+					}
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			if (decisionProvider != null) {
+				decisionProvider.closeDecisionWindow();
+				decisionProvider = null;
+			}
 		}
+		
+		if (decisionProvider != null) {
+			decisionProvider.closeDecisionWindow();
+		}
+		if (ioExc != null) {
+			throw ioExc;
+		}
+		if (rjExc != null) {
+			throw rjExc;
+		}
+		
 	}
 
 	public void flush() throws IOException, RJException {
@@ -142,16 +184,21 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		activePhase = 0;
 		data = null;
 		duplicatesCnt = 0;
+		addedCnt = 0;
 		savedCnt = 0;
 		for (int i = 0; i < savers.length; i++) {
 			savers[i].reset();
 		}
+		decisionProvider = null;
+		ioExc = null;
+		rjExc = null;
 	}
 
 	public void saveRow(DataRow row) throws RJException, IOException {
 		if (data == null) {
 			data = new SortedData(DEDUPE_SRC, new DataColumnDefinition[] {sortPhases[activePhase++]}, comps);
 		}
+		addedCnt++;
 		data.addRow(row);
 	}
 
@@ -179,7 +226,7 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		
 		return new DeduplicatingResultsSaver(savers, params);
 	}
-
+	
 	public AbstractResultsSaver[] getChildren() {
 		return savers;
 	}
@@ -188,45 +235,121 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 		DataRow example = null;
 		List buffer = new ArrayList();
 		example = inputData.getNextSortedRow();
-		//buffer.add(example);
+		int n = 0;
+		int s = 0;
+		int n1 = 0;
 		while (true) {
 			if (example == null) {
 				break;
 			}
+			n++;
 			buffer.add(example);
 			DataRow row;
 			while (isTheSameKey(row = inputData.getNextSortedRow(), example, sortedKey) && row != null) {
 				buffer.add(row);
+				n++;
 			}
-			solveGroup(outputData, buffer, sortedKey);
+			n1 += buffer.size();
+			s += solveGroup(outputData, buffer, sortedKey);
 			buffer.clear();
 			example = row;
 		}
+		//System.out.println("Read: n=" + n + "  s=" + s + " duplicates: " + duplicatesCnt + "  buffer tot = " + n1);
+		
 	}
 
-	private void solveGroup(DataWriter saver, List buffer, DataColumnDefinition sortedKey) throws RJException, IOException {
+	private int solveGroup(DataWriter saver, List buffer, DataColumnDefinition sortedKey) throws RJException, IOException {
 		int maxConfidence = 0;
-		int cnt = 0;
+		if (buffer.isEmpty()) {
+			return 0;
+		}
+		List toSolve = new ArrayList();
 		for (Iterator iterator = buffer.iterator(); iterator.hasNext();) {
 			DataRow row = (DataRow) iterator.next();
 			int conf = Integer.parseInt(row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE));
 			if (maxConfidence < conf) {
 				maxConfidence = conf;
-				cnt = 0;
+				synchronized (this) {
+					duplicatesCnt += toSolve.size();
+				}
+				//now - save the records to minus (if needed)...
+				for (Iterator iterator2 = toSolve.iterator(); iterator2.hasNext();) {
+					DataRow rejected = (DataRow) iterator2.next();
+					saveToMinusIfNeeded(rejected);
+				}
+				toSolve.clear();
+				toSolve.add(row);
 			} else if (maxConfidence == conf) {
-				cnt++;
-			}
-		}
-		boolean first = true;
-		for (Iterator iterator = buffer.iterator(); iterator.hasNext();) {
-			DataRow row = (DataRow) iterator.next();
-			if ((first || !deleteDuplicates) && maxConfidence == Integer.parseInt(row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE))) {
-				first = false;
-				saver.writeRow(row);
+				toSolve.add(row);
 			} else {
-				duplicatesCnt++;
+				synchronized (this) {
+					duplicatesCnt++;
+				}
+				saveToMinusIfNeeded(row);
 			}
 		}
+		
+		if (!deleteDuplicates) {
+			//just save all the records
+			for (Iterator iterator = toSolve.iterator(); iterator.hasNext();) {
+				DataRow row = (DataRow) iterator.next();
+				saver.writeRow(row);
+			}
+			return toSolve.size();
+		} else {
+			if (toSolve.size() > 1 && askBeforeDeleting && MainFrame.main != null) {
+				if (decisionProvider == null) {
+					decisionProvider = new DuplicateLinkageDecisionProvider(new DuplicateDecisionListener(saver));
+				}
+				decisionProvider.addUndecidedRecords((DataRow[]) toSolve.toArray(new DataRow[] {}));
+				return 0;
+			} else {
+				//just save the first one...
+				saver.writeRow((DataRow) toSolve.remove(0));
+				synchronized (this) {
+					duplicatesCnt += toSolve.size();
+				}
+				for (Iterator iterator2 = toSolve.iterator(); iterator2.hasNext();) {
+					DataRow rejected = (DataRow) iterator2.next();
+					saveToMinusIfNeeded(rejected);
+				}
+				return 1;
+			}
+		}
+		//toSolve.clear();
+		
+	}
+
+	private synchronized void saveToMinusIfNeeded(DataRow rejected) {
+		DataRow rowA = (DataRow) rejected.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCA);
+		DataRow rowB = (DataRow) rejected.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
+		if (!decrementAndCheck(rowA)) {
+			//System.out.println("Saving to minus: " + rowA);
+			AbstractJoin join = MainApp.main.getJoin().getJoin();
+			try {
+				join.notifyTrashingNotJoined(rowA);
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
+		}
+		if (!decrementAndCheck(rowB)) {
+			//System.out.println("Saving to minus: " + rowB);
+			AbstractJoin join = MainApp.main.getJoin().getJoin();
+			try {
+				join.notifyTrashingNotJoined(rowB);
+			} catch (RJException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private boolean decrementAndCheck(DataRow row) {
+		Integer cnt = (Integer) row.getObjectProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		if (cnt.intValue() == 1) {
+			return false;
+		}
+		row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, new Integer(cnt.intValue() - 1));
+		return true;
 	}
 
 	private boolean isTheSameKey(DataRow r1, DataRow r2, DataColumnDefinition sortedKey) {
@@ -234,6 +357,31 @@ public class DeduplicatingResultsSaver extends AbstractResultsSaver {
 			return false;
 		}
 		return r1.getData(sortedKey).getValue().equals(r2.getData(sortedKey).getValue());
+	}
+	
+	private class DuplicateDecisionListener implements DecisionListener {
+		
+		private DataWriter saver;
+		
+		public DuplicateDecisionListener(DataWriter saver) {
+			this.saver = saver;
+		}
+		public void linkageAccepted(DataRow linkage) {
+			try {
+				saver.writeRow(linkage);
+			} catch (IOException e) {
+				ioExc = e;
+			} catch (RJException e) {
+				rjExc = e;
+			}
+		}
+		public void linkageRejected(DataRow linkage) {
+			//System.out.println("Rejecting: " + linkage);
+			synchronized (DeduplicatingResultsSaver.this) {
+				duplicatesCnt++;
+			}
+			saveToMinusIfNeeded(linkage);
+		}
 	}
 
 }

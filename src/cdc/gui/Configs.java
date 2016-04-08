@@ -75,11 +75,31 @@ public class Configs {
 	public static final ImageIcon statistics = new ImageIcon(new ImageIcon("icons" + File.separator + "statistics.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
 	
 	public static final ImageIcon analysisButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "analyze.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+	public static final ImageIcon analysisMinusButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "analyze-minus.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+	public static final ImageIcon detailsButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "details.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
 	public static final ImageIcon configurationButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "wheels.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+	public static final ImageIcon filterButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "filter.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
+	public static final ImageIcon sortButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "sort.png").getImage().getScaledInstance(30, 30, Image.SCALE_SMOOTH));
 	
 	public static final ImageIcon addButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "add-new.png").getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH));
 	public static final ImageIcon removeButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "minus-new.png").getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH));
 	public static final ImageIcon editButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "edit-new.png").getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH));
+
+	public static final ImageIcon forwardButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "forward.png").getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH));
+	public static final ImageIcon backwardButtonIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "backward.png").getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH));
+	
+	public static final ImageIcon horizontal = new ImageIcon("icons" + File.separator + "horizontal.png");
+	public static final ImageIcon vertical = new ImageIcon("icons" + File.separator + "vertical.png");
+	public static final ImageIcon join_l = new ImageIcon("icons" + File.separator + "l-join.png");
+	public static final ImageIcon join_t = new ImageIcon("icons" + File.separator + "t-join.png");
+	public static final ImageIcon join_l1 = new ImageIcon("icons" + File.separator + "l1-join.png");
+	
+	public static final ImageIcon addAllButtonIcon = new ImageIcon("icons" + File.separator + "add-all.png");
+	public static final ImageIcon removeAllButtonIcon = new ImageIcon("icons" + File.separator + "minus-all.png");
+	public static final ImageIcon configurationButtonIconBig = new ImageIcon("icons" + File.separator + "wheels.png");
+	
+	public static final ImageIcon bulbOff = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-off.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
+	public static final ImageIcon bulbOn = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-on.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
 	
 	public static final JButton getAnalysisButton() {
 		JButton button = new JButton(analysisButtonIcon);
@@ -87,9 +107,61 @@ public class Configs {
 		return button;
 	}
 	
+	public static final JButton getAnalysisMinusButton() {
+		JButton button = new JButton(analysisMinusButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+	
+	public static final JButton getDetailsButton() {
+		JButton button = new JButton(detailsButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+	
 	public static final JButton getConfigurationButton() {
 		JButton button = new JButton(configurationButtonIcon);
 		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+	
+	public static JButton getViewResultsButton() {
+		return getAnalysisButton();
+	}
+
+	public static final Dimension PREFERRED_SIZE = new Dimension(20, 20);
+
+	public static ImageIcon scale(ImageIcon image, int x, int y) {
+		return new ImageIcon(image.getImage().getScaledInstance(y, y, Image.SCALE_SMOOTH));
+	}
+
+	public static JButton getColorChooseButton() {
+		JButton button = new JButton("Change");
+		button.setPreferredSize(new Dimension(100, 20));
+		return button;
+	}
+
+	public static JButton getFilterButton() {
+		JButton button = new JButton(filterButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+	
+	public static JButton getSortButton() {
+		JButton button = new JButton(sortButtonIcon);
+		button.setPreferredSize(new Dimension(30, 30));
+		return button;
+	}
+
+	public static JButton getForwardButton() {
+		JButton button = new JButton(forwardButtonIcon);
+		button.setPreferredSize(new Dimension(17, 17));
+		return button;
+	}
+	
+	public static JButton getBackwardButton() {
+		JButton button = new JButton(backwardButtonIcon);
+		button.setPreferredSize(new Dimension(17, 17));
 		return button;
 	}
 }

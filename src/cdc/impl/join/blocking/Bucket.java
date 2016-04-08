@@ -42,11 +42,15 @@ public class Bucket {
 	private int leftRecords;
 	private int rightRecords;
 	
+//	//TODO tmp
+//	String[] b;
+	
 	public Bucket(String[] bucket) {
 		StringBuffer buffer = new StringBuffer();
 		for (int i = 0; i < bucket.length; i++) {
 			buffer.append(bucket[i]);
 		}
+		//this.b = bucket;
 		hash = buffer.toString().hashCode();
 	}
 	

@@ -113,7 +113,7 @@ public class NumericDistance extends AbstractDistance {
 			creators.put(PROP_LINERAL, new CheckBoxParamPanelFieldCreator(this));
 			
 			return panel = new ParamsPanel(new String[] {PROP_NUMBER_RANGE, PROP_PERCENT, PROP_LINERAL}, 
-					new String[] {"Range (fixed value)", "Range (percentage)", "Use lineral approximation"}, 
+					new String[] {"Range (fixed value)", "Range (percentage)", "Use linear approximation"}, 
 					defs, creators);
 			
 		}
