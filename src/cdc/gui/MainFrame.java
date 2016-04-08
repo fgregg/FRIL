@@ -78,7 +78,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 
 import cdc.components.AbstractResultsSaver;
-import cdc.configuration.Configuration;
 import cdc.configuration.ConfigurationPhase;
 import cdc.configuration.ConfiguredSystem;
 import cdc.gui.components.dialogs.OneTimeTipDialog;
@@ -100,12 +99,10 @@ import cdc.utils.RJException;
 public class MainFrame extends JFrame implements FrilAppInterface {
 
 	private static int MAX_LOG_LINES = Props.getInteger("max-log-lines");
-	private static final String CONFIG_DIR = "./config";
-	private static final String PERSISTENT_PARAM_RECENT_PATH = "recent-path";
-	private static final String PERSISTENT_PARAM_RECENT_CONFIG = "recent-config";
-	private static final String PERSISTENT_PARAM_RECENT_BACKUP_CONFIG = "recent-backup-config";
+	
 	private static final String PERSISTENT_PARAM_FIRST_TIME = "new-run";
 	private static final String PERSISTENT_PROPERTIES_FILE_NAME = "properties.bin";
+	
 	public static final String VERSION_PROPERTY_CODENAME = "codename";
 	public static final String VERSION_PROPERTY_V = "version";
 	public static final String VERSION_LIST_OF_CHANGES_FILE = "changelog.txt";
@@ -143,18 +140,15 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	
 	private SystemPanel applicationPanel;
 	private JPanel logPanel;
+	private JPanel applicationWrappingPanel;
 
 	private List closingListeners = new ArrayList();
 
 	private Map persistentParams = null;
-
 	private Properties propertiesVersion = new Properties();
+	private SavedConfigManager configManager;
 
 	private int cpus;
-
-	private boolean configurationRead = false;
-	private boolean configurationSaved = false;
-	private JPanel applicationWrappingPanel;
 
 	public void setPersistentParam(String paramName, String paramValue) {
 		if (persistentParams == null) {
@@ -234,36 +228,15 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		
 		if (getPersistentParam(PERSISTENT_PARAM_FIRST_TIME + propertiesVersion.getProperty(VERSION_PROPERTY_V)) == null) {
 			new AboutWindow().setVisible(true);
-			setPersistentParam(PERSISTENT_PARAM_FIRST_TIME + propertiesVersion.getProperty(VERSION_PROPERTY_V), "false");
-			OneTimeTipDialog.showInfoDialogIfNeeded(OneTimeTipDialog.LINKAGE_MODE_DEFAULT, OneTimeTipDialog.LINKAGE_MODE_MESSAGE);
-			return;
+			setPersistentParam(PERSISTENT_PARAM_FIRST_TIME + propertiesVersion.getProperty(VERSION_PROPERTY_V), "false");	
 		}
 		
 		OneTimeTipDialog.showInfoDialogIfNeeded(OneTimeTipDialog.LINKAGE_MODE_DEFAULT, OneTimeTipDialog.LINKAGE_MODE_MESSAGE);
-
-		if (getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG) != null && 
-				getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG).endsWith("~~")) {
-			//this is an unnamed backup file...
-			if (JOptionPane.showConfirmDialog(this,
-					"There exists an unsaved backup copy of FRIL configuration.\nWould you like to revocer it?",
-					"Recover configuration", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-				loadConfiguration(new File(getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG)));
-				return;
-			} else {
-				deleteBackupConfig();
-			}
-		}
 		
-		if (getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG) != null) {
-			if (JOptionPane.showConfirmDialog(
-							this,
-							"The system was closed using the following configuration file:\n"
-									+ getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG)
-									+ "\nWould you like to load it?",
-							"Load last active configuration?",
-							JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-				loadConfiguration(new File(getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG)));
-			}
+		configManager = new SavedConfigManager();
+		File f = configManager.getFileToLoad();
+		if (f != null) {
+			loadConfiguration(f);
 		}
 		
 	}
@@ -394,10 +367,11 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		MenuItem newItem = new MenuItem("New");
 		newItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (applicationPanel.saveIfNeeded()) {
+				if (fireClosingSystemViewListeners()) {
 					try {
 						applicationPanel.setSystem(new ConfiguredSystem(null, null, null, null));
 						applicationPanel.unloadConfiguration();
+						configManager = new SavedConfigManager(null);
 					} catch (RJException e1) {
 						e1.printStackTrace();
 					}
@@ -408,20 +382,11 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		open.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
-				if (!applicationPanel.saveIfNeeded()) {
+				if (!fireClosingSystemViewListeners()) {
 					return;
 				}
 				
-				File dir = null;
-				if (getPersistentParam(PERSISTENT_PARAM_RECENT_PATH) != null) {
-					dir = new File(
-							getPersistentParam(PERSISTENT_PARAM_RECENT_PATH));
-				} else {
-					dir = new File(CONFIG_DIR);
-				}
-				if (!dir.exists() || !dir.isDirectory()) {
-					dir = new File(".");
-				}
+				File dir = configManager.getDefaultDir();
 				JFileChooser chooser = new JFileChooser(dir);
 				if (chooser.showOpenDialog(main) == JFileChooser.APPROVE_OPTION) {
 					// will load configuration
@@ -436,27 +401,22 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 						}
 					}
 					File f = chooser.getSelectedFile();
-					try {
-						setPersistentParam(PERSISTENT_PARAM_RECENT_PATH, chooser.getCurrentDirectory().getCanonicalPath());
-						loadConfiguration(f);
-						setPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG, f.getCanonicalPath());
-					} catch (IOException ex) {
-						JXErrorDialog.showDialog(main,
-								"Error saving properties file", ex);
-					}
+					//Use config manager. This will make sure we load backup config if there exists one
+					configManager = new SavedConfigManager(f);
+					loadConfiguration(configManager.getFileToLoad());
 				}
 			}
 		});
 		MenuItem save = new MenuItem("Save");
 		save.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				saveCurrentConfiguration(false);
+				configManager.saveConfiguration(false);
 			}
 		});
 		MenuItem saveAs = new MenuItem("Save as...");
 		saveAs.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				saveCurrentConfiguration(true);
+				configManager.saveConfiguration(true);
 			}
 		});
 		MenuItem exit = new MenuItem("Exit");
@@ -582,118 +542,9 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		closingListeners.clear();
 	}
 
-	public boolean saveCurrentConfiguration(boolean newName) {
-		
-		if (applicationPanel.getSystem() == null) {
-			return true;
-		}
-
-		File dir = null;
-		while (true) {
-			File f = null;
-			if (newName || !configurationRead) {
-				if (getPersistentParam(PERSISTENT_PARAM_RECENT_PATH) != null) {
-					dir = new File(getPersistentParam(PERSISTENT_PARAM_RECENT_PATH));
-				} else {
-					dir = new File(CONFIG_DIR);
-				}
-				if (!dir.exists() || !dir.isDirectory()) {
-					dir = new File(".");
-				}
-				JFileChooser chooser = new JFileChooser(dir);
-				if (chooser.showSaveDialog(main) == JFileChooser.APPROVE_OPTION) {
-					// will save configuration
-					f = chooser.getSelectedFile();
-					if (!f.getName().endsWith(".xml")) {
-						f = new File(f.getAbsolutePath() + ".xml");
-					}
-					if (f.exists()) {
-						if (JOptionPane.showConfirmDialog(this, "File "
-								+ f.getPath() + " already exists.\nOverwrite?",
-								"File exists", JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
-							continue;
-						}
-					}
-				} else {
-					return false;
-				}
-			} else {
-				f = new File(getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG));
-			}
-
-			configurationSaved = saveConfiguration(f);
-			if (configurationSaved) {
-				deleteBackupConfig();
-			}
-			applicationPanel.systemSaved();
-			configurationReadDone();
-			String recentPath = f.getParent();
-			if (recentPath != null) {
-				setPersistentParam(PERSISTENT_PARAM_RECENT_PATH, recentPath);
-			}
-			try {
-				setPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG, f.getCanonicalPath());
-			} catch (IOException ex) {
-				JXErrorDialog.showDialog(main, "Error saving properties file", ex);
-			}
-			return configurationSaved;
-		}
-		
-	}
-
-	public boolean saveBackupConfiguration() {
-		String tmpFile = null;
-		String prevBackup = getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG);
-		if (configurationSaved || configurationRead) {
-			//I can use the tmp file as filename.xml~
-			tmpFile = getPersistentParam(PERSISTENT_PARAM_RECENT_CONFIG) + "~";
-		} else {
-			//this is trully tmp configuration (will use xxxxxx.xml~)
-			String dir;
-			if (getPersistentParam(PERSISTENT_PARAM_RECENT_PATH) != null) {
-				dir = getPersistentParam(PERSISTENT_PARAM_RECENT_PATH);
-			} else {
-				dir = CONFIG_DIR;
-			}
-			tmpFile = dir + File.separator + System.currentTimeMillis() + ".xml~~";
-		}
-		File tmp = new File(tmpFile);
-		saveConfiguration(tmp);
-		setPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG, tmpFile);
-		if (prevBackup != null && prevBackup.endsWith(".xml~~")) {
-			new File(prevBackup).delete();
-		}
-		return true;
-	}
-	
-	public void deleteBackupConfig() {
-		String backup = getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG);
-		if (backup != null) {
-			setPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG, null);
-			File f = new File(backup);
-			f.delete();
-		}
-	}
-	
-	private boolean saveConfiguration(File file) {
-		ConfiguredSystem system = applicationPanel.getSystem();
-		Configuration.saveToXML(system, file);
-		Log.log(getClass(), "Configuration was saved to file: " + file);
-		return true;
-	}
-
 	private void loadConfiguration(File f) {
-		applicationPanel.unloadConfiguration();
 		
-		//check backup
-		String backup = f.getAbsolutePath() + "~";
-		File fBackup = new File(backup);
-		if (fBackup.exists()) {
-			if (JOptionPane.showConfirmDialog(this, "Backup copy of the configuration file exists.\nDo you want to recover?",
-					"Backup copy exists", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-				f = fBackup;
-			}
-		}
+		applicationPanel.unloadConfiguration();
 		
 		String[] phases = new String[ConfigurationPhase.phases.length];
 		for (int i = 0; i < phases.length; i++) {
@@ -732,11 +583,10 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 
 	public void configurationReadDone() {
-		if (getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG) == null || 
-				!getPersistentParam(PERSISTENT_PARAM_RECENT_BACKUP_CONFIG).endsWith("~~")) {
-			configurationRead = true;
-		} else {
-			applicationPanel.setAltered(true);
+		try {
+			configManager.configLoaded();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -745,15 +595,12 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 	
 	public void autosaveIfNeeded() {
+		configManager.configChanged();
 		if (autosave.getState()) {
 			Log.log(getClass(), "Saving backup configuration (autosave enabled).");
-			saveBackupConfiguration();
+			configManager.saveBackup();
 		}
 	}
-
-//	public void appendLinkageSummary(String text) {
-//		applicationPanel.getProcessPanel().appendSummaryMessage(text);
-//	}
 
 	public Properties getPropertiesVersion() {
 		return propertiesVersion;
@@ -795,7 +642,14 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		JScrollPane appScroll = new JScrollPane(applicationPanel);
 		applicationWrappingPanel.removeAll();
 		applicationWrappingPanel.add(appScroll, BorderLayout.CENTER);
-		configurationRead = false;
+		addClosingSystemViewListener(new ClosingSystemViewListener() {
+			public boolean closing() {
+				if (configManager == null) {
+					return true;
+				}
+				return configManager.closingConfiguration();
+			}
+		});
 	}
 	
 	private void configureSystemView() {
@@ -812,6 +666,11 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			activateLinkagePanel();
 		}
 		configureSystemView();
+	}
+
+	public void surrenderConfiguration() {
+		configManager.deleteBackup();
+		configManager = new SavedConfigManager(null);
 	}
 
 }

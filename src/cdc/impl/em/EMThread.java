@@ -52,7 +52,7 @@ import cdc.impl.em.actions.ConfigureBlockingMethod;
 import cdc.impl.em.actions.ConfigureSearchMethodAction;
 import cdc.impl.em.actions.ConfigureSourcesAction;
 import cdc.impl.join.blocking.BucketManager;
-import cdc.impl.join.blocking.HashingFunction;
+import cdc.impl.join.blocking.BlockingFunction;
 import cdc.utils.RJException;
 
 public class EMThread extends StoppableThread {
@@ -83,7 +83,7 @@ public class EMThread extends StoppableThread {
 			EMEstimator.cancel = false;
 			DataSampleInterface leftSource = sources.getSamplingConfigurationForSourceA();
 			DataSampleInterface rightSource = sources.getSamplingConfigurationForSourceB();
-			HashingFunction function = null;
+			BlockingFunction function = null;
 			int hashingAttribute = -1; 
 			DataColumnDefinition[][] columns = null;
 			

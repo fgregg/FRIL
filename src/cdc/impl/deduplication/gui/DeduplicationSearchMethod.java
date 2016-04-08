@@ -1,79 +1,58 @@
 package cdc.impl.deduplication.gui;
 
-import java.awt.FlowLayout;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import cdc.components.AbstractStringDistance;
+import cdc.components.AbstractDistance;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.gui.components.uicomponents.BlockingAttributePanel;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.impl.conditions.AbstractConditionPanel.ConditionItem;
-import cdc.impl.join.blocking.EqualityHashingFunction;
-import cdc.impl.join.blocking.HashingFunction;
-import cdc.impl.join.blocking.SoundexHashingFunction;
+import cdc.impl.conditions.ConditionItem;
+import cdc.impl.join.blocking.BlockingFunction;
+import cdc.impl.join.blocking.BlockingFunctionFactory;
 
 public class DeduplicationSearchMethod extends WizardAction {
 
-	private DeduplicationConditionAction action;
-	private JComboBox comboBox;
-	private HashingFunction[] hashs;
-	private HashingFunction originalHashingFunction;
+	public static final String WARNING_DEDUPE = "The available options depend on distance metric used for selected blocking attribute.";
 	
-	public DeduplicationSearchMethod(DeduplicationConditionAction action, HashingFunction originalHashingFunction) {
+	private DeduplicationConditionAction action;
+	private BlockingAttributePanel blockPanel;
+	
+	private DataColumnDefinition[][] originalHashAttr;
+	private String originalHashFunction;
+	
+	public DeduplicationSearchMethod(DeduplicationConditionAction action, BlockingFunction fnct) {
 		this.action = action;
-		this.originalHashingFunction = originalHashingFunction;
+		this.originalHashFunction = BlockingFunctionFactory.encodeBlockingFunction(fnct);
+		this.originalHashAttr = fnct.getColumns();
 	}
 
 	public JPanel beginStep(AbstractWizard wizard) {
-		JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		ConditionItem[] dedupCond = action.getDeduplicationCondition();
-		comboBox = new JComboBox();
-		List list = new ArrayList();
+		String[] attrLabels = new String[dedupCond.length];
+		AbstractDistance[] distances = new AbstractDistance[dedupCond.length];
 		for (int i = 0; i < dedupCond.length; i++) {
-			String label;
-			HashingFunction hash;
-			if (!(dedupCond[i].getDistanceFunction() instanceof AbstractStringDistance)) {
-				label = dedupCond[i].getLeft().getColumnName() + " (equality)";
-				hash = new EqualityHashingFunction(new DataColumnDefinition[][] {new DataColumnDefinition[] {dedupCond[i].getLeft()}, new DataColumnDefinition[] {dedupCond[i].getRight()}});
-				comboBox.addItem(label);
-				list.add(hash);
-			} else {
-				label = dedupCond[i].getLeft().getColumnName() + " (equality)";
-				hash = new EqualityHashingFunction(new DataColumnDefinition[][] {new DataColumnDefinition[] {dedupCond[i].getLeft()}, new DataColumnDefinition[] {dedupCond[i].getRight()}});
-				comboBox.addItem(label);
-				list.add(hash);
-				
-				label = dedupCond[i].getLeft().getColumnName() + " (soundex, length=5)";
-				hash = new SoundexHashingFunction(new DataColumnDefinition[][] {new DataColumnDefinition[] {dedupCond[i].getLeft()}, new DataColumnDefinition[] {dedupCond[i].getRight()}}, 5);
-				comboBox.addItem(label);
-				list.add(hash);
-				
-				label = dedupCond[i].getLeft().getColumnName() + " (soundex, length=6)";
-				hash = new SoundexHashingFunction(new DataColumnDefinition[][] {new DataColumnDefinition[] {dedupCond[i].getLeft()}, new DataColumnDefinition[] {dedupCond[i].getRight()}}, 6);
-				comboBox.addItem(label);
-				list.add(hash);
-			}
+			attrLabels[i] = dedupCond[i].getLeft().getColumnName();
+			distances[i] = dedupCond[i].getDistanceFunction();
 		}
 		
-		hashs = (HashingFunction[]) list.toArray(new HashingFunction[] {});
-		
-		if (originalHashingFunction != null) {
-			for (int i = 0; i < hashs.length; i++) {
-				if (hashs[i].equals(originalHashingFunction)) {
-					comboBox.setSelectedIndex(i);
+		blockPanel = new BlockingAttributePanel(attrLabels, distances, WARNING_DEDUPE);
+		if (originalHashAttr != null) {
+			int id = -1;
+			for (int i = 0; i < dedupCond.length; i++) {
+				if (dedupCond[i].getLeft().equals(originalHashAttr[0][0])) {
+					id = i;
 					break;
 				}
 			}
+			
+			if (id != -1) {
+				blockPanel.setBlockingAttribute(id);
+				blockPanel.setBlockingFunction(originalHashFunction);
+			}
 		}
-		panel.add(new JLabel("Blocking attribute and method: "));
-		panel.add(comboBox);
 		
-		return panel;
+		return blockPanel;
 	}
 
 	public void dispose() {
@@ -87,8 +66,9 @@ public class DeduplicationSearchMethod extends WizardAction {
 	public void setSize(int width, int height) {
 	}
 	
-	public HashingFunction getHashingFunction() {
-		return hashs[comboBox.getSelectedIndex()];
+	public BlockingFunction getHashingFunction() {
+		DataColumnDefinition col = action.getDeduplicationCondition()[blockPanel.getBlockingAttributeId()].getLeft();
+		return BlockingFunctionFactory.createBlockingFunction(new DataColumnDefinition[][] {new DataColumnDefinition[] {col, col}}, blockPanel.getBlockingFunction());
 	}
 
 }

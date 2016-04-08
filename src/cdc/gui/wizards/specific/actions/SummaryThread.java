@@ -159,8 +159,6 @@ public class SummaryThread extends StoppableThread {
 	}
 	
 	public void run() {
-		System.out.println("Running...");
-		
 		source.setModel(new ModelGenerator(source.getAvailableColumns()));
 		columns = source.getDataModel().getOutputFormat();
 		

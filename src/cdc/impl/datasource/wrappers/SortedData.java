@@ -56,6 +56,7 @@ import java.util.zip.GZIPOutputStream;
 
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
 import cdc.impl.datastream.DataRowInputStream;
 import cdc.impl.datastream.DataRowOutputStream;
 import cdc.utils.CPUInfo;
@@ -88,7 +89,7 @@ public class SortedData {
 		
 	}
 	
-	private static final int BUFFER_SIZE = ExternallySortingDataSource.BUFFER_SIZE / CPUInfo.testNumberOfCPUs();
+	private int BUFFER_SIZE = ExternallySortingDataSource.BUFFER_SIZE / CPUInfo.testNumberOfCPUs();
 	
 	private String sourceName;
 	private DataColumnDefinition[] rowModel;
@@ -96,7 +97,7 @@ public class SortedData {
 	private CompareFunctionInterface[] functions;
 	private Comparator comparator;
 	
-	private DataRow[] buffer = new DataRow[BUFFER_SIZE];
+	private DataRow[] buffer;
 	private volatile int position = 0;
 	private volatile int returnIndex = 0;
 
@@ -110,10 +111,32 @@ public class SortedData {
 	private volatile boolean fileUsed = false;
 	private volatile boolean interrupted = false;
 	
+	private CacheInterface cache;
+	
+	public SortedData(int bufferSize, String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
+		this.sourceName = sourceName;
+		this.orderBy = orderBy;
+		this.functions = functions;
+		this.BUFFER_SIZE = bufferSize;
+		this.buffer = new DataRow[BUFFER_SIZE];
+		this.comparator = new RowComparator(functions, orderBy);
+	}
+	
+	public SortedData(CacheInterface propsCache, int bufferSize, String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
+		this.sourceName = sourceName;
+		this.orderBy = orderBy;
+		this.functions = functions;
+		this.cache = propsCache;
+		this.BUFFER_SIZE = bufferSize;
+		this.buffer = new DataRow[BUFFER_SIZE];
+		this.comparator = new RowComparator(functions, orderBy);
+	}
+	
 	public SortedData(String sourceName, DataColumnDefinition[] orderBy, CompareFunctionInterface[] functions) {
 		this.sourceName = sourceName;
 		this.orderBy = orderBy;
 		this.functions = functions;
+		this.buffer = new DataRow[BUFFER_SIZE];
 		this.comparator = new RowComparator(functions, orderBy);
 	}
 
@@ -177,7 +200,7 @@ public class SortedData {
 				firstTime = false;
 				inputs = new ArrayList();
 				for (int i = 0; i < files.size(); i++) {
-					DataRowInputStream is = new DataRowInputStream(createInputStream((File) files.get(i)));
+					DataRowInputStream is = new DataRowInputStream(cache, createInputStream((File) files.get(i)));
 					ActiveInput input = new ActiveInput();
 					input.is = is;
 					input.row = is.readDataRow();
@@ -246,7 +269,7 @@ public class SortedData {
 		File f = Utils.createBufferFile(this);
 		files.add(f);
 		f.deleteOnExit();
-		DataRowOutputStream oos = new DataRowOutputStream(sourceName, rowModel, createOutputStream(f));
+		DataRowOutputStream oos = new DataRowOutputStream(cache, sourceName, rowModel, createOutputStream(f));
 		oos.addHeaderMetadata("order-by", orderBy);
 		//oos.addHeaderMetadata("functions", functions);
 		for (int i = 0; i < position; i++) {
@@ -255,7 +278,7 @@ public class SortedData {
 				return;
 			}
 			oos.writeDataRow(buffer[i]);
-			buffer[i].discard();
+			//buffer[i].discard();
 			buffer[i] = null;
 		}
 		oos.close();
@@ -291,6 +314,14 @@ public class SortedData {
 	
 	public void cleanup() {
 		synchronized (this) {
+//			try {
+//				if (cache != null) {
+//					cache.trash();
+//				}
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+			cache = null;
 			for (Iterator iterator = inputs.iterator(); iterator.hasNext();) {
 				ActiveInput input = (ActiveInput) iterator.next();
 				try {
@@ -306,4 +337,33 @@ public class SortedData {
 		}
 	}
 	
+//	public static void main(String[] args) throws FileNotFoundException, IOException, RJException {
+//		DataColumnDefinition[] cols = new DataColumnDefinition[] {new DataColumnDefinition("a", DataColumnDefinition.TYPE_STRING, "")};
+//		DataCell[] r1 = new DataCell[] {new DataCell(DataColumnDefinition.TYPE_STRING, "1")};
+//		DataCell[] r2 = new DataCell[] {new DataCell(DataColumnDefinition.TYPE_STRING, "2")};
+//		Integer prop = new Integer();
+//		prop.i = 2000;
+//		DataRow row1 = new DataRow(cols, r1);
+//		row1.setProperty("p", prop);
+//		DataRow row2 = new DataRow(cols, r2);
+//		row2.setProperty("p", prop);
+//		
+//		SortedData data = new SortedData(1, "dd", cols, new CompareFunctionInterface[] {new StringComparator()});
+//		data.addRow(row1);
+//		data.addRow(row2);
+//		
+//		row1 = data.getNextSortedRow();
+//		row2 = data.getNextSortedRow();
+//		
+//		Integer pp1 = (Integer) row1.getObjectProperty("p");
+//		Integer pp2 = (Integer) row2.getObjectProperty("p");
+//		pp1.i = 10;
+//		
+//		System.out.println(pp2.i);
+//		
+//	}
+//	private static class Integer implements Serializable {
+//		int i;
+//	}
+
 }

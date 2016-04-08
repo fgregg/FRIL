@@ -9,7 +9,7 @@ import cdc.components.AbstractDistance;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.impl.conditions.AbstractConditionPanel.ConditionItem;
+import cdc.impl.conditions.ConditionItem;
 import cdc.impl.deduplication.DeduplicationConfig;
 
 public class DeduplicationWizard {
@@ -48,11 +48,16 @@ public class DeduplicationWizard {
 		ConditionItem[] items = ((DeduplicationConditionAction) actions[0]).getDeduplicationCondition();
 		DataColumnDefinition[] cols = new DataColumnDefinition[items.length];
 		AbstractDistance[] distances = new AbstractDistance[items.length];
+		double[] emptyMatch = new double[items.length];
+		int[] weights = new int[items.length];
 		for (int i = 0; i < items.length; i++) {
 			cols[i] = items[i].getLeft();
 			distances[i] = items[i].getDistanceFunction();
+			emptyMatch[i] = items[i].getEmptyMatchScore();
+			weights[i] = items[i].getWeight();
 		}
-		config = new DeduplicationConfig(cols, distances);
+		config = new DeduplicationConfig(cols, distances, weights, emptyMatch);
+		config.setAcceptanceLevel(((DeduplicationConditionAction) actions[0]).getAcceptanceLevel());
 		config.setHashingConfig(((DeduplicationSearchMethod)actions[1]).getHashingFunction());
 		return config;
 	}

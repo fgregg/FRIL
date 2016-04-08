@@ -39,11 +39,13 @@ package cdc.components;
 public class EvaluatedCondition {
 	
 	private boolean satisfied;
+	private boolean manualReview;
 	private int confidence;
 	
-	public EvaluatedCondition(boolean satisfied, int confidence) {
+	public EvaluatedCondition(boolean satisfied, boolean manualReview, int confidence) {
 		this.satisfied = satisfied;
 		this.confidence = confidence;
+		this.manualReview = manualReview;
 	}
 
 	public boolean isSatisfied() {
@@ -54,4 +56,7 @@ public class EvaluatedCondition {
 		return confidence;
 	}
 	
+	public boolean isManualReview() {
+		return manualReview;
+	}
 }

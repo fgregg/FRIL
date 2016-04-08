@@ -85,11 +85,11 @@ public class LinkageSystemPanel extends SystemPanel {
 	private static final Color COLOR_ENABLED = new Color(18, 165, 8);
 	private static final Color COLOR_DISABLED = new Color(245, 94, 8);
 
-	private class ConfigClosingListener implements ClosingSystemViewListener {
-		public boolean closing() {
-			return saveIfNeeded();
-		}
-	}
+//	private class ConfigClosingListener implements ClosingSystemViewListener {
+//		public boolean closing() {
+//			return saveIfNeeded();
+//		}
+//	}
 	
 	private class SourceAButtonListener implements ActionListener {
 		private DataSourceWizard wizard = null;
@@ -120,7 +120,7 @@ public class LinkageSystemPanel extends SystemPanel {
 				updateSystem();
 				checkSystemStatus();
 				MainFrame.main.autosaveIfNeeded();
-				altered = true;
+				//altered = true;
 			}
 			wizard = null;
 		}
@@ -155,7 +155,7 @@ public class LinkageSystemPanel extends SystemPanel {
 				updateSystem();
 				checkSystemStatus();
 				MainFrame.main.autosaveIfNeeded();
-				altered = true;
+				//altered = true;
 			}
 			wizard = null;
 		}
@@ -174,7 +174,7 @@ public class LinkageSystemPanel extends SystemPanel {
 						wizard.dispose();
 						updateSystem();
 						configured(joinButton, statJoinLabel);
-						altered = true;
+						//altered = true;
 						MainFrame.main.autosaveIfNeeded();
 					}
 				} catch (RJException ex) {
@@ -193,7 +193,7 @@ public class LinkageSystemPanel extends SystemPanel {
 				wizard.dispose();
 				updateSystem();
 				configured(saversButton, statSaversLabel);
-				altered = true;
+				//altered = true;
 				MainFrame.main.autosaveIfNeeded();
 			}
 		}
@@ -291,13 +291,13 @@ public class LinkageSystemPanel extends SystemPanel {
 	private ConfiguredSystem system;
 	
 	private ProcessPanel processPanel;
-	private boolean altered = false;
+	//private boolean altered = false;
 
 	public LinkageSystemPanel(MainFrame frame) {
 		
 		setLayout(null);
 		
-		frame.addClosingSystemViewListener(new ConfigClosingListener());
+		//frame.addClosingSystemViewListener(new ConfigClosingListener());
 		
 		JLabel mode = new JLabel(Configs.linkModeIcon);
 		mode.setBounds(527, 310, 225, 60);
@@ -555,15 +555,15 @@ public class LinkageSystemPanel extends SystemPanel {
 		
 		checkSystemStatus();
 		
-		altered = false;
+		//altered = false;
 	}
 
-	/* (non-Javadoc)
-	 * @see cdc.gui.SystemPanel#systemSaved()
-	 */
-	public void systemSaved() {
-		altered = false;
-	}
+//	/* (non-Javadoc)
+//	 * @see cdc.gui.SystemPanel#systemSaved()
+//	 */
+//	public void systemSaved() {
+//		altered = false;
+//	}
 	
 	private void configured(JButton button, JLabel status) {
 		status.setForeground(COLOR_ENABLED);
@@ -704,32 +704,32 @@ public class LinkageSystemPanel extends SystemPanel {
 		return processPanel;
 	}
 
-	/* (non-Javadoc)
-	 * @see cdc.gui.SystemPanel#setAltered(boolean)
-	 */
-	public void setAltered(boolean b) {
-		altered = true;
-	}
+//	/* (non-Javadoc)
+//	 * @see cdc.gui.SystemPanel#setAltered(boolean)
+//	 */
+//	public void setAltered(boolean b) {
+//		altered = true;
+//	}
 
-	/* (non-Javadoc)
-	 * @see cdc.gui.SystemPanel#saveIfNeeded()
-	 */
-	public boolean saveIfNeeded() {
-		if (altered) {
-			int result = JOptionPane.showConfirmDialog(LinkageSystemPanel.this, "Current linkage configuration was changed. Do you want to save it?", "Save new configuration", JOptionPane.YES_NO_CANCEL_OPTION);
-			if (result == JOptionPane.YES_OPTION) {
-				if (MainFrame.main.saveCurrentConfiguration(true)) {
-					systemSaved();
-				}
-			} else if (result == JOptionPane.CANCEL_OPTION) {
-				return false;
-			} else {
-				//delete tmp config
-				MainFrame.main.deleteBackupConfig();
-			}
-		}
-		return true;
-	}
+//	/* (non-Javadoc)
+//	 * @see cdc.gui.SystemPanel#saveIfNeeded()
+//	 */
+//	public boolean saveIfNeeded() {
+//		if (altered) {
+//			int result = JOptionPane.showConfirmDialog(LinkageSystemPanel.this, "Current linkage configuration was changed. Do you want to save it?", "Save new configuration", JOptionPane.YES_NO_CANCEL_OPTION);
+//			if (result == JOptionPane.YES_OPTION) {
+//				if (MainFrame.main.saveCurrentConfiguration(true)) {
+//					systemSaved();
+//				}
+//			} else if (result == JOptionPane.CANCEL_OPTION) {
+//				return false;
+//			} else {
+//				//delete tmp config
+//				MainFrame.main.surrenderConfiguration();
+//			}
+//		}
+//		return true;
+//	}
 
 	public void openLinkagesDialog() {
 		try {

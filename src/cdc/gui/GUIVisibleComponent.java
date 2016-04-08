@@ -66,7 +66,7 @@ public abstract class GUIVisibleComponent implements DialogListener, ChangedConf
 	}
 	
 	public void setSize(int x, int y) {
-		System.out.println("Warning: class " + this.getClass() + " does not implement setSize.");
+		//System.out.println("Warning: class " + this.getClass() + " does not implement setSize.");
 	}
 	
 	public void configurationPanelClosed() {

@@ -45,4 +45,27 @@ public class StringUtils {
 	public static boolean isNullOrEmptyNoTrim(String str) {
 		return str == null || str.equals("");
 	}
+	
+	public static String encodeStringArray(String[] arr) {
+		if (arr == null) {
+			return "";
+		}
+		StringBuffer buffer = new StringBuffer();
+		for (int i = 0; i < arr.length; i++) {
+			if (i != 0) {
+				buffer.append(",");
+			}
+			buffer.append(arr[i]);
+		}
+		return buffer.toString();
+	}
+	
+	public static String[] decodeStringArray(String code) {
+		if (isNullOrEmpty(code)) {
+			return null;
+		}
+		String[] arr = code.split(",");
+		return arr;
+	}
+	
 }

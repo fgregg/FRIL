@@ -77,7 +77,10 @@ import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.components.table.TablePanel;
+import cdc.gui.validation.ColumnNameValidator;
+import cdc.gui.validation.CompoundValidator;
 import cdc.gui.validation.NonEmptyValidator;
+import cdc.gui.validation.Validator;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -139,7 +142,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 			
 			params = new ParamsPanel(new String[] {PROP_OUT_NAME}, new String[] {"Output attribute name"}, defaults);
 			Map validators = new HashMap();
-			validators.put(PROP_OUT_NAME, new NonEmptyValidator());
+			validators.put(PROP_OUT_NAME, new CompoundValidator(new Validator[] {new NonEmptyValidator(), new ColumnNameValidator()}));
 			params.setValidators(validators);
 			
 			table = new TablePanel(new String[] {"Regular expression", "Replace with"}, true);
@@ -245,6 +248,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		super(props);
 		this.in = new DataColumnDefinition[] {in};
 		this.out = new DataColumnDefinition[] {new ConverterColumnWrapper(columnName, in.getColumnType(), in.getSourceName())};
+		out[0].setEmptyValues(in.getEmptyValues());
 		List rules = new ArrayList();
 		List newStrings = new ArrayList();
 		int i = 1;
@@ -314,6 +318,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 	public void saveToXML(Document doc, Element conv) {
 		DOMUtils.setAttribute(conv, Configuration.NAME_ATTR, out[0].getColumnName());
 		DOMUtils.setAttribute(conv, "column", in[0].getColumnName());
+		saveEmptyValuesToXML(doc, conv, out);
 		Configuration.appendParams(doc, conv, getProperties());
 	}
 
@@ -329,6 +334,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 		Element paramsNode = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
 		Map params = Configuration.parseParams(paramsNode);
 		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(columnName);
+		column.setEmptyValues(getEmptyValues(readEmptyValues(element), 0));
 		return new ReplaceConverter(name, params, column);
 	}
 	

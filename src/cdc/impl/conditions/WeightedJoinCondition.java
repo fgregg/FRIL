@@ -36,10 +36,12 @@
 
 package cdc.impl.conditions;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -50,7 +52,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -75,11 +76,12 @@ import cdc.configuration.Configuration;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.OptionDialog;
 import cdc.gui.components.table.TablePanel;
+import cdc.gui.components.uicomponents.ManualReviewConfigDialog;
 import cdc.gui.wizards.AbstractWizard;
-import cdc.impl.conditions.AbstractConditionPanel.ConditionItem;
 import cdc.impl.em.EMWizard;
 import cdc.utils.RJException;
 import cdc.utils.StringUtils;
@@ -121,12 +123,15 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 
 	public static class WeightedVisibleComponent extends GUIVisibleComponent {
 
-		private static final String[] cols = {"Comparison method", "Left column", "Right column", "Weight"};
+		
+		private static final String[] cols = {"Comparison method", "Left column", "Right column", "Weight", "Empty value score"};
 		private static final int HEIGHT_PANEL_BELOW = 50;
 		
 		private int sumWeights = 0;
 		private JLabel sumLabel = new JLabel();
 		private JTextField acceptLevel = new JTextField(String.valueOf(100));
+		private JLabel manualReviewBulb = new JLabel(Configs.bulbOff);
+		private int manualReview = -1;
 		
 		private AbstractDataSource sourceA;
 		private AbstractDataSource sourceB;
@@ -140,8 +145,9 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		
 		public WeightedVisibleComponent() {
 			acceptLevel.setPreferredSize(new Dimension(40, 20));
-			sumLabel.setPreferredSize(new Dimension(25, 20));
-			sumLabel.setHorizontalAlignment(JLabel.RIGHT);
+			acceptLevel.setHorizontalAlignment(JTextField.CENTER);
+			sumLabel.setPreferredSize(new Dimension(40, 20));
+			sumLabel.setHorizontalAlignment(JLabel.CENTER);
 			tablePanel = new TablePanel(cols);
 			tablePanel.multiselectionAllowed(false);
 			tablePanel.addAddButtonListener(new ActionListener() {
@@ -159,7 +165,7 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 					if (dialog.getResult() == OptionDialog.RESULT_OK) {
 						ConditionItem item = panel.getConditionItem();
 						tablePanel.addRow(new Object[] {item.getDistanceFunction(), item.getLeft(), 
-								item.getRight(), String.valueOf(item.getWeight())});
+								item.getRight(), String.valueOf(item.getWeight()), String.valueOf(item.getEmptyMatchScore())});
 						sumWeights += item.getWeight();
 						sumLabel.setText(String.valueOf(sumWeights));
 					}
@@ -178,7 +184,8 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 					panel.restoreValues((AbstractDistance)selectedRow[0], 
 							(DataColumnDefinition)selectedRow[1], 
 							(DataColumnDefinition)selectedRow[2], 
-							Integer.parseInt((String)selectedRow[3]));
+							Integer.parseInt((String)selectedRow[3]),
+							Double.parseDouble((String)selectedRow[4]));
 					dialog.setMainPanel(panel);
 					dialog.setLocationRelativeTo((JButton)e.getSource());
 					dialog.addOptionDialogListener(panel);
@@ -187,7 +194,7 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 						sumWeights += item.getWeight() - Integer.parseInt((String)selectedRow[3]);
 						sumLabel.setText(String.valueOf(sumWeights));
 						tablePanel.replaceRow(tablePanel.getSelectedRowId()[0], new Object[] {item.getDistanceFunction(), item.getLeft(), 
-							item.getRight(), String.valueOf(item.getWeight())});
+							item.getRight(), String.valueOf(item.getWeight()), String.valueOf(item.getEmptyMatchScore())});
 					}
 				}
 			});
@@ -211,22 +218,27 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		}
 
 		private AbstractJoinCondition getJoinCondition() {
-			DataColumnDefinition[] colsLeft = new DataColumnDefinition[tablePanel.getRows().length];
-			DataColumnDefinition[] colsRight = new DataColumnDefinition[tablePanel.getRows().length];
-			AbstractDistance[] distances = new AbstractDistance[tablePanel.getRows().length];
-			double[] weights = new double[tablePanel.getRows().length];
-			
 			Object[] data = tablePanel.getRows();
+			DataColumnDefinition[] colsLeft = new DataColumnDefinition[data.length];
+			DataColumnDefinition[] colsRight = new DataColumnDefinition[data.length];
+			AbstractDistance[] distances = new AbstractDistance[data.length];
+			double[] weights = new double[data.length];
+			double[] emptyValues = new double[data.length];
+			
 			for (int i = 0; i < distances.length; i++) {
 				Object[] row = (Object[]) data[i];
 				distances[i] = (AbstractDistance)row[0];
 				colsLeft[i] = (DataColumnDefinition)row[1];
 				colsRight[i] = (DataColumnDefinition)row[2];
 				weights[i] = Integer.parseInt((String)row[3]) / (double)100;
+				emptyValues[i] = Double.parseDouble((String)row[4]);
 			}
 			Map props = new HashMap();
 			props.put(PROP_ACCEPTANCE_LEVEL, acceptLevel.getText());
-			WeightedJoinCondition cond = new WeightedJoinCondition(colsLeft, colsRight, distances, weights, props);
+			if (manualReview != -1) {
+				props.put(PROP_MANUAL_REVIEW, String.valueOf(manualReview));
+			}
+			WeightedJoinCondition cond = new WeightedJoinCondition(colsLeft, colsRight, distances, weights, emptyValues, props);
 			cond.creator = this;
 			return cond;
 		}
@@ -240,17 +252,16 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 			leftColumns = sourceA.getDataModel().getSortedOutputColumns();
 			rightColumns = sourceB.getDataModel().getSortedOutputColumns();
 			
-			JPanel weightsSumPanel = new JPanel();
-			weightsSumPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+			JPanel weightsSumPanel = new JPanel(new GridBagLayout());
 			
-			JLabel label = new JLabel("Acceptance level: ");
-			weightsSumPanel.add(label);
-			weightsSumPanel.add(acceptLevel);
-			weightsSumPanel.add(Box.createRigidArea(new Dimension(20, 20)));
+			JLabel label = new JLabel("Current sum of weights: ");
+			weightsSumPanel.add(label, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
+			weightsSumPanel.add(sumLabel, new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,10,0,0), 0, 0));
 			
-			label = new JLabel("Current sum of weights: ");
-			weightsSumPanel.add(label);
-			weightsSumPanel.add(sumLabel);
+			label = new JLabel("Acceptance level: ");
+			weightsSumPanel.add(label, new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
+			weightsSumPanel.add(acceptLevel, new GridBagConstraints(1, 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,10,0,0), 0, 0));
+			
 			sumLabel.addPropertyChangeListener("text", new PropertyChangeListener() {
 				public void propertyChange(PropertyChangeEvent evt) {
 					int sum = Integer.parseInt((String)evt.getNewValue());
@@ -262,7 +273,8 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 				}
 			});
 			sumLabel.setText(String.valueOf(sumWeights));
-			JButton emButton = new JButton("Use EM method to suggest weights");
+			JButton emButton = new JButton("Run EM method");
+			emButton.setToolTipText("Run Expectation-Maximization method to suggest weights");
 			emButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {
 					int[] weights = new EMWizard().emWizard((AbstractWizard)parent, sourceA, sourceB, getJoinCondition());
@@ -280,16 +292,33 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 					}
 				}
 			});
-			JPanel belowPanel = new JPanel(new BorderLayout());
-			belowPanel.add(weightsSumPanel, BorderLayout.NORTH);
-			belowPanel.add(emButton, BorderLayout.EAST);
 			emButton.setPreferredSize(new Dimension(emButton.getPreferredSize().width, 20));
+			weightsSumPanel.add(emButton, new GridBagConstraints(2, 0, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(5,10,0,25), 0, 0));
 			
-			buffer = new JPanel(new BorderLayout());			
-			buffer.add(tablePanel, BorderLayout.NORTH);
-			buffer.add(belowPanel, BorderLayout.SOUTH);
-			tablePanel.setPreferredSize(new Dimension(sizeX, sizeY - HEIGHT_PANEL_BELOW));
-			buffer.setPreferredSize(new Dimension(sizeX, sizeY));
+			JButton reviewButton = new JButton("Manual review");
+			reviewButton.setToolTipText("Configure manual review process");
+			reviewButton.setPreferredSize(new Dimension(emButton.getPreferredSize().width, 20));
+			reviewButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					ManualReviewConfigDialog dialog = new ManualReviewConfigDialog(parent, Integer.parseInt(acceptLevel.getText()), manualReview);
+					if (dialog.getResult() == OptionDialog.RESULT_OK) {
+						acceptLevel.setText(String.valueOf(dialog.getAcceptanceLevel()));
+						manualReview = dialog.getManualReviewLevel();
+						acceptLevel.setEnabled(manualReview == -1);
+						manualReviewBulb.setIcon(manualReview != -1 ? Configs.bulbOn : Configs.bulbOff);
+					}
+				}
+			});
+			weightsSumPanel.add(reviewButton, new GridBagConstraints(2, 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,10,0,25), 0, 0));
+			
+			JPanel reviewBulbPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+			reviewBulbPanel.add(manualReviewBulb);
+			reviewBulbPanel.add(new JLabel("Manual review"));
+			weightsSumPanel.add(reviewBulbPanel, new GridBagConstraints(1, 2, 2, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,0,0,25), 0, 0));
+			
+			buffer = new JPanel(new GridBagLayout());			
+			buffer.add(tablePanel, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
+			buffer.add(weightsSumPanel, new GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0,10,0,0), 0, 0));
 			
 			sumWeights = 0;
 			tablePanel.removeAllRows();
@@ -308,12 +337,18 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 			DataColumnDefinition[] leftCols = oldCondition.getLeftJoinColumns();
 			DataColumnDefinition[] rightCols = oldCondition.getRightJoinColumns();
 			double[] weights = oldCondition.weights;
+			double[] emptyValues = oldCondition.getEmptyMatchScore();
 			for (int i = 0; i < rightCols.length; i++) {
-				tablePanel.addRow(new Object[] {dists[i], leftCols[i], rightCols[i], String.valueOf((int)(weights[i]*100))});
+				tablePanel.addRow(new Object[] {dists[i], leftCols[i], rightCols[i], String.valueOf((int)(weights[i]*100)), String.valueOf(emptyValues[i])});
 				sumWeights += (int)(weights[i]*100);
 			}
 			acceptLevel.setText(String.valueOf(oldCondition.acceptanceThreshold));
 			sumLabel.setText(String.valueOf(sumWeights));
+			if (oldCondition.getProperty(PROP_MANUAL_REVIEW) != null) {
+				acceptLevel.setEnabled(false);
+				manualReview = Integer.parseInt(oldCondition.getProperty(PROP_MANUAL_REVIEW));
+				manualReviewBulb.setIcon(Configs.bulbOn);
+			}
 		}
 
 		private boolean failToVerify(AbstractDataSource source, DataColumnDefinition[] columns) {
@@ -386,27 +421,38 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 	private static final String LEFT_ROW_TAG = "left-column";
 	private static final String RIGHT_ROW_TAG = "right-column";
 	private static final String WEIGHT_TAG = "weight";
+	private static final String EMPTY_MATCH_SCORE_TAG = "empty-match-score";
+	private static final String PROP_MANUAL_REVIEW = "manual-review-level";
 	
 	private DataColumnDefinition[] leftJoinColumns = new DataColumnDefinition[0];
 	private DataColumnDefinition[] rightJoinColumns = new DataColumnDefinition[0];
 	private AbstractDistance[] distances = new AbstractDistance[0];
 	private double[] weights = new double[0];
+	private double[] emptyMatchScore = new double[0];
 	private int acceptanceThreshold = 100;
+	private int manualReviewThreshold = -1;
 	private WeightedVisibleComponent creator;
 	
 	public WeightedJoinCondition(DataColumnDefinition[] leftJoinColumns, DataColumnDefinition[] rightJoinColumns,
-			AbstractDistance[] distances, double[] weights, Map properties) {
+			AbstractDistance[] distances, double[] weights, double[] emptyValues, Map properties) {
 		super(properties);
 		this.leftJoinColumns = leftJoinColumns;
 		this.rightJoinColumns = rightJoinColumns;
 		this.distances = distances;
 		this.weights = weights;
+		this.emptyMatchScore = emptyValues;
 		acceptanceThreshold = Integer.parseInt(getProperty(PROP_ACCEPTANCE_LEVEL));
+		if (getProperty(PROP_MANUAL_REVIEW) != null) {
+			manualReviewThreshold = Integer.parseInt(getProperty(PROP_MANUAL_REVIEW));
+		}
 	}
-	
+
 	public WeightedJoinCondition(Map properties) {
 		super(properties);
 		acceptanceThreshold = Integer.parseInt(getProperty(PROP_ACCEPTANCE_LEVEL));
+		if (getProperty(PROP_MANUAL_REVIEW) != null) {
+			manualReviewThreshold = Integer.parseInt(getProperty(PROP_MANUAL_REVIEW));
+		}
 	}
 	
 	public EvaluatedCondition conditionSatisfied(DataRow rowA, DataRow rowB) {
@@ -414,17 +460,20 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		double weightsToGo = 1.0;
 		DataColumnDefinition[] rowACols = getRowAcols(rowA);
 		DataColumnDefinition[] rowBCols = getRowAcols(rowB);
-		//System.out.println("Eval (size): " + rowACols.length);
 		for (int i = 0; i < rowACols.length; i++) {
 			DataCell cellA = rowA.getData(rowACols[i]);
 			DataCell cellB = rowB.getData(rowBCols[i]);
-			value += distances[i].distance(cellA, cellB) * weights[i];
+			if (emptyMatchScore[i] != 0 && (cellA.isEmpty(rowACols[i]) || cellB.isEmpty(rowBCols[i]))) {
+				value += emptyMatchScore[i] * 100 * weights[i];
+			} else {
+				value += distances[i].distance(cellA, cellB) * weights[i];
+			}
 			weightsToGo -= weights[i];
 			if (this.isCanUseOptimisticEval() && value + weightsToGo*100 < acceptanceThreshold) {
-				return new EvaluatedCondition(false, (int)value);
+				return new EvaluatedCondition(false, false, (int)value);
 			}
 		}
-		return new EvaluatedCondition(value >= acceptanceThreshold, (int)value);
+		return new EvaluatedCondition(value >= acceptanceThreshold, manualReviewThreshold != -1 ? value <= manualReviewThreshold : false, (int)value);
 	}
 	
 	private DataColumnDefinition[] getRowAcols(DataRow rowA) {
@@ -435,7 +484,7 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		}
 	}
 
-	public void addCondition(DataColumnDefinition left, DataColumnDefinition right, AbstractDistance distance, int weight) {
+	public void addCondition(DataColumnDefinition left, DataColumnDefinition right, AbstractDistance distance, int weight, double emptyMatchScore) {
 		DataColumnDefinition[] leftJoinColumns = new DataColumnDefinition[this.leftJoinColumns.length + 1];
 		System.arraycopy(this.leftJoinColumns, 0, leftJoinColumns, 0, this.leftJoinColumns.length);
 		leftJoinColumns[leftJoinColumns.length - 1] = left;
@@ -455,6 +504,11 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 		System.arraycopy(this.weights, 0, weights, 0, this.weights.length);
 		weights[distances.length - 1] = weight / (double)100;
 		this.weights = weights;
+		
+		double[] empty = new double[this.emptyMatchScore.length + 1];
+		System.arraycopy(this.emptyMatchScore, 0, empty, 0, this.emptyMatchScore.length);
+		empty[distances.length - 1] = emptyMatchScore;
+		this.emptyMatchScore = empty;
 	}
 
 	public DataColumnDefinition[] getLeftJoinColumns() {
@@ -473,6 +527,9 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 			DOMUtils.setAttribute(condition, LEFT_ROW_TAG, leftJoinColumns[i].getColumnName());
 			DOMUtils.setAttribute(condition, RIGHT_ROW_TAG, rightJoinColumns[i].getColumnName());
 			DOMUtils.setAttribute(condition, WEIGHT_TAG, String.valueOf((int)(weights[i] * 100)));
+			if (emptyMatchScore[i] != 0) {
+				DOMUtils.setAttribute(condition, EMPTY_MATCH_SCORE_TAG, String.valueOf(emptyMatchScore[i]));
+			}
 			Configuration.appendParams(doc, condition, distances[i].getProperties());
 		}
 	}
@@ -504,6 +561,7 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 					String leftColumnName = DOMUtils.getAttribute(conds[i], LEFT_ROW_TAG);
 					String rightColumnName = DOMUtils.getAttribute(conds[i], RIGHT_ROW_TAG);
 					String weightString = DOMUtils.getAttribute(conds[i], WEIGHT_TAG);
+					String emptyScore = DOMUtils.getAttribute(conds[i], EMPTY_MATCH_SCORE_TAG, "0");
 					
 					DataColumnDefinition leftColumn = findByName(leftSource.getDataModel().getOutputFormat(), leftColumnName);
 					DataColumnDefinition rightColumn = findByName(rightSource.getDataModel().getOutputFormat(), rightColumnName);
@@ -518,7 +576,8 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 						throw new RJException("Each condition in weighted conditions have to have provide weight attribute");
 					}
 					
-					condition.addCondition(leftColumn, rightColumn, distance, Integer.parseInt(weightString));
+					condition.addCondition(leftColumn, rightColumn, distance, Integer.parseInt(weightString), Double.parseDouble(emptyScore));
+					
 				} catch (ClassNotFoundException e) {
 					throw new RJException("Class configured in tag " + CONDITION_TAG + "(" + className
 							+ ") not found. Make sure the name and classpath are correct", e);
@@ -569,21 +628,13 @@ public class WeightedJoinCondition extends AbstractJoinCondition {
 	public double[] getWeights() {
 		return weights;
 	}
-
-//	public static void attachListener(Object[] objects, PropertyChangeListener propertyListener) {
-//		for (int i = 0; i < objects.length; i++) {
-//			if (objects[i] instanceof JList) {
-//				JList list = (JList) objects[i];
-//				list.addListSelectionListener(new ListListener(propertyListener));
-//			} else if (objects[i] instanceof JTextField) {
-//				JTextField field = (JTextField) objects[i];
-//				field.getDocument().addDocumentListener(new DocumentChangedAction(field, propertyListener));
-//			}
-//		}
-//	}
+	
+	public double[] getEmptyMatchScore() {
+		return emptyMatchScore;
+	}
 	
 	public Object clone() {
-		return new WeightedJoinCondition(getLeftJoinColumns(), getRightJoinColumns(), getDistanceFunctions(), getWeights(), getProperties());
+		return new WeightedJoinCondition(getLeftJoinColumns(), getRightJoinColumns(), getDistanceFunctions(), getWeights(), getEmptyMatchScore(), getProperties());
 	}
 
 	public static JComponent getLeftAttributeComponent(Object[] objects) {

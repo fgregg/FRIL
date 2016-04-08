@@ -155,15 +155,15 @@ public class DataRow implements Externalizable {
 		return this.toString(outFormatter, true);
 	}
 
-	public void discard() {
-		for (int i = 0; i < cells.length; i++) {
-			cells[i].discard();
-		}
-		cells = null;
-		model = null;
-		sourceName = null;
-		hashString = null;
-	}
+//	public void discard() {
+//		for (int i = 0; i < cells.length; i++) {
+//			cells[i].discard();
+//		}
+//		cells = null;
+//		model = null;
+//		sourceName = null;
+//		hashString = null;
+//	}
 	
 	public void setProperty(String name, Object value) {
 		if (properties == null) {
@@ -209,7 +209,7 @@ public class DataRow implements Externalizable {
 		for (int i = 0; i < cells.length; i++) {
 			String value = (String) in.readObject();
 			cells[i] = new DataCell(cols[i].getColumnType(), value);
-			cells[i].setParentRow(this);
+			//cells[i].setParentRow(this);
 		}
 		sourceName = (String) in.readObject();
 		properties = (Map) in.readObject();

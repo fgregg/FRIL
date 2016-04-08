@@ -68,7 +68,7 @@ public class DeduplicationThread extends StoppableThread {
 	int nDup;
 	
 	public DeduplicationThread(AbstractDataSource source, DedupeInfoPanel info) {
-		this.source = source;
+		this.source = source.getPreprocessedDataSource();
 		this.info = info;
 		this.fileLocation = source.getDeduplicationConfig().getDeduplicatedFileName();
 	}
@@ -87,11 +87,11 @@ public class DeduplicationThread extends StoppableThread {
 				}
 			});
 			
-			new PollingThread(info, (DeduplicationDataSource)source.getPreprocessedDataSource()).start();
+			source.reset();
+			
+			new PollingThread(info, (DeduplicationDataSource)source).start();
 			
 			System.gc();
-			
-			source = source.getPreprocessedDataSource();
 			
 			Map props = new HashMap();
 			props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
@@ -165,7 +165,7 @@ public class DeduplicationThread extends StoppableThread {
 
 	public void scheduleStop() {
 		this.stopped = true;
-		//this.interrupt();
+		((DeduplicationDataSource)source).cancel();
 	}
 	
 	private class PollingThread extends Thread {

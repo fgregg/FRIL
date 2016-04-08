@@ -119,24 +119,17 @@ public class BlockingJoinThread extends Thread {
 					DataRow rowB = activeBucket[1][index2];
 					EvaluatedCondition eval;
 					if ((eval = join.getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, join.getOutColumns());
-						joined.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
+						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, join.getOutColumns(), eval);
 						if (join.isAnyJoinListenerRegistered()) {
-							rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 							join.notifyJoined(rowA, rowB, joined);
 						}
-						rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
-						rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 						this.joined++;
 						Wrapper w = new Wrapper();
 						w.row = joined;
 						resultsBuffer.put(w);
 					} else {
 						if (join.isAnyJoinListenerRegistered()) {
-							rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							join.notifyNotJoined(rowA, rowB);
+							join.notifyNotJoined(rowA, rowB, eval.getConfidence());
 						}
 					}
 					
@@ -147,14 +140,14 @@ public class BlockingJoinThread extends Thread {
 				index2 = 0;
 				if (activeBucket[0][index1].getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 					join.notifyTrashingJoined(activeBucket[0][index1]);
-				} else {
+				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[0][index1])) {
 					join.notifyTrashingNotJoined(activeBucket[0][index1]);
 				}
 			}
 			for (index2=0; index2 < activeBucket[1].length; index2++) {
 				if (activeBucket[1][index2].getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 					join.notifyTrashingJoined(activeBucket[1][index2]);
-				} else {
+				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[1][index2])) {
 					join.notifyTrashingNotJoined(activeBucket[1][index2]);
 				}
 			}

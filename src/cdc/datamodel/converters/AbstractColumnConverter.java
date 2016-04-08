@@ -51,8 +51,13 @@ import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import edu.emory.mathcs.util.xml.DOMUtils;
 
 public abstract class AbstractColumnConverter extends SystemComponent {
+	
+	public static final String EMPTY_VALUES_SET = "empty-values-set";
+	public static final String EMPTY_VALUES = "empty-values";
+	public static final String EMPTY_VALUE = "empty-value";
 	
 	private static Map scripts = new HashMap();
 	
@@ -81,6 +86,45 @@ public abstract class AbstractColumnConverter extends SystemComponent {
 			return line;
 		} catch (IOException e) {
 			throw new RuntimeException("Converter script file not found: " + scriptFile + ". Make sure the configuration of script directory is correct.");
+		}
+	}
+	
+	protected void saveEmptyValuesToXML(Document doc, Element element, DataColumnDefinition[] out) {
+		Element el = DOMUtils.createChildElement(doc, element, EMPTY_VALUES);
+		for (int i = 0; i < out.length; i++) {
+			String[] emptyValues = out[i].getEmptyValues();
+			if (emptyValues != null) {
+				Element set = DOMUtils.createChildElement(doc, el, EMPTY_VALUES_SET);
+				for (int j = 0; j < emptyValues.length; j++) {
+					Element value = DOMUtils.createChildElement(doc, set, EMPTY_VALUE);
+					value.setTextContent(emptyValues[j]);
+				}
+			}
+		}
+	}
+	
+	protected static String[][] readEmptyValues(Element element) {
+		Element values = DOMUtils.getChildElement(element, EMPTY_VALUES);
+		if (values == null) {
+			return null;
+		}
+		Element[] valSets = DOMUtils.getChildElements(values);
+		String[][] emptys = new String[valSets.length][];
+		for (int i = 0; i < valSets.length; i++) {
+			Element[] valSet = DOMUtils.getChildElements(valSets[i]);
+			emptys[i] = new String[valSet.length];
+			for (int j = 0; j < valSet.length; j++) {
+				emptys[i][j] = valSet[j].getTextContent();
+			}
+		}
+		return emptys;
+	}
+	
+	protected static String[] getEmptyValues(String[][] emptyValues, int index) {
+		if (emptyValues == null || emptyValues.length <= index || emptyValues[index] == null) {
+			return null;
+		} else {
+			return emptyValues[index];
 		}
 	}
 }

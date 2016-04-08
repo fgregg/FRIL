@@ -43,18 +43,21 @@ import java.io.OutputStream;
 
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
 import cdc.utils.RowUtils;
 
 public class DataRowOutputStream {
 	
 	private OutputStream stream;
 	private DataFileHeader header;
+	private CacheInterface cache;
 	private boolean headerWritten = false;
 	
-	public DataRowOutputStream(String name, DataColumnDefinition[] rowModel, OutputStream stream) {
+	public DataRowOutputStream(CacheInterface cache, String name, DataColumnDefinition[] rowModel, OutputStream stream) {
 		header = new DataFileHeader(name);
 		header.addMetadata("columns", rowModel);
 		this.stream = stream;
+		this.cache = cache;
 	}
 	
 	public void addHeaderMetadata(String metadata, Object value) {
@@ -70,7 +73,7 @@ public class DataRowOutputStream {
 			writeDataFileHeader();
 		}
 		DataColumnDefinition[] rowModel = header.getMetadataAsColumnsArray("columns");
-		byte[] bytes = RowUtils.rowToByteArray(row, rowModel);
+		byte[] bytes = RowUtils.rowToByteArray(cache, row, rowModel);
 		stream.write(toBytes(bytes.length));
 		stream.write(bytes);
 	}

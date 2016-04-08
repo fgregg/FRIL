@@ -44,19 +44,23 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import cdc.components.AbstractJoin;
+import cdc.components.EvaluatedCondition;
 import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.datamodel.converters.AbstractColumnConverter;
 import cdc.gui.components.datasource.JDataSource;
+import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
+import cdc.impl.datasource.wrappers.propertiescache.CachedObjectInterface;
 
 public class RowUtils {
 	
-	public static DataRow buildMergedRow(DataRow rowA, DataRow rowB, DataColumnDefinition[] outModel) {
+	public static DataRow buildMergedRow(DataRow rowA, DataRow rowB, DataColumnDefinition[] outModel, EvaluatedCondition eval) {
 		DataCell[] data = new DataCell[outModel.length];
 		for (int i = 0; i < data.length; i++) {
 			if (rowA.getSourceName().equals(outModel[i].getSourceName())) {
@@ -67,23 +71,98 @@ public class RowUtils {
 				throw new RuntimeException("Undefined datasource: " + outModel[i].getSourceName());
 			}
 		}
+		
+		//Create the actual record
 		DataRow row = new DataRow(outModel, data);
 		Map props = new HashMap();
-		if (rowA.getProperties() != null) {
-			props.putAll(rowA.getProperties());
-		}
 		row.setProperies(props);
+		
+		//The below became not necessary as the schema for setting properties in records have changed..
+		//if (rowA.getProperties() != null) {
+		//	props.putAll(rowA.getProperties());
+		//}
+		
+		
+		//Now we will set some properties of the newly created joined record
+		
+		//Set linkage confidence and joined property for the joined records
+		row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
+		if (eval.isManualReview()) {
+			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW, "true");
+			synchronized (rowA) {
+				increment(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			}
+			synchronized (rowB) {
+				increment(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			}
+		} else {
+			synchronized (rowA) {
+				rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
+			}
+			synchronized (rowB) {
+				rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
+			}
+		}
+		
+		//Set record ids to be able to do results deduplication
 		row.setProperty(AbstractJoin.PROPERTY_SRCA_ID, String.valueOf(rowA.getRecordId()));
 		row.setProperty(AbstractJoin.PROPERTY_SRCB_ID, String.valueOf(rowB.getRecordId()));
 		
-		//experimental - to be able to save minus after deduplication
-		increment(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
-		increment(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		//Below is to be able to save minus after deduplication
+		synchronized (rowA) {
+			increment(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		}
+		synchronized (rowB) {
+			increment(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+		}
 		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCA, rowA);
 		row.setProperty(AbstractJoin.PROPERTY_RECORD_SRCB, rowB);
 		
 		return row;
 	}
+	
+	public static void linkageManuallyRejected(DataRow row) {
+		DataRow rowA = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCA);
+		DataRow rowB = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
+		synchronized (rowA) {
+			decrement(rowA, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			decrement(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+		}
+		synchronized (rowB) {
+			decrement(rowB, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY);
+			decrement(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+		}
+	}
+	
+	public static void linkageManuallyAccepted(DataRow row) {
+		DataRow rowA = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCA);
+		DataRow rowB = (DataRow) row.getObjectProperty(AbstractJoin.PROPERTY_RECORD_SRCB);
+		synchronized (rowA) {
+			decrement(rowA, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
+		}
+		synchronized (rowB) {
+			decrement(rowB, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT);
+			rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
+		}
+	}
+	
+	public static boolean shouldReportTrashingNotJoined(DataRow dataRow) {
+		synchronized (dataRow) {
+			if (dataRow.getProperty(AbstractJoin.PROPERTY_JOINED) == null && getValue(dataRow, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	
+	public static boolean shouldReportTrashingNotJoinedAfterManualReview(DataRow row) {
+		synchronized (row) {
+			return getValue(row, AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT) == 0 && getValue(row, AbstractJoin.PROPERTY_JOIN_MULTIPLICITY) == 0;
+		}
+	}
+
 	
 	private static void increment(DataRow row, String prop) {
 		Integer cnt = (Integer) row.getObjectProperty(prop);
@@ -95,13 +174,36 @@ public class RowUtils {
 		}
 	}
 	
+	private static int decrement(DataRow row, String prop) {
+		Integer cnt = (Integer) row.getObjectProperty(prop);
+		if (cnt != null) {
+			int newVal = cnt.intValue() - 1;
+			row.setProperty(prop, new Integer(newVal));
+			return newVal;
+		}
+		return 0;
+	}
+	
+	private static int getValue(DataRow row, String prop) {
+		Integer cnt = (Integer)row.getObjectProperty(prop);
+		if (cnt == null) {
+			return 0;
+		} else {
+			return cnt.intValue();
+		}
+	}
+	
 	public static void resetRow(DataRow row) {
 		if (row == null) {
 			return;
 		}
-		row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, null);
-		row.setProperty(AbstractJoin.PROPERTY_JOINED, null);
-		row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, null);
+		synchronized (row) {
+			row.setProperty(AbstractJoin.PROPERTY_JOIN_MULTIPLICITY, null);
+			row.setProperty(AbstractJoin.PROPERTY_JOINED, null);
+			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW_CNT, null);
+			row.setProperty(AbstractJoin.PROPERTY_MANUAL_REVIEW, null);
+			row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, null);
+		}
 	}
 
 	public static int compareRows(DataRow rowA, DataRow rowB, DataColumnDefinition[] sourceAJoinCols, DataColumnDefinition[] sourceBJoinCols) {
@@ -193,7 +295,7 @@ public class RowUtils {
 		return false;
 	}
 	
-	public static byte[] rowToByteArray(DataRow row, DataColumnDefinition[] rowModel) throws IOException {
+	public static byte[] rowToByteArray(CacheInterface propsCache, DataRow row, DataColumnDefinition[] rowModel) throws IOException {
 		ByteArrayOutputStream array = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(array);
 		for (int i = 0; i < rowModel.length; i++) {
@@ -203,7 +305,20 @@ public class RowUtils {
 		}
 		if (row.getProperties() != null) {
 			oos.writeBoolean(true);
-			oos.writeObject(row.getProperties());
+			Map props = row.getProperties();
+			oos.writeInt(props.size());
+			for (Iterator iterator = props.keySet().iterator(); iterator.hasNext();) {
+				String key = (String) iterator.next();
+				Object val = props.get(key);
+				if (propsCache != null && val instanceof DataRow) {
+					oos.writeObject(key);
+					oos.writeObject(propsCache.cacheObject((DataRow) val));
+				} else {
+					oos.writeObject(key);
+					oos.writeObject(val);
+				}
+			}
+			//oos.writeObject(row.getProperties());
 		} else {
 			oos.writeBoolean(false);
 		}
@@ -212,7 +327,7 @@ public class RowUtils {
 		return bytes;
 	}
 		
-	public static DataRow byteArrayToDataRow(byte[] b, DataColumnDefinition[] columns, String sourceName) throws IOException, RJException {
+	public static DataRow byteArrayToDataRow(CacheInterface propsCache, byte[] b, DataColumnDefinition[] columns, String sourceName) throws IOException, RJException {
 		try {
 			ByteArrayInputStream array = new ByteArrayInputStream(b);
 			ObjectInputStream ois = new ObjectInputStream(array);
@@ -225,7 +340,19 @@ public class RowUtils {
 				}
 				DataRow row = new DataRow(columns, cells, sourceName);
 				if (ois.readBoolean()) {
-					row.setProperies((Map) ois.readObject());
+					int size = ois.readInt();
+					Map props = new HashMap();
+					for (int i = 0; i < size; i++) {
+						 Object key = ois.readObject();
+						 Object val = ois.readObject();
+						 if (propsCache != null && val instanceof CachedObjectInterface) {
+							 props.put(key, propsCache.getObject((CachedObjectInterface) val));
+						 } else {
+							 props.put(key, val);
+						 }
+					}
+					row.setProperies(props);
+					//row.setProperies((Map) ois.readObject());
 				}
 				return row;
 			} catch (ClassNotFoundException e) {
@@ -247,6 +374,21 @@ public class RowUtils {
 			}
 		}
 		return (DataColumnDefinition[]) l.toArray(new DataColumnDefinition[] {});
+	}
+
+	public static DataRow copyRow(DataRow dataRow) {
+		DataColumnDefinition[] cols = dataRow.getRowModel();
+		DataCell[] columns = new DataCell[cols.length];
+		for (int i = 0; i < columns.length; i++) {
+			DataCell original = dataRow.getData(cols[i]);
+			columns[i] = new DataCell(original.getValueType(), original.getValue());
+		}
+		DataRow copy = new DataRow(cols, columns, dataRow.getSourceName());
+		for (Iterator iterator = dataRow.getProperties().keySet().iterator(); iterator.hasNext();) {
+			String key = (String) iterator.next();
+			copy.setProperty(key, dataRow.getProperty(key));
+		}
+		return copy;
 	}
 
 }

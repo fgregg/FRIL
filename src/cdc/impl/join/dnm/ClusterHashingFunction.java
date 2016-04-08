@@ -38,9 +38,9 @@ package cdc.impl.join.dnm;
 
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
-import cdc.impl.join.blocking.HashingFunction;
+import cdc.impl.join.blocking.BlockingFunction;
 
-public class ClusterHashingFunction implements HashingFunction {
+public class ClusterHashingFunction implements BlockingFunction {
 
 	private Object[] centroids;
 	private ClusteringDistance[] distances;

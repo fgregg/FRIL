@@ -40,6 +40,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -68,6 +69,7 @@ import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.dynamicanalysis.AnalysisWindowProvider;
+import cdc.gui.components.uicomponents.LabelWithSliderPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
@@ -82,10 +84,11 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 	private JPanel comboSpecificPanel;
 	private GUIVisibleComponent componentCreator;
 	private AbstractDistance distance;
-	private JTextField weight = new JTextField();
+	private JTextField weight = new JTextField(3);
 	private java.awt.Window parent;
 	private GUIVisibleComponent oldCreator;
 	private AnalysisWindowProvider analysisButtonListener;
+	private LabelWithSliderPanel emptyValue;
 	
 	public NewWeightedConditionPanel(DataColumnDefinition[] leftColumns, DataColumnDefinition[] rightColumns, java.awt.Window parent) {
 		
@@ -222,14 +225,26 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		c.gridwidth = 2;
 		this.add(methodSelectionPanel, c);
 		
+		JPanel emptyVals = new JPanel(new GridBagLayout());
+		emptyVals.setBorder(BorderFactory.createTitledBorder("Empty value score"));
+		emptyValue = new LabelWithSliderPanel("Score for matching empty values", 0.0, 1.0, 0.0);
+		emptyVals.add(emptyValue, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 5, 0, 0), 0, 0));
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 2;
+		c.gridwidth = 2;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 0;
+		this.add(emptyVals, c);
+		
 		JLabel label = new JLabel("Condition weight: ");
 		label.setPreferredSize(new Dimension(120, 20));
-		
 		JPanel weightsSumPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		weightsSumPanel.setBorder(BorderFactory.createTitledBorder("Select weight"));
 		weightsSumPanel.add(label);
-		weight.setPreferredSize(new Dimension(40, 20));
-		weight.setBorder(BorderFactory.createEtchedBorder());
+		//weight.setPreferredSize(new Dimension(40, 20));
+		//weight.setBorder(BorderFactory.createEtchedBorder());
 		weight.getDocument().addDocumentListener(new DocumentListener() {
 			public void changedUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
 			public void insertUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
@@ -239,7 +254,7 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		
 		c = new GridBagConstraints();
 		c.gridx = 0; 
-		c.gridy = 2;
+		c.gridy = 3;
 		c.weightx = 0.6;
 		c.fill = GridBagConstraints.BOTH;
 		this.add(weightsSumPanel, c);
@@ -251,7 +266,7 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		showExamples.add(examplesButton);
 		c = new GridBagConstraints();
 		c.gridx = 1; 
-		c.gridy = 2;
+		c.gridy = 3;
 		c.weightx = 0.4;
 		c.fill = GridBagConstraints.BOTH;
 		this.add(showExamples, c);
@@ -264,8 +279,10 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		if (distance == null) {
 			return null;
 		}
-		return new ConditionItem((DataColumnDefinition)leftColList.getSelectedValue(), 
+		ConditionItem conditionItem = new ConditionItem((DataColumnDefinition)leftColList.getSelectedValue(), 
 				(DataColumnDefinition)rightColList.getSelectedValue(), distance, Integer.parseInt(weight.getText()));
+		conditionItem.setEmptyMatchScore(emptyValue.getValueDouble());
+		return conditionItem;
 	}
 
 	public void cancelPressed(JDialog parent) {
@@ -310,7 +327,7 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		}
 	}
 
-	public void restoreValues(AbstractDistance abstractDistance, DataColumnDefinition left, DataColumnDefinition right, int weight) {
+	public void restoreValues(AbstractDistance abstractDistance, DataColumnDefinition left, DataColumnDefinition right, int weight, double emptyScore) {
 		for (int i = 0; i < leftModel.getSize(); i++) {
 			if (leftModel.get(i).equals(left)) {
 				leftColList.setSelectedIndex(i);
@@ -330,6 +347,7 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 				break;
 			}
 		}
+		this.emptyValue.setValue(emptyScore);
 		this.weight.setText(String.valueOf(weight));
 	}
 

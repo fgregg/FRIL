@@ -78,8 +78,8 @@ public class NestedLoopJoin extends AbstractJoin {
 		public boolean isAnyJoinListenerRegistered() {
 			return NestedLoopJoin.this.isAnyJoinListenerRegistered();
 		}
-		public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
-			NestedLoopJoin.this.notifyNotJoined(rowA, rowB);
+		public void notifyNotJoined(DataRow rowA, DataRow rowB, int conf) throws RJException {
+			NestedLoopJoin.this.notifyNotJoined(rowA, rowB, conf);
 		}
 		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
 			NestedLoopJoin.this.notifyJoined(rowA, rowB, row);
@@ -98,7 +98,6 @@ public class NestedLoopJoin extends AbstractJoin {
 
 	private int readA;
 	private int readB;
-	private int linked;
 	
 	private NLJConnector connector = new NLJConnector();
 	
@@ -121,7 +120,6 @@ public class NestedLoopJoin extends AbstractJoin {
 				DataRow row = (DataRow) buffer.poll(100, TimeUnit.MILLISECONDS);
 				calculateProgress();
 				if (row != null) {
-					linked++;
 					return row;
 				} else if (isCancelled()) {
 					updateSrcStats();
@@ -193,7 +191,6 @@ public class NestedLoopJoin extends AbstractJoin {
 		}
 		readA = 0;
 		readB = 0;
-		linked = 0;
 		createWorkersIfNeeded();
 	}
 	
@@ -238,7 +235,7 @@ public class NestedLoopJoin extends AbstractJoin {
 	}
 	
 	public LinkageSummary getLinkageSummary() {
-		return new LinkageSummary(readA, readB, linked);
+		return new LinkageSummary(readA, readB, getLinkedCnt());
 	}
 	
 }

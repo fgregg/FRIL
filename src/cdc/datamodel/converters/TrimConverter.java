@@ -69,7 +69,10 @@ import cdc.gui.components.dynamicanalysis.ConvAnalysisActionListener;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
+import cdc.gui.validation.ColumnNameValidator;
+import cdc.gui.validation.CompoundValidator;
 import cdc.gui.validation.NonEmptyValidator;
+import cdc.gui.validation.Validator;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
@@ -176,7 +179,7 @@ public class TrimConverter extends AbstractColumnConverter {
 					defs, creators);
 			
 			Map validators = new HashMap();
-			validators.put(PARAM_OUT_NAME, new NonEmptyValidator());
+			validators.put(PARAM_OUT_NAME, new CompoundValidator(new Validator[] {new NonEmptyValidator(), new ColumnNameValidator()}));
 			panel.setValidators(validators);
 					
 			visual = Configs.getAnalysisButton();
@@ -239,6 +242,7 @@ public class TrimConverter extends AbstractColumnConverter {
 		super(props);
 		out = new DataColumnDefinition[1];
 		out[0] = new ConverterColumnWrapper(columnName, DataColumnDefinition.TYPE_STRING, column.getSourceName());
+		out[0].setEmptyValues(column.getEmptyValues());
 		this.in = new DataColumnDefinition[] {column};
 		props.put(TrimVisibleComponent.PARAM_OUT_NAME, columnName);
 		if (props.containsKey(PROPERTY_FRONT_TRIM)) {
@@ -328,6 +332,7 @@ public class TrimConverter extends AbstractColumnConverter {
 			params.put(PROPERTY_LEAVE_FIRST, "-1");
 		}
 		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(columnName);
+		column.setEmptyValues(getEmptyValues(readEmptyValues(element), 0));
 		return new TrimConverter(name, params, column);
 	}
 	
@@ -342,6 +347,7 @@ public class TrimConverter extends AbstractColumnConverter {
 	public void saveToXML(Document doc, Element conv) {
 		DOMUtils.setAttribute(conv, Configuration.NAME_ATTR, out[0].getColumnName());
 		DOMUtils.setAttribute(conv, "column", in[0].getColumnName());
+		saveEmptyValuesToXML(doc, conv, out);
 		Configuration.appendParams(doc, conv, getProperties());
 	}
 }

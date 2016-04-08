@@ -70,7 +70,13 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		private ParamsPanel panel;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
-			return new CSVFileSaver(panel.getParams());
+			Map params = panel.getParams();
+			String fileName = (String) params.get(OUTPUT_FILE_PROPERTY);
+			if (!fileName.endsWith(".csv")) {
+				fileName = fileName + ".csv";
+				params.put(OUTPUT_FILE_PROPERTY, fileName);
+			}
+			return new CSVFileSaver(params);
 		}
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
 			

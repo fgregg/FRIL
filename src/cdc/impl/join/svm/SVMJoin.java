@@ -16,15 +16,16 @@ import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractJoinCondition;
+import cdc.components.EvaluatedCondition;
 import cdc.components.LinkageSummary;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.GUIVisibleComponent;
 import cdc.impl.join.blocking.BlockingJoin;
 import cdc.impl.join.blocking.BucketManager;
-import cdc.impl.join.blocking.EqualityHashingFunction;
-import cdc.impl.join.blocking.HashingFunction;
-import cdc.impl.join.blocking.SoundexHashingFunction;
+import cdc.impl.join.blocking.EqualityBlockingFunction;
+import cdc.impl.join.blocking.BlockingFunction;
+import cdc.impl.join.blocking.SoundexBlockingFunction;
 import cdc.utils.PrintUtils;
 import cdc.utils.RJException;
 import cdc.utils.RowUtils;
@@ -54,7 +55,7 @@ public class SVMJoin extends AbstractJoin {
 	private int SELECTION_METHOD = 0;
 	
 	private BucketManager buckets;
-	private HashingFunction function;
+	private BlockingFunction function;
 	private int[] blockingFactor;
 	private DataColumnDefinition[][] blocks;
 	
@@ -81,7 +82,6 @@ public class SVMJoin extends AbstractJoin {
 	
 	private int readA = 0;
 	private int readB = 0;
-	private int linked = 0;
 	
 	public SVMJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, DataColumnDefinition[] outColumns, AbstractJoinCondition condition, Map params) throws RJException {
 		super(sourceA, sourceB, condition, outColumns, params);
@@ -130,9 +130,9 @@ public class SVMJoin extends AbstractJoin {
 		
 		if (function.startsWith(BlockingJoin.HASHING_FUNCTION_SOUNDEX)) {
 			String paramsStr = function.substring(function.indexOf("(") + 1, function.length()-1);
-			this.function = new SoundexHashingFunction(blocks, Integer.parseInt(paramsStr));
+			this.function = new SoundexBlockingFunction(blocks, Integer.parseInt(paramsStr));
 		} else if (function.startsWith(BlockingJoin.HASHING_FUNCTION_EQUALITY)) {
-			this.function = new EqualityHashingFunction(blocks);
+			this.function = new EqualityBlockingFunction(blocks);
 		} else {
 			throw new RuntimeException("Property " + BlockingJoin.BLOCKING_FUNCTION + " accepts only soundex or equality options.");
 		}
@@ -184,7 +184,6 @@ public class SVMJoin extends AbstractJoin {
 				firstStep = false;
 				//buckets.reset();
 			} else {
-				linked++;
 				return row;
 			}
 		}
@@ -204,7 +203,6 @@ public class SVMJoin extends AbstractJoin {
 		if (!bufferedMatches.isEmpty()) {
 			//we have some buffered data from the first phase (initialization phase).
 			DataRow match = (DataRow) bufferedMatches.remove(0);
-			linked++;
 			return match;
 		} else {
 			//We will just output everything according to the current svm decision boundry.
@@ -213,9 +211,6 @@ public class SVMJoin extends AbstractJoin {
 			//This code can also be executed if learning does not provide new examples.
 			System.out.println("Second phase of the algorithm begins.");
 			DataRow nextMatch = nextMatch();
-			if (nextMatch != null) {
-				linked++;
-			}
 			return nextMatch;
 		}
 		
@@ -244,8 +239,7 @@ public class SVMJoin extends AbstractJoin {
 								continue loop;
 							}
 						}
-						DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns());
-						outRow.setProperty(PROPERTY_CONFIDNCE, "100");
+						DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, 100));
 						index1++;
 						return outRow;
 					}
@@ -304,8 +298,8 @@ public class SVMJoin extends AbstractJoin {
 						if (cls == 1) {
 							//match
 							//System.out.println(probabilities[0] + "  " + probabilities[1] + "  " + cls + " clsId=" + clsId);
-							DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns());
-							outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(probabilities[clsId] * 100)));
+							DataRow outRow = RowUtils.buildMergedRow(bucket[0][index0], bucket[1][index1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(probabilities[clsId] * 100)));
+							//outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(probabilities[clsId] * 100)));
 							index1++;
 							return outRow;
 						}
@@ -314,14 +308,18 @@ public class SVMJoin extends AbstractJoin {
 				if (bucket[0][index0].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(bucket[0][index0]);
 				} else {
-					notifyTrashingNotJoined(bucket[0][index0]);
+					if (RowUtils.shouldReportTrashingNotJoined(bucket[0][index0])) {
+						notifyTrashingNotJoined(bucket[0][index0]);
+					}
 				}
 			}
 			for (int i = 0; i < bucket[1].length; i++) {
 				if (bucket[1][i].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(bucket[1][i]);
 				} else {
-					notifyTrashingNotJoined(bucket[1][i]);
+					if (RowUtils.shouldReportTrashingNotJoined(bucket[1][i])) {
+						notifyTrashingNotJoined(bucket[1][i]);
+					}
 				}
 			}
 			bucket = null;
@@ -388,8 +386,8 @@ public class SVMJoin extends AbstractJoin {
 		for (Iterator iterator = Xm.getOrderedValuesIterator(); iterator.hasNext();) {
 			Object[] entry = (Object[]) iterator.next();
 			DataRow[] match = (DataRow[]) entry[0];
-			DataRow outRow = RowUtils.buildMergedRow(match[0], match[1], getOutColumns());
-			outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(((Double)entry[2]).doubleValue() * 100)));
+			DataRow outRow = RowUtils.buildMergedRow(match[0], match[1], getOutColumns(), new EvaluatedCondition(true, false, (int)Math.round(((Double)entry[2]).doubleValue() * 100)));
+			//outRow.setProperty(PROPERTY_CONFIDNCE, String.valueOf(Math.round(((Double)entry[2]).doubleValue() * 100)));
 			markComparedRecords(match[0], match[1], true);
 			bufferedMatches.add(outRow);
 			list.add(entry[1]);
@@ -510,9 +508,9 @@ public class SVMJoin extends AbstractJoin {
 						classes.add(new Double(1));
 						list.add(vector);
 						//this is a match - we should return this result.
-						DataRow outRow = RowUtils.buildMergedRow(bucket[0][i], bucket[1][j], getOutColumns());
+						DataRow outRow = RowUtils.buildMergedRow(bucket[0][i], bucket[1][j], getOutColumns(), new EvaluatedCondition(true, false, 100));
 						//TODO: Should this really be 100% confidence?
-						outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
+						//outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
 						bufferedMatches.add(outRow);
 						markComparedRecords(bucket[0][i], bucket[1][j], true);
 						//writeVector(vector, "1");
@@ -586,8 +584,8 @@ public class SVMJoin extends AbstractJoin {
 			classes.add(new Double(1));
 			list.add(vector);
 			//this is a match - we should return this result.
-			DataRow outRow = RowUtils.buildMergedRow(row[0], row[1], getOutColumns());
-			outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
+			DataRow outRow = RowUtils.buildMergedRow(row[0], row[1], getOutColumns(), new EvaluatedCondition(true, false, 100));
+			//outRow.setProperty(PROPERTY_CONFIDNCE, "100*");
 			bufferedMatches.add(outRow);
 			markComparedRecords(row[0], row[1], true);
 		}
@@ -675,14 +673,13 @@ public class SVMJoin extends AbstractJoin {
 		
 		readA = 0;
 		readB = 0;
-		linked = 0;
 		
 		getSourceA().reset();
 		getSourceB().reset();
 	}
 
 	public LinkageSummary getLinkageSummary() {
-		return new LinkageSummary(readA, readB, linked);
+		return new LinkageSummary(readA, readB, getLinkedCnt());
 	}
 	
 }

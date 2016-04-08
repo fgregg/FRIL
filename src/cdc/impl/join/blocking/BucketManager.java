@@ -106,6 +106,12 @@ public class BucketManager {
 				//System.out.println("Thread received left: " + addedLeft);
 				//System.out.println("Thread received right: " + addedRight);
 				//verifyBuckets();
+				if (dataInFile[LEFT]) {
+					trashIfNeeded(LEFT, true);
+				}
+				if (dataInFile[RIGHT]) {
+					trashIfNeeded(RIGHT, true);
+				}
 				counter.countDown();
 				addedLeft = addedRight = 0;
 				while (true && !stopped) {
@@ -116,13 +122,13 @@ public class BucketManager {
 						}
 						read[LEFT] = new HashMap();
 						read[RIGHT] = new HashMap();
-						if (limit[0] && limit[1]) {
+						if (dataInFile[0] && dataInFile[1]) {
 							readBucketsFromFile(LEFT);
 							readBucketsFromFile(RIGHT);
-						} else if (limit[0]) {
+						} else if (dataInFile[0]) {
 							readBucketsFromFile(LEFT);
 							readBucketsFromMem(RIGHT);
-						} else if (limit[1]) {
+						} else if (dataInFile[1]) {
 							readBucketsFromMem(LEFT);
 							readBucketsFromFile(RIGHT);
 						} else {
@@ -184,40 +190,12 @@ public class BucketManager {
 		}
 	}
 	
-//	private void verifyBuckets() {
-//		int l = 0;
-//		int r = 0;
-//		for (Iterator iterator = buckets.values().iterator(); iterator.hasNext();) {
-//			Bucket b = (Bucket) iterator.next();
-//			l += b.getLeftRowsCount();
-//			r += b.getRightRowsCount();
-//			if (b.getLeftRowsCount() == 0) {
-//				System.out.println("Bucket: " + b);
-//			}
-//		}
-//		System.out.println("::: " + l + "  --  " + r);
-//		
-//		r = 0;
-//		for (int i = 0; i < blocks[1].length; i++) {
-//			Map bb = blocks[1][i];
-//			for (Iterator iterator = bb.keySet().iterator(); iterator.hasNext();) {
-//				Bucket b = (Bucket) iterator.next();
-//				List list = (List) bb.get(b);
-//				r += list.size();
-//			}
-//		}
-//		System.out.println("RRRRRRRR: " + r);
-//		
-//	}
-	
-	//private static final int logLevel = Log.getLogLevel(BucketManager.class);
-	
 	private String filePrefix;
 	
 	private File[][] file = new File[2][FILE_POOL];
 	private DataRowOutputStream dros[][] = new DataRowOutputStream[2][FILE_POOL];
 	
-	private HashingFunction blockingFunction;
+	private BlockingFunction blockingFunction;
 	
 	private Map[][] blocks;
 	private Map bucktesToFileId = new HashMap();
@@ -230,7 +208,7 @@ public class BucketManager {
 	private Iterator rowsIterator;
 	private Bucket trashedBucket;
 	
-	private boolean limit[] = new boolean[] {false, false};
+	private boolean dataInFile[] = new boolean[] {false, false};
 	private Map[] read = new Map[2];
 	private List bucketsInMemory = new ArrayList();
 	
@@ -251,7 +229,7 @@ public class BucketManager {
 	private AtomicInteger leftSize = new AtomicInteger(0);
 	private AtomicInteger rightSize = new AtomicInteger(0);
 	
-	public BucketManager(HashingFunction blockingFunction, boolean cache) {
+	public BucketManager(BlockingFunction blockingFunction, boolean cache) {
 		this.cachingEnabled = cache;
 		
 		this.filePrefix = FILE_PREFIX + "_" + hashCode();
@@ -284,7 +262,7 @@ public class BucketManager {
 		thread.start();
 	}
 	
-	public BucketManager(HashingFunction blockingFunction) {
+	public BucketManager(BlockingFunction blockingFunction) {
 		this(blockingFunction, true);
 	}
 
@@ -323,6 +301,7 @@ public class BucketManager {
 	public synchronized DataRow[][] getBucket() throws IOException, RJException {
 		try {
 			if (completed ) {
+				//Log.log(getClass(), "Returning null from p1");
 				return null;
 			}
 			while (true) {
@@ -345,6 +324,7 @@ public class BucketManager {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		//Log.log(getClass(), "Returning null from p2");
 		return null;
 	}
 	
@@ -360,7 +340,8 @@ public class BucketManager {
 		stopped = true;
 	}
 	
-	public void addingCompleted() {
+	public void addingCompleted() throws IOException {
+		//System.out.println("Adding completed.");
 		done = true;
 		try {
 			counter.await();
@@ -380,12 +361,12 @@ public class BucketManager {
 	}
 
 	private void closeStreams() throws IOException, RJException {
-		if (limit[0]) {
+		if (dataInFile[0]) {
 			for (int i = 0; i < FILE_POOL; i++) {
 				if (dros[0][i] != null) dros[0][i].close();
 			}
 		}
-		if (limit[1]) {
+		if (dataInFile[1]) {
 			for (int i = 0; i < FILE_POOL; i++) {
 				if (dros[1][i] != null) dros[1][i].close();
 			}
@@ -407,6 +388,12 @@ public class BucketManager {
 				}
 			}
 		}
+		
+		for (int i = 0; i < blocks.length; i++) {
+			for (int j = 0; j < blocks[i].length; j++) {
+				blocks[i][j].clear();
+			}
+		}
 	}
 
 	private void readBucketsFromMem(int id) {
@@ -417,9 +404,9 @@ public class BucketManager {
 	private void readBucketsFromFile(int id) throws FileNotFoundException, IOException, RJException {
 		DataRowInputStream dris;
 		try {
-			dris = new DataRowInputStream(createInputStream(file[id][usedFilesFromPool[id]]));
+			dris = new DataRowInputStream(null, createInputStream(file[id][usedFilesFromPool[id]]));
 		} catch (FileNotFoundException e) {
-			System.out.println("File " + file[id][usedFilesFromPool[id]] + " has not been found.");
+			System.out.println("File " + file[id][usedFilesFromPool[id]].getAbsolutePath() + " has not been found.");
 			return;
 		}
 		DataRow row;
@@ -471,16 +458,16 @@ public class BucketManager {
 			blocks[id][poolId].put(b, l);
 		}
 		if (cachingEnabled) {
-			trashIfNeeded(id);
+			trashIfNeeded(id, false);
 		}
 		return poolId;
 	}
 
-	private void trashIfNeeded(int id) throws IOException {
-		if (sizes[id] > BLOCK_TASH_FACTOR) {
+	private void trashIfNeeded(int id, boolean force) throws IOException {
+		if (sizes[id] > BLOCK_TASH_FACTOR || force) {
 			//System.out.println("Trashing to file");
 			
-			limit[id] = true;
+			dataInFile[id] = true;
 			for (int i = 0; i < FILE_POOL; i++) {
 				bucketIterator[i] = null;
 				DataRow row = getNext(id, i);
@@ -490,7 +477,7 @@ public class BucketManager {
 					continue;
 				}
 				if (dros[id][i] == null) {
-					dros[id][i] = new DataRowOutputStream(row.getSourceName(), row.getRowModel(), createOutputStream(file[id][i]));
+					dros[id][i] = new DataRowOutputStream(null, row.getSourceName(), row.getRowModel(), createOutputStream(file[id][i]));
 				}
 				do {
 					dros[id][i].writeDataRow(row);
@@ -527,28 +514,44 @@ public class BucketManager {
 		return os;
 	}
 
-	public HashingFunction getHashingFunction() {
+	public BlockingFunction getHashingFunction() {
 		return this.blockingFunction;
 	}
 	
 	public void reset() {
+		if (thread != null) {
+			thread.interrupt();
+			try {
+				thread.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		//This caused a problem after reset when no trashing to files occurred. If added to fix.
+		//Initially, this cleanup removed extra records from deduplication mode
+		if (dataInFile[0]) {
+			for (int j = 0; j < blocks[0].length; j++) {
+				blocks[0][j].clear();
+			}
+		}
+		if (dataInFile[1]) {
+			for (int j = 0; j < blocks[1].length; j++) {
+				blocks[1][j].clear();
+			}
+		}
+		
 		usedFilesFromPool[0] = 0;
 		usedFilesFromPool[1] = 0;
 		bucketsInMemory.clear();
 		bufferBuckets.clear();
 		stopped = false;
 		completed = false;
-		if (thread != null) {
-			thread.interrupt();
-		}
 		thread = new BufferConsumer();
 		thread.setName("buckets-manager-thread");
 		thread.start();
 		
-//		if (thread == null) {
-//			thread = new BufferConsumer();
-//			thread.start();
-//		}
+		//System.out.println("Reset called");
 	}
 	
 	protected void finalize() throws Throwable {

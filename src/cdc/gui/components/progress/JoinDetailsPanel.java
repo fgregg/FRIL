@@ -82,18 +82,20 @@ public class JoinDetailsPanel extends JPanel {
 		private DataRow rowA, rowB;
 		private DataColumnDefinition[] colsA, colsB; 
 		private boolean join;
+		private int conf;
 		
-		public Runner(DataRow rowA, DataRow rowB, DataColumnDefinition[] colsA, DataColumnDefinition[] colsB, boolean join) {
+		public Runner(DataRow rowA, DataRow rowB, int confidence, DataColumnDefinition[] colsA, DataColumnDefinition[] colsB, boolean join) {
 			this.rowA = rowA;
 			this.rowB = rowB;
+			this.conf = confidence;
 			this.colsA = colsA;
 			this.colsB = colsB;
 			this.join = join;
 		}
 		
 		public void run() {
-			addRow(rowA, colsA, join, new MatteBorder(1,0,0,0, Color.BLACK));
-			addRow(rowB, colsB, join, new MatteBorder(0,0,1,0, Color.BLACK));
+			addRow(rowA, colsA, conf, join, new MatteBorder(1,0,0,0, Color.BLACK));
+			addRow(rowB, colsB, conf, join, new MatteBorder(0,0,1,0, Color.BLACK));
 		}
 		
 	}
@@ -134,7 +136,7 @@ public class JoinDetailsPanel extends JPanel {
 				if (table == null) {
 					SwingUtilities.invokeAndWait(new TableCreator(condition));
 				}
-				SwingUtilities.invokeLater(new Runner(rowA, rowB, condition.getLeftJoinColumns(), condition.getRightJoinColumns(), true));
+				SwingUtilities.invokeLater(new Runner(rowA, rowB, Integer.parseInt(row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE)), condition.getLeftJoinColumns(), condition.getRightJoinColumns(), true));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -144,12 +146,12 @@ public class JoinDetailsPanel extends JPanel {
 			waitIfShould();
 			
 		}
-		public void rowsNotJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) {
+		public void rowsNotJoined(DataRow rowA, DataRow rowB, int confidence, AbstractJoinCondition condition) {
 			try {
 				if (table == null) {
 					SwingUtilities.invokeAndWait(new TableCreator(condition));
 				}
-				SwingUtilities.invokeLater(new Runner(rowA, rowB, condition.getLeftJoinColumns(), condition.getRightJoinColumns(), false));
+				SwingUtilities.invokeLater(new Runner(rowA, rowB, confidence, condition.getLeftJoinColumns(), condition.getRightJoinColumns(), false));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
@@ -294,7 +296,7 @@ public class JoinDetailsPanel extends JPanel {
 		}
 	}
 
-	private void addRow(DataRow row, DataColumnDefinition[] columns, boolean join, Border border) {
+	private void addRow(DataRow row, DataColumnDefinition[] columns, int conf, boolean join, Border border) {
 		synchronized(this) {
 			Value[] cols = new Value[columns.length+1];
 			for (int i = 0; i < cols.length-1; i++) {
@@ -304,7 +306,7 @@ public class JoinDetailsPanel extends JPanel {
 				cols[i].border = border;
 			}
 			cols[cols.length-1] = new Value();
-			cols[cols.length-1].values = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
+			cols[cols.length-1].values = String.valueOf(conf);
 			cols[cols.length-1].color = join ? Color.GREEN : Color.RED;
 			cols[cols.length-1].border = border;
 			tableModel.addRow(cols);

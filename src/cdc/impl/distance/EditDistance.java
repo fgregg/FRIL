@@ -193,34 +193,34 @@ public class EditDistance extends AbstractStringDistance {
 		int n = str2.length();
 		str1 = str1.toUpperCase();
 		str2 = str2.toUpperCase();
-		int mat[][] = new int[m][n];
+		int mat[][] = new int[m + 1][n + 1];
 		
 		if(m==0 || n==0) {
 			return Math.max(m, n);
 		} else{
-			for (int k = 0; k < str1.length(); k++) {
+			for (int k = 0; k < m + 1; k++) {
 				mat[k][0] = k;
 			}
-			for (int k = 0; k < str2.length(); k++) {
+			for (int k = 0; k < n + 1; k++) {
 				mat[0][k] = k;
 			}
 		    
-			for (int k = 1; k < str1.length(); k++) {
-		       for (int l = 1; l < str2.length(); l++) {
+			for (int k = 1; k < m + 1; k++) {
+		       for (int l = 1; l < n + 1; l++) {
 		    	   int cost = 0;
-		           if (str1.charAt(k) == str2.charAt(l)) { 
+		           if (str1.charAt(k - 1) == str2.charAt(l - 1)) { 
 		        	   cost = 0;
 		           } else {
 		               cost = 1;
 		           }
 		           mat[k][l] = minimum(mat[k-1][l] + 1, mat[k][l-1] + 1, mat[k-1][l-1] + cost);
-		           if (k > 1 && l > 1 && str1.charAt(k) == str2.charAt(l-1) && str1.charAt(k-1) == str2.charAt(l)) {
+		           if (k > 1 && l > 1 && str1.charAt(k - 1) == str2.charAt(l - 2) && str1.charAt(k - 2) == str2.charAt(l - 1)) {
 		               mat[k][l] = Math.min(mat[k][l], mat[k-2][l-2] + cost);
 		           }
 		       }
 		                                
 			}
-		   return mat[m - 1][n - 1];   
+		   return mat[m][n];   
 		}
 	}
 
@@ -262,5 +262,29 @@ public class EditDistance extends AbstractStringDistance {
 		String str1 = cell1.getValue().toString();
 		String str2 = cell2.getValue().toString();
 		return distance(str1, str2);
+	}
+	
+	public static void main(String[] args) {
+		Map props = new HashMap();
+		props.put(PROP_BEGIN_APPROVE_LEVEL, "0.1");
+		props.put(PROP_END_APPROVE_LEVEL, "0.3");
+		EditDistance ed = new EditDistance(props);
+		System.out.println(ed.distance("90021", "99021"));
+		
+		System.out.println(ed.distance("A", "A") + " == 1");
+		System.out.println(ed.distance("A", "B") + " == 0");
+		System.out.println(ed.distance("ADAM", "ADAMS") + " == 0.5");
+		System.out.println(ed.distance("SADAM", "ADAM") + " == 0.5");
+		System.out.println(ed.distance("JACOB DOBBS", "JAKOB HOBBS") + " == 0.59");
+		System.out.println(ed.distance("JASPER CISNEROS", "ADEN CISNEROS") + " == 0.17");
+		System.out.println(ed.distance("BREANNA ROBISON", "BRENNA ROBINSON") + " == 0.83");
+		
+		//ÒAÓ	ÒAÓ	0	0.1	0.3	1
+		//ÒAÓ	ÒBÓ	1	0.1	0.3	0
+		//ÒADAMÓ	ÒADAMSÓ	1	0.1	0.3	0.5
+		//ÒJACOB DOBBSÓ	ÒJAKOB HOBBSÓ	2	0.1	0.3	0.59
+		//ÒJASPER CISNEROSÓ	ÒADEN CISNEROSÓ	4	0.1	0.3	0.17
+		//ÒBREANNA ROBISONÓ	ÒBRENNA ROBINSONÓ	2	0.1	0.3	0.83
+
 	}
 }

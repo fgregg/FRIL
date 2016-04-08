@@ -1,4 +1,29 @@
-Version 1.0 patch5 (current):
+Version 1.0 patch6 (current)
+
+IMPORTANT: If your linkage produces large number of linkages (>80,000 or so),
+and if you are enablind results desuplication (in either available form),
+make sure to increase the memory available for FRIL. Go to FAQ section of the
+webpage for instructions.
+
+Latest features:
+1.  New feature: Deduplication supports weightsb and acceptance level
+2.  New feature: Support for comparing empty values
+3.  New feature: Empty values can be set for each of attributes used in FRIL (Data source config.)
+4.  New feature: Prefix of attribute value can be used as a blocking variable
+5.  New feature: Attribute names are validated against correctness (Data source config.)
+6.  New feature: Manual review of linkages (Linkage configuration)
+7.  Fix: Restarting blocking search method saved some values from previous round
+8.  Fix: Summary statistics failing after multiple runs of linkages using blocking search
+9.  Fix: Deduplication process more responsive to cancel button
+10. Fix: Bugfixes in autosave/backup of configuration
+11. Fix: SNM could miss reporting one record to minus files in certain circumstances
+12. Fix: Deduplication in result savers could omit saving some not joined records for large linkage result
+13. Update: New blocking configuration panel (deduplication and linkage modes)
+14. Update: Miscellaneous changes in GUI
+
+
+
+Version 1.0 patch5:
 1. New feature: Save removed duplicates from data source into files
 2. New feature: Linkage/Deduplication mode
 3. New feature: Memory usage monitoring

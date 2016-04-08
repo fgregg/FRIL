@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import cdc.components.AbstractDataSource;
-import cdc.components.AbstractJoin;
 import cdc.components.EvaluatedCondition;
 import cdc.datamodel.DataRow;
 import cdc.impl.join.nestedloop.NestedLoopJoin.NLJConnector;
@@ -89,44 +88,40 @@ public class NLJThread extends Thread {
 							Log.log(NestedLoopJoin.class, "Inner loop starts", 4);
 							EvaluatedCondition eval;
 							if ((eval = connector.getJoinCondition().conditionSatisfied(rowA[i], rowB[j])).isSatisfied()) {
-								rowA[i].setProperty(AbstractJoin.PROPERTY_JOINED, "true");
-								DataRow row = RowUtils.buildMergedRow(rowA[i], rowB[j], connector.getOutColumns());
-								//System.out.println("Merged row: (" + row.hashCode() + ") " + PrintUtils.printArray(row.getData()));
+								DataRow row = RowUtils.buildMergedRow(rowA[i], rowB[j], connector.getOutColumns(), eval);
 								if (connector.getLogLevel() >= 3) {
 									Log.log(NestedLoopJoin.class, "Row joined: " + row, 4);
 								}
 								if (connector.isAnyJoinListenerRegistered()) {
-									rowA[i].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-									rowB[j].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 									connector.notifyJoined(rowA[i], rowB[j], row);
 								}
-								row.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 								buffer.put(row);
 							} else {
 								step++;
+								//this is only to see debug info...
 								if (step % 1000 == 0 && connector.isAnyJoinListenerRegistered()) {
 									step = 1;
-									rowA[i].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-									rowB[j].setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-									connector.notifyNotJoined(rowA[i], rowB[j]);
+									connector.notifyNotJoined(rowA[i], rowB[j], eval.getConfidence());
 								}
 							}
 						}
-						
-						if (rowA[i].getProperty(AbstractJoin.PROPERTY_JOINED) == null) {
-							connector.notifyTrashingNotJoined(rowA[i]);
-						} else {
-							connector.notifyTrashingJoined(rowA[i]);
-						}
-						//rowA[i].discard();
 					}
 					if (connector.isCancelled() || stopped) {
 						break main;
 					}
 				}
+				
+				for (int i = 0; i < rowA.length; i++) {
+					if (RowUtils.shouldReportTrashingNotJoined(rowA[i])) {
+						connector.notifyTrashingNotJoined(rowA[i]);
+					}
+				}
 				Log.log(NestedLoopJoin.class, "Inner source read fully", 3);
 				sourceB.reset();
 			}
+			
+			//System.out.println(getName() + " read " + readA + " rows.");
+			
 		} catch (RJException e) {
 			error = e;
 		} catch (IOException e) {

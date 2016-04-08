@@ -136,6 +136,7 @@ public class SplitConverter extends AbstractColumnConverter {
 				public boolean validate(ParamsPanel paramsPanel, ParamPanelField paramPanelField, String parameterValue) {
 					return !StringUtils.isNullOrEmptyNoTrim(parameterValue);
 				}});
+			
 			validators.put(PARAM_COL_NAME, new SplitNamesValidator());
 			panel.setValidators(validators);
 			
@@ -189,6 +190,10 @@ public class SplitConverter extends AbstractColumnConverter {
 	private ScriptEvaluator scriptEvaluator;
 	
 	public SplitConverter(String columnName, Map params, DataColumnDefinition inputColumn) throws RJException {
+		this(columnName, params, inputColumn, null);
+	}
+	
+	public SplitConverter(String columnName, Map params, DataColumnDefinition inputColumn, String[][] emptyValues) throws RJException {
 		super(params);
 		
 		split = DEFAULT_SPLIT;
@@ -215,6 +220,9 @@ public class SplitConverter extends AbstractColumnConverter {
 		this.out = new DataColumnDefinition[names.length];
 		for (int i = 0; i < out.length; i++) {
 			out[i] = new ConverterColumnWrapper(names[i], DataColumnDefinition.TYPE_STRING, inputColumn.getSourceName());
+			if (emptyValues != null && emptyValues.length > i) {
+				out[i].setEmptyValues(emptyValues[i]);
+			}
 		}
 		
 		try {
@@ -291,11 +299,10 @@ public class SplitConverter extends AbstractColumnConverter {
 		String colName = DOMUtils.getAttribute(element, "column");
 		Element paramsNode = DOMUtils.getChildElement(element, Configuration.PARAMS_TAG);
 		Map params = Configuration.parseParams(paramsNode);
-		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(colName);
-		
-		return new SplitConverter(name, params, column);
+		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(colName); 
+		return new SplitConverter(name, params, column, readEmptyValues(element));
 	}
-	
+
 	public static GUIVisibleComponent getGUIVisibleComponent() {
 		return new SplitVisibleComponent();
 	}
@@ -308,6 +315,7 @@ public class SplitConverter extends AbstractColumnConverter {
 		//System.out.println("FIX HERE!!!!!!!!!!!!!!!!!!!!!!!!!");
 		DOMUtils.setAttribute(conv, Configuration.NAME_ATTR, restoreColNames());
 		DOMUtils.setAttribute(conv, "column", in[0].getColumnName());
+		saveEmptyValuesToXML(doc, conv, out);
 		Configuration.appendParams(doc, conv, getProperties());
 	}
 }

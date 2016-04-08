@@ -161,7 +161,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 	}
 
 	public DataRow nextRow() throws IOException, RJException {
-		Log.log(FixedColumnWidthFileDataSource.class, "Next row called", 2);
+		Log.log(FixedColumnWidthFileDataSource.class, "Next row called", 3);
 		ensureOpen();
 		String line = this.isReader.readLine();
 		if (line == null) {

@@ -23,10 +23,12 @@ import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.CPUInfo;
 import cdc.utils.Log;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 
 public class DeduplicationDataSource extends AbstractDataSource {
 
 	private AbstractDataSource parent;
+	private volatile boolean cancel = false;
 	private boolean initialized = false;
 	private BufferedData deduplicatedData;
 	private BucketManager buckets;
@@ -56,17 +58,18 @@ public class DeduplicationDataSource extends AbstractDataSource {
 	}
 
 	protected void doClose() throws IOException, RJException {
-		parent.close();
 		if (deduplicatedData != null) {
 			deduplicatedData.close();
 		}
-		if (threads != null) {
-			for (int i = 0; i < threads.length; i++) {
-				threads[i].cancel();
-				try {
-					threads[i].join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+		synchronized (this) {
+			if (threads != null) {
+				for (int i = 0; i < threads.length; i++) {
+					threads[i].cancel();
+					try {
+						threads[i].join();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -94,18 +97,22 @@ public class DeduplicationDataSource extends AbstractDataSource {
 	}
 
 	protected void doReset() throws IOException, RJException {
+		//System.out.println("Resetting!!!!!");
+		cancel = false;
 		if (!initialized) {
 			parent.reset();
 			progressDataSource.set(0);
 			progressDedupe.set(0);
 		} else {
-			if (threads != null) {
-				for (int i = 0; i < threads.length; i++) {
-					threads[i].cancel();
-					try {
-						threads[i].join();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+			synchronized (this) {
+				if (threads != null) {
+					for (int i = 0; i < threads.length; i++) {
+						threads[i].cancel();
+						try {
+							threads[i].join();
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
@@ -133,11 +140,10 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		return deduplicatedData.getSize();
 	}
 
-	private void initialize() throws IOException, RJException {
-		if (initialized) {
+	private synchronized void initialize() throws IOException, RJException {
+		if (initialized || cancel) {
 			return;
 		}
-		initialized = true;
 		sizeDedup = 0;
 		inputRecordsCnt = 0;
 		nDuplicates.set(0);
@@ -154,7 +160,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		buckets = new BucketManager(config.getHashingFunction());
 		deduplicatedData = new BufferedData(parent.size());
 		DataRow row;
-		while ((row = parent.getNextRow()) != null) {
+		while ((row = parent.getNextRow()) != null && !cancel) {
 			buckets.addToBucketLeftSource(row);
 			progressDataSource.set((int) (parent.position() * 100 / parent.size()));
 			inputRecordsCnt++;
@@ -163,13 +169,19 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		buckets.addingCompleted();
 		Log.log(getClass(), "Deduplication: buckets generated", 2);
 		
-		Log.log(getClass(), "Using " + CPUInfo.testNumberOfCPUs() + " cores for deduplication.");
+		Log.log(getClass(), "Using " + CPUInfo.testNumberOfCPUs() + " core(s) for deduplication.");
 		latch = new CountDownLatch(CPUInfo.testNumberOfCPUs());
 		
-		threads = new DeduplicationThread[CPUInfo.testNumberOfCPUs()];
-		for (int i = 0; i < threads.length; i++) {
-			threads[i] = new DeduplicationThread(i);
-			threads[i].start();
+		if (cancel) {
+			return;
+		}
+		
+		synchronized (this) {
+			threads = new DeduplicationThread[CPUInfo.testNumberOfCPUs()];
+			for (int i = 0; i < threads.length; i++) {
+				threads[i] = new DeduplicationThread(i);
+				threads[i].start();
+			}
 		}
 		
 		try {
@@ -187,6 +199,9 @@ public class DeduplicationDataSource extends AbstractDataSource {
 			e.printStackTrace();
 		}
 		
+		synchronized (deduplicatedData) {
+			deduplicatedData.addingCompleted();
+		}
 		for (int i = 0; i < threads.length; i++) {
 			sizeDedup += threads[i].getNonDuplicatesCnt();
 			//nDuplicates += threads[i].getDuplicatesCnt();
@@ -200,9 +215,11 @@ public class DeduplicationDataSource extends AbstractDataSource {
 			throw exception;
 		}
 		
-		deduplicatedData.addingCompleted();
 		Log.log(getClass(), "Deduplication finished for data source " + getSourceName() + ". Identified " + nDuplicates + " duplicates." , 1);
 		Log.log(getClass(), "Size of data in deduplicated " + getSourceName() + ": " + sizeDedup + " (" + deduplicatedData.getSize() + ")" , 1);
+		if (!cancel) {
+			initialized = true;
+		}
 	}
 	
 	public ModelGenerator getDataModel() {
@@ -263,11 +280,13 @@ public class DeduplicationDataSource extends AbstractDataSource {
 				if (dataRows[i] == null) {
 					continue;
 				}
+				DataRow rowToSave = RowUtils.copyRow(dataRows[i]);
 				for (int j = i + 1; j < dataRows.length; j++) {
 					if (dataRows[j] == null) {
 						continue;
 					}
-					if (duplicate(dataRows[i], dataRows[j])) {
+					if (duplicate(rowToSave, dataRows[j])) {
+						updateRowToSaveWithEmptyData(rowToSave, dataRows[j]);
 						duplicates.add(dataRows[j]);
 						dataRows[j] = null;
 						nDuplicates.incrementAndGet();
@@ -275,7 +294,7 @@ public class DeduplicationDataSource extends AbstractDataSource {
 				}
 				
 				synchronized (deduplicatedData) {
-					deduplicatedData.addRow(dataRows[i]);
+					deduplicatedData.addRow(rowToSave);
 				}
 				nonDuplicatesCnt++;
 				if (duplicates.size() != 0 && minusSaver != null) {
@@ -294,16 +313,17 @@ public class DeduplicationDataSource extends AbstractDataSource {
 				
 				dataRows[i] = null;
 				duplicates.clear();
-//				if (!dup) {
-//					synchronized (deduplicatedData) {
-//						deduplicatedData.addRow(dataRows[i]);
-//					}
-//					nonDuplicatesCnt++;
-//				} else if (minusSaver != null) {
-//					synchronized (minusSaver) {
-//						minusSaver.saveRow(dataRows[i]);
-//					}
-//				}
+			}
+		}
+
+		private void updateRowToSaveWithEmptyData(DataRow rowToSave, DataRow dataRow) {
+			DataColumnDefinition[] model = dataRow.getRowModel();
+			DataCell[] cellsToSave = rowToSave.getData();
+			DataCell[] cellsFromDuplicate = dataRow.getData();
+			for (int i = 0; i < cellsFromDuplicate.length; i++) {
+				if (cellsToSave[i].isEmpty(model[i])) {
+					cellsToSave[i].setValue(cellsFromDuplicate[i].getValue());
+				}
 			}
 		}
 
@@ -324,15 +344,29 @@ public class DeduplicationDataSource extends AbstractDataSource {
 		private boolean duplicate(DataRow r1, DataRow r2) {
 			DataColumnDefinition[] cols = config.getTestedColumns();
 			AbstractDistance[] distances = config.getTestCondition();
+			double[] emptyMatches = config.getEmptyMatchScore();
+			int[] weights = config.getWeights();
+			int acceptance = config.getAcceptanceLevel();
+			int sum = 0;
+			int weightsToGo = 100;
 			for (int i = 0; i < distances.length; i++) {
 				DataCell cellA = r1.getData(cols[i]);
 				DataCell cellB = r2.getData(cols[i]);
-				if (distances[i].distance(cellA, cellB) == 0) {
+				if (emptyMatches[i] != 0 && (cellA.isEmpty(cols[i]) || cellB.isEmpty(cols[i]))) {
+					sum += weights[i] * emptyMatches[i];
+				} else {
+					double score  = distances[i].distance(cellA, cellB);
+					sum += score * weights[i] / 100.0;
+				}
+				weightsToGo -= weights[i];
+				if (weightsToGo + sum < acceptance) {
 					return false;
+				} else if (sum >= acceptance) {
+					Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 3);
+					return true;
 				}
 			}
-			Log.log(getClass(), "Duplicates identified:\n   " + r1 + "\n   " + r2, 2);
-			return true;
+			return false;
 		}
 		
 		public void cancel() {
@@ -359,6 +393,17 @@ public class DeduplicationDataSource extends AbstractDataSource {
 
 	public int getInputRecordsCount() {
 		return inputRecordsCnt;
+	}
+	
+	public void cancel() {
+		cancel = true;
+		synchronized (this) {
+			if (threads != null) {
+				for (int i = 0; i < threads.length; i++) {
+					threads[i].cancel();
+				}
+			}
+		}
 	}
 	
 }

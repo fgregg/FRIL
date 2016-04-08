@@ -38,7 +38,7 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 	private DataColumnDefinition[] sort;
 	private int[] order;
 	
-	private int position = 0;
+	//private int position = 0;
 	
 	private int maxPage;
 	private AtomicInteger move = new AtomicInteger(1);
@@ -90,9 +90,15 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 				loaded = 0;
 				
 				synchronized (data) {
-					while (!reload && (move.get() == currentPage)) {
+					//can uncomment, but need to change how current page is calculated in the window
+//					if (move.get() > maxPage) {
+//						move.set(maxPage);
+//					}
+					int position = (move.get() - 1) * dialog.getRecordsPerPage();
+					int currPage = move.get();
+					while (!reload && currPage == move.get()) {
 						maxPage = (int) Math.ceil(data.size() / (double)dialog.getRecordsPerPage());
-						position = (currentPage - 1) * dialog.getRecordsPerPage(); 
+						// position = (currentPage - 1) * dialog.getRecordsPerPage();
 						checkToRemove();
 						while (!reload && loaded < dialog.getRecordsPerPage() && data.size() > position) {
 							DataRow row = (DataRow) data.get(position++);
@@ -112,32 +118,19 @@ public class DuplicateLinkageLoadingThread extends LoadingThread {
 					}
 					maxPage = (int) Math.ceil(data.size() / (double)dialog.getRecordsPerPage());
 				}
-				
-//				dialog.clearTable();
-//				currentPage = move.get();
-//				position = (currentPage - 1) * dialog.getRecordsPerPage();
-				
-//				synchronized (this) {
-//					reload = true;
-//					loaded = 0;
-//					checkToRemove();
-//					for (int i = 0; i < dialog.getRecordsPerPage() && position < data.size(); i++) {
-//						DataRow row = (DataRow) data.get(position++);
-//						//if not the page that should be shown, then skip showing, just read quickly records...
-//						dialog.addLinkage(row);
-//						loaded++;
-//						Thread.sleep(500);
-//						if (reload) {
-//							continue main;
-//						}
-//					}
-//				}
 			} catch (InterruptedException e) {
 				if (cancel) return;
 			}
 		}
 	}
 	
+//	private boolean isInPage(int position, int page) {
+//		//position here is next to take
+//		int boundLower = (page - 1) * dialog.getRecordsPerPage();
+//		int boundUpper = (page) * dialog.getRecordsPerPage() - 1;
+//		return position >= boundLower && position < boundUpper;
+//	}
+
 	private void checkToRemove() {
 		synchronized (toRemove) {
 			for (Iterator iterator = toRemove.iterator(); iterator.hasNext();) {

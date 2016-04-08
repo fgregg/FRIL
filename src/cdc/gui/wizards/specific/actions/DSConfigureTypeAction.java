@@ -58,12 +58,10 @@ import cdc.utils.RJException;
 public class DSConfigureTypeAction extends WizardAction {
 
 	private JPanel buffer;
-	private JPanel internalPanel;
 	private JComboBox activeCombo;
 	private AbstractDataSource dataSource;
 	
 	private int lastSelected = -1;
-	//private boolean altered = true;
 	private String defaultName;
 	
 	public DSConfigureTypeAction(String defaultSourceName) {
@@ -73,7 +71,7 @@ public class DSConfigureTypeAction extends WizardAction {
 	public JPanel beginStep(AbstractWizard wizard) {
 		wizard.getMainPanel().setLayout(new BorderLayout());
 		if (buffer == null) {
-			internalPanel = new JPanel();
+			JPanel internalPanel = new JPanel();
 			
 			int selected = 1;
 			activeCombo = new JComboBox();
@@ -117,7 +115,7 @@ public class DSConfigureTypeAction extends WizardAction {
 		boolean altered = true;
 		try {
 			ModelGenerator generator = null;
-			if (lastSelected == activeCombo.getSelectedIndex()) {
+			if (lastSelected == activeCombo.getSelectedIndex() && dataSource != null) {
 				altered = false;
 				generator = dataSource.getDataModel();
 			}
@@ -146,10 +144,6 @@ public class DSConfigureTypeAction extends WizardAction {
 	public AbstractDataSource getDataSource() {
 		return dataSource;
 	}
-
-//	public boolean wasSourceAltered() {
-//		return altered;
-//	}
 	
 	public void setSize(int width, int height) {
 	}
@@ -158,7 +152,6 @@ public class DSConfigureTypeAction extends WizardAction {
 		this.activeCombo = null;
 		this.buffer = null;
 		this.dataSource = null;
-		this.internalPanel = null;
 	}
 
 }

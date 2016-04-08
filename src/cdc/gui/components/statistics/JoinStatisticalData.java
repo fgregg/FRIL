@@ -82,13 +82,13 @@ public class JoinStatisticalData implements JoinListener {
 
 	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) throws RJException {
 		linked.incrementAndGet();
-		int confidence = Integer.parseInt(rowA.getProperty(AbstractJoin.PROPERTY_CONFIDNCE).toString());
+		int confidence = Integer.parseInt(row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE).toString());
 		synchronized (this) {
 			confidenceHistogram[confidence - 1]++;
 		}
 	}
 
-	public void rowsNotJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) throws RJException {
+	public void rowsNotJoined(DataRow rowA, DataRow rowB, int conf, AbstractJoinCondition condition) throws RJException {
 		notLinked.incrementAndGet();
 	}
 

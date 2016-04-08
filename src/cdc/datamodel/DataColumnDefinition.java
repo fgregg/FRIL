@@ -50,6 +50,8 @@ public class DataColumnDefinition implements Serializable {
 	private String sourceName;
 	private int hash = 0;
 	
+	private String[] emptyValues;
+	
 	private boolean key = false;
 	
 	public DataColumnDefinition(String columnName, int type, String sourceName) {
@@ -97,6 +99,19 @@ public class DataColumnDefinition implements Serializable {
 
 	public void setName(String parameterValue) {
 		columnName = parameterValue;
+	}
+	
+	public String[] getEmptyValues() {
+		return emptyValues;
+	}
+	
+	public void setEmptyValues(String[] emptyValues) {
+		this.emptyValues = emptyValues;
+	}
+	
+	public static final String normalizeColumnName(String name) {
+		//Column name cannot contain any non-word character (see java Pattern doc for definition of non-word chars)
+		return name.replaceAll("\\W", "");
 	}
 
 }

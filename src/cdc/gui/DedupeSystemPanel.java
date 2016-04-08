@@ -83,11 +83,11 @@ public class DedupeSystemPanel extends SystemPanel {
 	private static final Color COLOR_ENABLED = new Color(18, 165, 8);
 	private static final Color COLOR_DISABLED = new Color(245, 94, 8);
 
-	private class ConfigClosingListener implements ClosingSystemViewListener {
-		public boolean closing() {
-			return saveIfNeeded();
-		}
-	}
+//	private class ConfigClosingListener implements ClosingSystemViewListener {
+//		public boolean closing() {
+//			return saveIfNeeded();
+//		}
+//	}
 	
 	private class SourceButtonListener implements ActionListener {
 		private DataSourceWizard wizard = null;
@@ -105,7 +105,7 @@ public class DedupeSystemPanel extends SystemPanel {
 				updateSystem();
 				checkSystemStatus();
 				MainFrame.main.autosaveIfNeeded();
-				altered = true;
+				//altered = true;
 			}
 			wizard = null;
 		}
@@ -127,7 +127,7 @@ public class DedupeSystemPanel extends SystemPanel {
 					source.setDeduplicationConfig(deduplicationConfig);
 					updateSystem();
 					configured(dedupeButton, statDedupeLabel);
-					altered = true;
+					//altered = true;
 					MainFrame.main.autosaveIfNeeded();
 				}	
 			}
@@ -145,7 +145,7 @@ public class DedupeSystemPanel extends SystemPanel {
 				wizard.dispose();
 				updateSystem();
 				configured(saversButton, statSaversLabel);
-				altered = true;
+				//altered = true;
 				MainFrame.main.autosaveIfNeeded();
 			}
 		}
@@ -218,13 +218,13 @@ public class DedupeSystemPanel extends SystemPanel {
 	
 	private ProcessPanel processPanel;
 	
-	private boolean altered = false;
+	//private boolean altered = false;
 
 	public DedupeSystemPanel(MainFrame frame) {
 		
 		setLayout(null);
 		
-		frame.addClosingSystemViewListener(new ConfigClosingListener());
+		//frame.addClosingSystemViewListener(new ConfigClosingListener());
 		
 		JLabel mode = new JLabel(Configs.dedupeModeIcon);
 		mode.setBounds(527, 310, 225, 60);
@@ -411,12 +411,12 @@ public class DedupeSystemPanel extends SystemPanel {
 		
 		checkSystemStatus();
 		
-		altered = false;
+		//altered = false;
 	}
 
-	public void systemSaved() {
-		altered = false;
-	}
+//	public void systemSaved() {
+//		altered = false;
+//	}
 	
 	private void configured(JButton button, JLabel status) {
 		status.setForeground(COLOR_ENABLED);
@@ -508,26 +508,26 @@ public class DedupeSystemPanel extends SystemPanel {
 		return processPanel;
 	}
 
-	public void setAltered(boolean b) {
-		altered = true;
-	}
+//	public void setAltered(boolean b) {
+//		altered = true;
+//	}
 
-	public boolean saveIfNeeded() {
-		if (altered) {
-			int result = JOptionPane.showConfirmDialog(DedupeSystemPanel.this, "Current deduplication configuration was changed. Do you want to save it?", "Save new configuration", JOptionPane.YES_NO_CANCEL_OPTION);
-			if (result == JOptionPane.YES_OPTION) {
-				if (MainFrame.main.saveCurrentConfiguration(true)) {
-					systemSaved();
-				}
-			} else if (result == JOptionPane.CANCEL_OPTION) {
-				return false;
-			} else {
-				//delete tmp config
-				MainFrame.main.deleteBackupConfig();
-			}
-		}
-		return true;
-	}
+//	public boolean saveIfNeeded() {
+//		if (altered) {
+//			int result = JOptionPane.showConfirmDialog(DedupeSystemPanel.this, "Current deduplication configuration was changed. Do you want to save it?", "Save new configuration", JOptionPane.YES_NO_CANCEL_OPTION);
+//			if (result == JOptionPane.YES_OPTION) {
+//				if (MainFrame.main.saveCurrentConfiguration(true)) {
+//					systemSaved();
+//				}
+//			} else if (result == JOptionPane.CANCEL_OPTION) {
+//				return false;
+//			} else {
+//				//delete tmp config
+//				MainFrame.main.surrenderConfiguration();
+//			}
+//		}
+//		return true;
+//	}
 
 	public void openLinkagesDialog() {
 		try {

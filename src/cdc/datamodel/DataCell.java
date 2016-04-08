@@ -38,6 +38,7 @@ package cdc.datamodel;
 
 import java.io.Serializable;
 
+import cdc.utils.StringUtils;
 
 
 public class DataCell implements Comparable, Serializable {
@@ -107,13 +108,13 @@ public class DataCell implements Comparable, Serializable {
 		return this.value.hashCode();
 	}
 
-	public DataRow getParentRow() {
-		return parentRow;
-	}
-
-	public void setParentRow(DataRow parentRow) {
-		this.parentRow = parentRow;
-	}
+//	public DataRow getParentRow() {
+//		return parentRow;
+//	}
+//
+//	public void setParentRow(DataRow parentRow) {
+//		this.parentRow = parentRow;
+//	}
 	
 	public String toString() {
 		return "Cell[value='" + value + "']";
@@ -123,13 +124,28 @@ public class DataCell implements Comparable, Serializable {
 		return "Cell(source=" + parentRow.getSourceName() + ",value='" + value + "')";	
 	}
 
-	public void discard() {
-		value = null;
-		//columnName = null;
-		parentRow = null;
-	}
+//	public void discard() {
+//		value = null;
+//		//columnName = null;
+//		parentRow = null;
+//	}
 
 	public void setValue(Object value) {
 		this.value = value;
+	}
+
+	public boolean isEmpty(DataColumnDefinition columnType) {
+		if (StringUtils.isNullOrEmpty(value.toString())) {
+			return true;
+		}
+		String[] emptys = columnType.getEmptyValues();
+		if (emptys != null) {
+			for (int i = 0; i < emptys.length; i++) {
+				if (value.toString().equals(emptys[i])) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

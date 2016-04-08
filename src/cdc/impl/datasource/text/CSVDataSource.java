@@ -111,7 +111,7 @@ public class CSVDataSource extends AbstractDataSource {
 	}
 
 	private DataRow getNextRow(ModelGenerator generator) throws IOException, RJException {
-		Log.log(CSVDataSource.class, "Next row called", 2);
+		Log.log(CSVDataSource.class, "Next row called", 3);
 		if (!opened) {
 			doOpenFile();
 		} else if (generator == null) {
@@ -140,7 +140,7 @@ public class CSVDataSource extends AbstractDataSource {
 		}
 		DataRow row = new DataRow(generator.getOutputFormat(), generator.generateOutputRow(rowCols), this.getSourceName());
 		if (logLevel >= 2) {
-			Log.log(CSVDataSource.class, "Row retrieved: " + row, 2);
+			Log.log(CSVDataSource.class, "Row retrieved: " + row, 3);
 		}
 		return row;
 	}

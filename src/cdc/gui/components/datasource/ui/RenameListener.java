@@ -47,7 +47,10 @@ import cdc.gui.OptionDialog;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.gui.components.datasource.JDataSource.Brick;
 import cdc.gui.components.paramspanel.ParamsPanel;
+import cdc.gui.validation.ColumnNameValidator;
+import cdc.gui.validation.CompoundValidator;
 import cdc.gui.validation.NonEmptyValidator;
+import cdc.gui.validation.Validator;
 import cdc.utils.GuiUtils;
 import cdc.utils.RowUtils;
 
@@ -69,7 +72,7 @@ public class RenameListener implements ActionListener {
 		
 		ParamsPanel panel = new ParamsPanel(new String[] {"name"}, new String[] {"Column name"}, new String[] {brick.col.getColumnName()});
 		Map validators = new HashMap();
-		validators.put("name", new NonEmptyValidator());
+		validators.put("name", new CompoundValidator(new Validator[] {new NonEmptyValidator(), new ColumnNameValidator()}));
 		panel.setValidators(validators);
 		
 		OptionDialog dialog = new OptionDialog(window, "Rename column");

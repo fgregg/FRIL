@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 
 import cdc.datamodel.DataRow;
+import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
 import cdc.utils.RJException;
 import cdc.utils.RowUtils;
 
@@ -49,9 +50,11 @@ public class DataRowInputStream {
 	
 	private InputStream stream;
 	private DataFileHeader header;
+	private CacheInterface cache;
 	
-	public DataRowInputStream(InputStream stream) throws IOException, RJException {
+	public DataRowInputStream(CacheInterface cache, InputStream stream) throws IOException, RJException {
 		this.stream = stream;
+		this.cache = cache;
 		readDataFileHeader();
 	}
 	
@@ -65,7 +68,7 @@ public class DataRowInputStream {
 			return null;
 		}
 		b = readGuaranteed(fromBytes(b));
-		return RowUtils.byteArrayToDataRow(b, header.getMetadataAsColumnsArray("columns"), header.getSourceName());
+		return RowUtils.byteArrayToDataRow(cache, b, header.getMetadataAsColumnsArray("columns"), header.getSourceName());
 	}
 	
 	private void readDataFileHeader() throws IOException, RJException {

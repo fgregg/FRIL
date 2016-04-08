@@ -91,6 +91,10 @@ class ComboListener implements ActionListener, ComponentListener {
 
 	public void actionPerformed(ActionEvent e) {
 		JComboBox source = (JComboBox)e.getSource();
+		//This is to fix a problem in OSX where you can deselect an item
+		if (source.getSelectedIndex() == -1) {
+			source.setSelectedIndex(0);
+		}
 		if (comboComponents == null) {
 			componentGenerator = (GUIVisibleComponent) source.getSelectedItem();
 		} else {
@@ -111,8 +115,8 @@ class ComboListener implements ActionListener, ComponentListener {
 		c.weighty = 1;
 		internalPanel.add(newPanel, c);
 		if (sizeX != -1) {
-			//this.sizeX = sizeX - 20;
-			//this.sizeY = sizeY - 20;
+			this.sizeX = sizeX - 60;
+			this.sizeY = sizeY - 30;
 			componentGenerator.setSize(sizeX, sizeY);
 		}
 		this.wizard.validate();
@@ -121,13 +125,9 @@ class ComboListener implements ActionListener, ComponentListener {
 
 	public void componentResized(ComponentEvent arg0) {
 		JComponent source = (JComponent)arg0.getSource();
-		this.sizeX = source.getSize().width - 20;
-		this.sizeY = source.getSize().height - 20;
+		this.sizeX = source.getSize().width - 60;
+		this.sizeY = source.getSize().height - 30;
 		componentGenerator.setSize(sizeX, sizeY);
-	}
-	
-	protected void finalize() throws Throwable {
-		super.finalize();
 	}
 
 	public void componentHidden(ComponentEvent arg0) {}

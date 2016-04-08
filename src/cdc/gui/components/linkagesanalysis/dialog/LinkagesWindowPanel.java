@@ -57,7 +57,7 @@ public class LinkagesWindowPanel extends JPanel {
 	private static final String CONFIGURE_SORTING = "Configure sorting";
 	private static final String CONFIGURE_FITER = "Configure fiter";
 	
-	private static int RECORDS_PER_PAGE = Props.getInteger("records-per-page", 200);
+	private static int RECORDS_PER_PAGE = Props.getInteger("records-per-page", 10);
 	
 	private LinkagesPanel linkages;
 	private SpanTableModel tableModel;
@@ -265,12 +265,7 @@ public class LinkagesWindowPanel extends JPanel {
 				dialog.setSize(400, 300);
 				while (true) {
 					if (dialog.getResult() == OptionDialog.RESULT_OK) {
-						loadingThread.cancelReading();
-						try {
-							loadingThread.join();
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
+						stopLoadingThread();
 						synchronized (mutex) {
 							resetTableSettings();
 						}
@@ -307,12 +302,7 @@ public class LinkagesWindowPanel extends JPanel {
 				dialog.setSize(400, 300);
 				if (dialog.getResult() == OptionDialog.RESULT_OK) {
 					
-					loadingThread.cancelReading();
-					try {
-						loadingThread.join();
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
+					stopLoadingThread();
 					synchronized (mutex) {
 						resetTableSettings();
 					}
@@ -412,12 +402,7 @@ public class LinkagesWindowPanel extends JPanel {
 				}
 				dialog.setLocationRelativeTo(parentWindow);
 				if (dialog.getResult() == ColumnConfigDialog.RESULT_OK) {
-					loadingThread.cancelReading();
-					try {
-						loadingThread.join();
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
+					stopLoadingThread();
 					synchronized (mutex) {
 						usedModel = dialog.getConfiguredColumns();
 						tableModel = new SpanTableModel(getDefaultColumns());
@@ -509,15 +494,15 @@ public class LinkagesWindowPanel extends JPanel {
 					doRun = new Adder(data, new SpanInfo[] {new SpanInfo(0, 0, 1, 2)});
 				}
 			}
-			try {
-				SwingUtilities.invokeAndWait(doRun);
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-				doRun.ignore();
-				throw e;
-			}
-			
+//			try {
+//				SwingUtilities.invokeAndWait(doRun);
+//			} catch (InvocationTargetException e) {
+//				e.printStackTrace();
+//			} catch (InterruptedException e) {
+//				doRun.ignore();
+//				throw e;
+//			}
+			SwingUtilities.invokeLater(doRun);
 		}
 		
 	}
@@ -628,6 +613,7 @@ public class LinkagesWindowPanel extends JPanel {
 	}
 	
 	private void doLinkages(boolean acceptReject) {
+		//stopLoadingThread();
 		for (Iterator iterator = details.iterator(); iterator.hasNext();) {
 			DataRow row = (DataRow) iterator.next();
 			notifyAllListeners(acceptReject, row);
@@ -638,7 +624,6 @@ public class LinkagesWindowPanel extends JPanel {
 	private void notifyListeners(boolean accepted) {
 		int rId = linkages.getSelectedLinkage();
 		DataRow linkage = (DataRow) details.remove(rId);
-		//SwingUtilities.invokeLater(r);
 		tableModel.removeRow(rId * 2);
 		notifyAllListeners(accepted, linkage);
 		loadingThread.updateCursor();
@@ -652,6 +637,15 @@ public class LinkagesWindowPanel extends JPanel {
 			} else {
 				l.linkageRejected(linkage);
 			}
+		}
+	}
+	
+	private void stopLoadingThread() {
+		loadingThread.cancelReading();
+		try {
+			loadingThread.join();
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
 		}
 	}
 	

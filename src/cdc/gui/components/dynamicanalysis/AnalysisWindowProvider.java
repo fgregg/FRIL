@@ -46,10 +46,11 @@ import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.Timer;
 
+import cdc.components.AbstractDataSource;
 import cdc.configuration.ConfiguredSystem;
 import cdc.gui.MainFrame;
 import cdc.impl.conditions.AbstractConditionPanel;
-import cdc.impl.conditions.AbstractConditionPanel.ConditionItem;
+import cdc.impl.conditions.ConditionItem;
 
 public class AnalysisWindowProvider implements ActionListener, ChangedConfigurationListener {
 	
@@ -57,6 +58,7 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 	
 	private AbstractConditionPanel panel;
 	private Window parent;
+	private AbstractDataSource source;
 	private boolean on = false;
 	private DynamicAnalysisFrame frame;
 	private JButton button;
@@ -67,6 +69,12 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 		this.parent = parent;
 	}
 	
+	public AnalysisWindowProvider(Window parent, AbstractDataSource source, AbstractConditionPanel deduplicationConditionPanel) {
+		this.parent = parent;
+		this.panel = deduplicationConditionPanel;
+		this.source = source;
+	}
+
 	public void actionPerformed(ActionEvent arg0) {
 		on = !on;
 		
@@ -80,10 +88,14 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 			} catch (Exception e) {
 				error = e.toString();
 			}
-			cdc.impl.conditions.AbstractConditionPanel.ConditionItem item = panel.getConditionItem();
+			cdc.impl.conditions.ConditionItem item = panel.getConditionItem();
 			frame = DynamicAnalysis.getDistanceAnalysisFrame(parent);
 			if (item != null) {
-				frame.setParameters(columns, new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction()});
+				if (source == null) {
+					frame.setParameters(columns, new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction(), new Double(item.getEmptyMatchScore())});
+				} else {
+					frame.setParameters(columns, new Object[] {source, source, item.getLeft(), item.getRight(), item.getDistanceFunction(), new Double(item.getEmptyMatchScore())});
+				}
 			} else if (error == null) {
 				error = "Error has occured.";
 			}
@@ -108,7 +120,7 @@ public class AnalysisWindowProvider implements ActionListener, ChangedConfigurat
 				ConditionItem item = panel.getConditionItem();
 				if (item != null) {
 					frame.setParameters(AnalysisWindowProvider.columns, 
-							new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction()});
+							new Object[] {system.getSourceA(), system.getSourceB(), item.getLeft(), item.getRight(), item.getDistanceFunction(), new Double(item.getEmptyMatchScore())});
 				}
 				timer.stop();
 			}

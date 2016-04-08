@@ -55,6 +55,7 @@ import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -66,6 +67,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.utils.StringUtils;
@@ -212,7 +214,6 @@ public class SplitNamesField extends ParamPanelField {
 		
 		component = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		paramName = new JLabel(label);
-		//paramName.setPreferredSize(new Dimension(200, 20));
 		
 		//component.add(paramName);
 		component.add(mainPanel);
@@ -337,7 +338,7 @@ public class SplitNamesField extends ParamPanelField {
 	}
 
 	public void error(String message) {
-		throw new RuntimeException("Not supported");
+		throw new RuntimeException("Not supprted. Use SplitNamesValidator instead!");
 	}
 
 	public JComponent getComponentInputField() {
@@ -419,13 +420,13 @@ public class SplitNamesField extends ParamPanelField {
 		for (int i = 0; i < columnNames.length; i++) {
 			columnNames[i].setBackground(Color.white);
 		}
-		if (radio1.isSelected() && StringUtils.isNullOrEmpty(edit.getText())) {
+		if (radio1.isSelected() && (StringUtils.isNullOrEmpty(edit.getText()) || wrongName(edit.getText()))) {
 			edit.setBackground(Color.red);
 			return false;
 		} else if (radio2.isSelected()) {
 			boolean allOK = true;
 			for (int i = 0; i < columnNames.length; i++) {
-				if (StringUtils.isNullOrEmpty(columnNames[i].getText())) {
+				if (StringUtils.isNullOrEmpty(columnNames[i].getText()) || wrongName(columnNames[i].getText())) {
 					allOK = false;
 					columnNames[i].setBackground(Color.red);
 				}
@@ -435,6 +436,15 @@ public class SplitNamesField extends ParamPanelField {
 			}
 		}
 		return true;
+	}
+
+	private boolean wrongName(String text) {
+		boolean errorValue = !text.equals(DataColumnDefinition.normalizeColumnName(text));
+		if (errorValue) {
+			String message = "Column names can only use letters, numbers or underscore character.";
+			JOptionPane.showMessageDialog(panel, message);
+		}
+		return errorValue;
 	}
 
 }

@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -20,13 +22,21 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
+import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
 import cdc.datamodel.DataColumnDefinition;
+import cdc.gui.Configs;
 import cdc.gui.GUIVisibleComponent;
+import cdc.gui.components.dynamicanalysis.AnalysisWindowProvider;
+import cdc.gui.components.uicomponents.LabelWithSliderPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.impl.conditions.AbstractConditionPanel;
+import cdc.impl.conditions.ConditionItem;
 import cdc.utils.GuiUtils;
 import cdc.utils.RJException;
 
@@ -36,30 +46,41 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 	private GUIVisibleComponent componentCreator;
 	private GUIVisibleComponent oldCreator;
 	private Window parent;
+	private AnalysisWindowProvider analysisButtonListener;
 	private JPanel comboSpecificPanel;
 	private DefaultListModel attributesListModel = new DefaultListModel();
 	private JList attributesList = new JList(attributesListModel);
 	private AbstractDistance distance;
+	private LabelWithSliderPanel emptyScore = new LabelWithSliderPanel("Score for matching empty value", 0.0, 1.0, 0.0);
 	
-	public DeduplicationConditionPanel(DataColumnDefinition[] availableAttributes, Window parent) {
+	private JTextField weight = new JTextField(3);
+	
+	public DeduplicationConditionPanel(AbstractDataSource source, Window parent) {
 		
 		this.parent = parent;
+		analysisButtonListener = new AnalysisWindowProvider(parent, source, this);
+		for (int i = 0; i < avaialbleMethods.getItemCount(); i++) {
+			GUIVisibleComponent gui = (GUIVisibleComponent) avaialbleMethods.getItemAt(i);
+			gui.addChangedConfigurationListener(analysisButtonListener);
+		}
 		
 		setLayout(new GridBagLayout());
 		
+		DataColumnDefinition[] availableAttributes = source.getDataModel().getOutputFormat();
 		attributesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		for (int i = 0; i < availableAttributes.length; i++) {
 			attributesListModel.addElement(availableAttributes[i]);
 		}
 		attributesList.setSelectedIndex(0);
 		JPanel attributesPanel = new JPanel();
-		attributesPanel.setBorder(BorderFactory.createTitledBorder("Available column"));
+		attributesPanel.setBorder(BorderFactory.createTitledBorder("Available columns"));
 		JScrollPane scroll = new JScrollPane(attributesList);
 		scroll.setPreferredSize(new Dimension(400, 100));
 		attributesPanel.add(scroll);
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
+		c.gridwidth = 2;
 		c.fill = GridBagConstraints.BOTH;
 		this.add(attributesPanel, c);
 		
@@ -83,6 +104,7 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 				DeduplicationConditionPanel.this.validate();
 				DeduplicationConditionPanel.this.repaint();
 				oldCreator = componentCreator;
+				analysisButtonListener.configurationChanged();
 			}
 		});
 		
@@ -111,11 +133,59 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
 		c.weighty = 1;
+		c.gridwidth = 2;
 		this.add(methodSelectionPanel, c);
+		
+		JPanel emptyVals = new JPanel(new GridBagLayout());
+		emptyVals.setBorder(BorderFactory.createTitledBorder("Empty values"));
+		emptyVals.add(emptyScore, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 5, 0, 0), 0, 0));
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 2;
+		c.gridwidth = 2;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 0;
+		this.add(emptyVals, c);
+		
+		
+		JLabel label = new JLabel("Condition weight: ");
+		label.setPreferredSize(new Dimension(120, 20));
+		JPanel weightsSumPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		weightsSumPanel.setBorder(BorderFactory.createTitledBorder("Select weight"));
+		weightsSumPanel.add(label);
+		//weight.setPreferredSize(new Dimension(40, 20));
+		//weight.setBorder(BorderFactory.createEtchedBorder());
+		weight.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+			public void insertUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+			public void removeUpdate(DocumentEvent e) {analysisButtonListener.configurationChanged();}
+		});
+		weightsSumPanel.add(weight);
+		
+		c = new GridBagConstraints();
+		c.gridx = 0; 
+		c.gridy = 3;
+		c.weightx = 0.6;
+		c.fill = GridBagConstraints.BOTH;
+		this.add(weightsSumPanel, c);
+		
+		JPanel showExamples = new JPanel(new FlowLayout());
+		showExamples.setBorder(BorderFactory.createTitledBorder("Dynamic analysis"));
+		JButton examplesButton = Configs.getAnalysisButton();
+		examplesButton.addActionListener(analysisButtonListener);
+		showExamples.add(examplesButton);
+		c = new GridBagConstraints();
+		c.gridx = 1; 
+		c.gridy = 3;
+		c.weightx = 0.4;
+		c.fill = GridBagConstraints.BOTH;
+		this.add(showExamples, c);
+		
 		
 	}
 	
-	public void restoreValues(AbstractDistance distance, DataColumnDefinition attribute) {
+	public void restoreValues(AbstractDistance distance, DataColumnDefinition attribute, int weight, double emptyMatchScore) {
 		for (int i = 0; i < attributesListModel.getSize(); i++) {
 			if (attributesListModel.get(i).equals(attribute)) {
 				attributesList.setSelectedIndex(i);
@@ -129,13 +199,17 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 				break;
 			}
 		}
+		this.weight.setText(String.valueOf(weight));
+		emptyScore.setValue(emptyMatchScore);
 	}
 
 	public ConditionItem getConditionItem() {
 		if (distance == null) {
 			return null;
 		}
-		return new ConditionItem((DataColumnDefinition)attributesList.getSelectedValue(), (DataColumnDefinition)attributesList.getSelectedValue(), distance, 100);
+		ConditionItem conditionItem = new ConditionItem((DataColumnDefinition)attributesList.getSelectedValue(), (DataColumnDefinition)attributesList.getSelectedValue(), distance, Integer.parseInt(weight.getText()));
+		conditionItem.setEmptyMatchScore(emptyScore.getValueDouble());
+		return conditionItem;
 	}
 
 	public void cancelPressed(JDialog parent) {
@@ -164,8 +238,6 @@ public class DeduplicationConditionPanel extends AbstractConditionPanel {
 	}
 
 	public void windowClosing(JDialog parent) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

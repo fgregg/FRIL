@@ -84,6 +84,8 @@ import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.components.paramspanel.SeparatorPanelFieldCreator;
+import cdc.gui.validation.ColumnNameValidator;
+import cdc.gui.validation.CompoundValidator;
 import cdc.gui.validation.NonEmptyValidator;
 import cdc.gui.validation.Validator;
 import cdc.utils.Log;
@@ -163,7 +165,7 @@ public class JoinConverter extends AbstractColumnConverter {
 					new String[] {"Out atribute name", "Join fields using"}, 
 					defaults, creators);
 			Map validators = new HashMap();
-			validators.put(PARAM_OUT_NAME, new NonEmptyValidator());
+			validators.put(PARAM_OUT_NAME, new CompoundValidator(new Validator[] {new NonEmptyValidator(), new ColumnNameValidator()}));
 			validators.put(PARAM_COUPLER, new Validator() {
 				public boolean validate(ParamsPanel paramsPanel, ParamPanelField paramPanelField, String parameterValue) {
 					return !StringUtils.isNullOrEmptyNoTrim(parameterValue);
@@ -291,9 +293,14 @@ public class JoinConverter extends AbstractColumnConverter {
 	private ScriptEvaluator scriptEvaluator;
 	
 	public JoinConverter(String name, DataColumnDefinition[] columns, Map props) throws RJException {
+		this(name, columns, props, null);
+	}
+	
+	public JoinConverter(String name, DataColumnDefinition[] columns, Map props, String[] emptyValues) throws RJException {
 		super(props);
 		this.columns = columns;
 		this.outFormat = new DataColumnDefinition[] {new ConverterColumnWrapper(name, columns[0].getColumnType(), columns[0].getSourceName())};
+		outFormat[0].setEmptyValues(emptyValues);
 		if (props.containsKey(PARAM_COUPLER)) {
 			this.coupler = (String) props.get(PARAM_COUPLER);
 			if (coupler != null && coupler.equals(seps[1])) {
@@ -396,8 +403,7 @@ public class JoinConverter extends AbstractColumnConverter {
 			}
 			params.put(PARAM_COLUMNS, colsParam);
 		}
-		
-		return new JoinConverter(name, (DataColumnDefinition[])childCols.toArray(new DataColumnDefinition[] {}), params);
+		return new JoinConverter(name, (DataColumnDefinition[])childCols.toArray(new DataColumnDefinition[] {}), params, getEmptyValues(readEmptyValues(element), 0));
 	}
 
 	public static GUIVisibleComponent getGUIVisibleComponent() {
@@ -410,6 +416,7 @@ public class JoinConverter extends AbstractColumnConverter {
 
 	public void saveToXML(Document doc, Element node) {
 		DOMUtils.setAttribute(node, Configuration.NAME_ATTR, outFormat[0].getColumnName());
+		saveEmptyValuesToXML(doc, node, outFormat);
 		Configuration.appendParams(doc, node, getProperties());
 //		Element columnsTag = DOMUtils.createChildElement(doc, node, Configuration.ROW_MODEL_TAG);
 //		for (int i = 0; i < columns.length; i++) {

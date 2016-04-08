@@ -22,7 +22,7 @@ import cdc.gui.components.linkagesanalysis.dialog.ViewLinkagesDialog;
 import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.RJException;
 
-public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface {
+public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface, DecisionListener {
 
 	private DataColumnDefinition[][] dataModel;
 	private DataColumnDefinition confidence;
@@ -34,9 +34,9 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 	private ViewLinkagesDialog dialog;
 	private List internalData = new ArrayList();
 	
-	private DuplicateLinkageLoadingThread activeThread;
+	//private DuplicateLinkageLoadingThread activeThread;
 	
-	public DuplicateLinkageDecisionProvider(DecisionListener decisionListener) {
+	public DuplicateLinkageDecisionProvider(String windowTitle, DecisionListener decisionListener) {
 		
 		AbstractJoin join = MainFrame.main.getConfiguredSystem().getJoin();
 		dataModel = readModel(join.getOutColumns(), join.getJoinCondition());
@@ -61,15 +61,16 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 		dialog = new ViewLinkagesDialog(dataModel, true, confidence, stratum, comparedColumns, distances, this, true);
 		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 		dialog.getLinkageWindowPanel().addDecisionListener(decisionListener);
-		dialog.getLinkageWindowPanel().addDecisionListener(new DecisionListener() {
-			public void linkageAccepted(DataRow linkage) {
-				activeThread.removeLinkage(linkage);
-			}
-			public void linkageRejected(DataRow linkage) {
-				activeThread.removeLinkage(linkage);
-			}
-		});
-		dialog.setTitle("Linkage decision");
+		dialog.getLinkageWindowPanel().addDecisionListener(this);
+//		dialog.getLinkageWindowPanel().addDecisionListener(new DecisionListener() {
+//			public void linkageAccepted(DataRow linkage) {
+//				activeThread.removeLinkage(linkage);
+//			}
+//			public void linkageRejected(DataRow linkage) {
+//				activeThread.removeLinkage(linkage);
+//			}
+//		});
+		dialog.setTitle(windowTitle);
 		new Thread() {
 		 public void run() {
 			 dialog.setVisible(true);
@@ -126,7 +127,7 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 	}
 	
 	public LoadingThread createNewThread(ThreadCreatorInterface provider, LinkagesWindowPanel parent, Filter filter, DataColumnDefinition[] sort, int[] order) {
-		return activeThread = new DuplicateLinkageLoadingThread(internalData, provider, parent, filter, sort, order);
+		return new DuplicateLinkageLoadingThread(internalData, provider, parent, filter, sort, order);
 	}
 
 	public AbstractDataSource getDataSource(Filter filter) throws IOException, RJException {
@@ -148,6 +149,19 @@ public class DuplicateLinkageDecisionProvider implements ThreadCreatorInterface 
 	
 	public void closeDecisionWindow() {
 		dialog.setVisible(false);
+		dialog.getLinkageWindowPanel().removeAllDecisionListeners();
+	}
+
+	public void linkageAccepted(DataRow linkage) {
+		synchronized (internalData) {
+			internalData.remove(linkage);
+		}
+	}
+
+	public void linkageRejected(DataRow linkage) {
+		synchronized (internalData) {
+			internalData.remove(linkage);
+		}
 	}
 
 }

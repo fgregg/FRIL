@@ -54,7 +54,7 @@ import cdc.impl.conditions.WeightedJoinCondition;
 import cdc.impl.datasource.sampling.DataSampleInterface;
 import cdc.impl.datasource.sampling.RandomSampler;
 import cdc.impl.join.blocking.BucketManager;
-import cdc.impl.join.blocking.HashingFunction;
+import cdc.impl.join.blocking.BlockingFunction;
 import cdc.utils.HTMLUtils;
 import cdc.utils.Props;
 import cdc.utils.RJException;
@@ -81,7 +81,7 @@ public class DNMJoin extends AbstractJoin {
 	private boolean sampleLeft = false;
 	private DataColumnDefinition[] sampledSourceColumns;
 	private ClusteringDistance[] clusteringDistances;
-	private HashingFunction hash;
+	private BlockingFunction hash;
 	private DataColumnDefinition[][] clusteringColumns;
 	
 	public DNMJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition condition,
@@ -182,22 +182,15 @@ public class DNMJoin extends AbstractJoin {
 					DataRow rowB = activeBucket[1][index2];
 					EvaluatedCondition eval;
 					if ((eval = getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, getOutColumns());
-						joined.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
+						DataRow joined = RowUtils.buildMergedRow(rowA, rowB, getOutColumns(), eval);
 						if (isAnyJoinListenerRegistered()) {
-							rowA.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							rowB.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 							notifyJoined(rowA, rowB, joined);
 						}
-						rowA.setProperty(PROPERTY_JOINED, "true");
-						rowB.setProperty(PROPERTY_JOINED, "true");
 						index2++;
 						return joined;
 					} else {
 						if (isAnyJoinListenerRegistered()) {
-							rowA.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							rowB.setProperty(PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-							notifyNotJoined(rowA, rowB);
+							notifyNotJoined(rowA, rowB, eval.getConfidence());
 						}
 					}
 					
@@ -208,7 +201,7 @@ public class DNMJoin extends AbstractJoin {
 				index2 = 0;
 				if (activeBucket[0][index1].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(activeBucket[0][index1]);
-				} else {
+				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[0][index1])) {
 					notifyTrashingNotJoined(activeBucket[0][index1]);
 				}
 			}
@@ -216,7 +209,7 @@ public class DNMJoin extends AbstractJoin {
 			for (index2=0; index2 < activeBucket[1].length; index2++) {
 				if (activeBucket[1][index2].getProperty(PROPERTY_JOINED) != null) {
 					notifyTrashingJoined(activeBucket[1][index2]);
-				} else {
+				} else if (RowUtils.shouldReportTrashingNotJoined(activeBucket[1][index2])) {
 					notifyTrashingNotJoined(activeBucket[1][index2]);
 				}
 			}

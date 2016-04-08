@@ -263,6 +263,7 @@ public class BasicDataSourceUI extends DataSourceUI {
 						JPopupMenu menu = new JPopupMenu();
 						JMenuItem item = new JMenuItem("Delete");
 						JMenuItem rename = new JMenuItem("Rename");
+						JMenuItem emptyVals = new JMenuItem("Set empty values");
 						JMenu submenu = new JMenu("Use converter");
 						GUIVisibleComponent[] converters = GuiUtils.getAvailableConverters();
 						for (int j = 0; j < converters.length; j++) {
@@ -273,7 +274,9 @@ public class BasicDataSourceUI extends DataSourceUI {
 						menu.add(submenu);
 						item.addActionListener(new DeleteOutModelListener(connection.to[0], model));
 						rename.addActionListener(new RenameListener(MainFrame.main, connection.to[0], model, connection.conv.conv));
+						emptyVals.addActionListener(new AddEmptyValuesListener(MainFrame.main, connection.to[0]));
 						menu.add(rename);
+						menu.add(emptyVals);
 						menu.add(item);
 						label.addMouseListener(new MenuMouseListener(menu));
 						brickToColumn.put(connection.to[0], new Integer(getColumnId(connection.from[0]) + 2));
@@ -299,6 +302,7 @@ public class BasicDataSourceUI extends DataSourceUI {
 							JPopupMenu menu = new JPopupMenu();
 							JMenuItem item = new JMenuItem("Delete");
 							JMenuItem rename = new JMenuItem("Rename");
+							JMenuItem emptyVals = new JMenuItem("Set empty values");
 							JMenu submenu = new JMenu("Use converter");
 							GUIVisibleComponent[] converters = GuiUtils.getAvailableConverters();
 							for (int k = 0; k < converters.length; k++) {
@@ -309,7 +313,9 @@ public class BasicDataSourceUI extends DataSourceUI {
 							menu.add(submenu);
 							item.addActionListener(new DeleteOutModelListener(connection.to[j], model));
 							rename.addActionListener(new RenameListener(MainFrame.main, connection.to[j], model, connection.conv.conv));
+							emptyVals.addActionListener(new AddEmptyValuesListener(MainFrame.main, connection.to[j]));
 							menu.add(rename);
+							menu.add(emptyVals);
 							menu.add(item);
 							label.addMouseListener(new MenuMouseListener(menu));
 							brickToColumn.put(to[j], new Integer(getMaxColumnId(from) + 2));

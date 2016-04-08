@@ -37,6 +37,7 @@
 package cdc.configuration;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -48,12 +49,15 @@ import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 
-import org.apache.xml.serialize.OutputFormat;
-import org.apache.xml.serialize.XMLSerializer;
+import org.w3c.dom.DOMConfiguration;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.bootstrap.DOMImplementationRegistry;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSOutput;
+import org.w3c.dom.ls.LSSerializer;
 import org.xml.sax.SAXException;
 
 import cdc.components.AbstractDataSource;
@@ -451,16 +455,37 @@ public class Configuration {
 		}
 		
 		doc.appendChild(mainElement);
-		OutputFormat format = new OutputFormat();
-		format.setIndenting(true);
-		format.setLineWidth(300);
-		XMLSerializer serializer = new XMLSerializer(format);
-	    try {
-	    	serializer.setOutputCharStream(new java.io.FileWriter(f));
-	    	serializer.serialize(doc);
+		
+		try {
+			DOMImplementationRegistry registry = DOMImplementationRegistry.newInstance();
+			DOMImplementationLS domImplLS = (DOMImplementationLS)registry.getDOMImplementation("LS");
+			LSSerializer lsSer = domImplLS.createLSSerializer();
+			DOMConfiguration config = lsSer.getDomConfig();
+			config.setParameter("format-pretty-print", new Boolean(true));
+			LSOutput out = domImplLS.createLSOutput();
+			FileOutputStream fs = new FileOutputStream(f);
+			out.setByteStream(fs);
+			lsSer.write(doc, out);
+			fs.flush();
+			fs.close();
+			
+//			OutputFormat format = new OutputFormat();
+//			format.setIndenting(true);
+//			format.setLineWidth(300);
+//			XMLSerializer serializer = new XMLSerializer(format);		    
+//	    	serializer.setOutputCharStream(new java.io.FileWriter(f));
+//	    	serializer.serialize(doc);
 	    } catch (IOException e) {
 	    	e.printStackTrace();
-	    }
+	    } catch (ClassCastException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void appendParams(Document doc, Element node, Map properties) {

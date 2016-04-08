@@ -106,7 +106,7 @@ public class StrataJoinCondition extends AbstractJoinCondition {
 	}
 	
 	public EvaluatedCondition conditionSatisfied(DataRow rowA, DataRow rowB) {
-		EvaluatedCondition bestEval = new EvaluatedCondition(false, 0);
+		EvaluatedCondition bestEval = new EvaluatedCondition(false, false, 0);
 		for (int i = 0; i < strata.length; i++) {
 			if (strata[i].rowsInStratum(rowA, rowB)) {
 				EvaluatedCondition eval = strataConditions[i].conditionSatisfied(rowA, rowB);

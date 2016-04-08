@@ -84,8 +84,8 @@ public class BlockingJoin extends AbstractJoin {
 			BlockingJoin.this.notifyJoined(rowA, rowB, row);
 		}
 
-		public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
-			BlockingJoin.this.notifyNotJoined(rowA, rowB);
+		public void notifyNotJoined(DataRow rowA, DataRow rowB, int confidence) throws RJException {
+			BlockingJoin.this.notifyNotJoined(rowA, rowB, confidence);
 		}
 
 		public boolean isCancelled() {
@@ -106,7 +106,7 @@ public class BlockingJoin extends AbstractJoin {
 	private boolean open = false;
 	
 	private int[] blockingFactor;
-	private HashingFunction blockingFunction;
+	private BlockingFunction blockingFunction;
 	private DataColumnDefinition[][] blocks;
 	
 	private BucketManager buckets;
@@ -120,7 +120,6 @@ public class BlockingJoin extends AbstractJoin {
 	
 	private int readA;
 	private int readB;
-	private int linked;
 	
 	public BlockingJoin(AbstractDataSource sourceA, AbstractDataSource sourceB,
 			DataColumnDefinition[] outColumns, AbstractJoinCondition condition, Map params) throws RJException, IOException {
@@ -137,15 +136,7 @@ public class BlockingJoin extends AbstractJoin {
 			blocks[i][1] = condition.getRightJoinColumns()[this.blockingFactor[i]];
 		}
 		
-		if (function.startsWith(HASHING_FUNCTION_SOUNDEX)) {
-			String paramsStr = function.substring(function.indexOf("(") + 1, function.length()-1);
-			blockingFunction = new SoundexHashingFunction(blocks, Integer.parseInt(paramsStr));
-		} else if (function.startsWith(HASHING_FUNCTION_EQUALITY)) {
-			blockingFunction = new EqualityHashingFunction(blocks);
-		} else {
-			throw new RuntimeException("Property " + BLOCKING_FUNCTION + " accepts only soundex or equality options.");
-		}
-		
+		blockingFunction = BlockingFunctionFactory.createBlockingFunction(blocks, function);
 		this.buckets = new BucketManager(this.blockingFunction);
 		
 		doOpen();
@@ -186,7 +177,7 @@ public class BlockingJoin extends AbstractJoin {
 	}
 
 	protected DataRow doJoinNext() throws IOException, RJException {
-
+		//System.out.println("Initialized: " + initialized);
 		if (!initialized ) {
 			getSourceA().reset();
 			getSourceB().reset();
@@ -247,7 +238,6 @@ public class BlockingJoin extends AbstractJoin {
 				checkError();
 				updateProgress();
 				if (fromQueue != null) {
-					linked++;
 					return ((Wrapper)fromQueue).row;
 				} else {
 					for (int i = 0; i < threads.length; i++) {
@@ -336,9 +326,11 @@ public class BlockingJoin extends AbstractJoin {
 		}
 		threads = null;
 		hashers = null;
-		readA = 0;
-		readB = 0;
-		linked = 0;
+		result.clear();
+		if (!initialized) {
+			readA = 0;
+			readB = 0;
+		}
 	}
 
 	private void doOpen() {
@@ -401,7 +393,7 @@ public class BlockingJoin extends AbstractJoin {
 	}
 	
 	public LinkageSummary getLinkageSummary() {
-		return new LinkageSummary(readA, readB, linked);
+		return new LinkageSummary(readA, readB, getLinkedCnt());
 	}
 	
 }

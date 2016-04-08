@@ -54,9 +54,9 @@ import cdc.components.AbstractJoinCondition;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.gui.wizards.AbstractWizard;
 import cdc.gui.wizards.WizardAction;
-import cdc.impl.join.blocking.EqualityHashingFunction;
-import cdc.impl.join.blocking.HashingFunction;
-import cdc.impl.join.blocking.SoundexHashingFunction;
+import cdc.impl.join.blocking.EqualityBlockingFunction;
+import cdc.impl.join.blocking.BlockingFunction;
+import cdc.impl.join.blocking.SoundexBlockingFunction;
 
 public class ConfigureBlockingMethod extends WizardAction {
 
@@ -163,11 +163,11 @@ public class ConfigureBlockingMethod extends WizardAction {
 		return true;
 	}
 	
-	public HashingFunction getHashingFunction(DataColumnDefinition[][] columns) {
+	public BlockingFunction getHashingFunction(DataColumnDefinition[][] columns) {
 		if (button1.isSelected()) {
-			return new EqualityHashingFunction(columns);
+			return new EqualityBlockingFunction(columns);
 		} else {
-			return new SoundexHashingFunction(columns, Integer.parseInt(String.valueOf(length.getValue())));
+			return new SoundexBlockingFunction(columns, Integer.parseInt(String.valueOf(length.getValue())));
 		}
 	}
 	

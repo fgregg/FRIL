@@ -75,14 +75,11 @@ public class SNMJoin_v1 extends AbstractJoin {
 			return SNMJoin_v1.this.isAnyJoinListenerRegistered();
 		}
 
-		public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
-			SNMJoin_v1.this.notifyNotJoined(rowA, rowB);
+		public void notifyNotJoined(DataRow rowA, DataRow rowB, int conf) throws RJException {
+			SNMJoin_v1.this.notifyNotJoined(rowA, rowB, conf);
 		}
 
 		public void notifyJoined(DataRow rowA, DataRow rowB, DataRow row) throws RJException {
-			synchronized (mutex) {
-				linked++;
-			}
 			SNMJoin_v1.this.notifyJoined(rowA, rowB, row);
 		}
 
@@ -142,7 +139,6 @@ public class SNMJoin_v1 extends AbstractJoin {
 	private DataColumnDefinition[] rightOrder;
 	private CompareFunctionInterface[] functions;
 	
-	private int linked = 0;
 	private int minusA = 0;
 	private int minusB = 0;
 	
@@ -415,7 +411,6 @@ public class SNMJoin_v1 extends AbstractJoin {
 		buffer = new ArrayBlockingQueue(100);
 		//createWorkersIfNeeded();
 		
-		linked = 0;
 		minusA = 0;
 		minusB = 0;
 		readA = 0;
@@ -423,6 +418,6 @@ public class SNMJoin_v1 extends AbstractJoin {
 	}
 	
 	public LinkageSummary getLinkageSummary() {
-		return new LinkageSummary(readA, readB, linked);
+		return new LinkageSummary(readA, readB, getLinkedCnt());
 	}
 }

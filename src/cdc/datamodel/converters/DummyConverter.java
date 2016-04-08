@@ -88,12 +88,14 @@ public class DummyConverter extends AbstractColumnConverter {
 		Map params = Configuration.parseParams(paramsNode);
 		DataColumnDefinition column = (DataColumnDefinition) genericColumns.get(columnName);
 		DataColumnDefinition newColumn = new DataColumnDefinition(name, column.getColumnType(), column.getSourceName());
+		newColumn.setEmptyValues(getEmptyValues(readEmptyValues(element), 0));
 		return new DummyConverter(name, column, newColumn, params);
 	}
 	
 	public void saveToXML(Document doc, Element conv) {
 		DOMUtils.setAttribute(conv, "column", this.columnIn[0].getColumnName());
 		DOMUtils.setAttribute(conv, Configuration.NAME_ATTR, this.columnOut[0].getColumnName());
+		saveEmptyValuesToXML(doc, conv, columnOut);
 		Configuration.appendParams(doc, conv, getProperties());
 	}
 

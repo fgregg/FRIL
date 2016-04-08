@@ -36,16 +36,16 @@
 
 package cdc.impl.join.snm;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import cdc.components.AbstractDataSource;
@@ -141,29 +141,33 @@ public class SNMGUIVisibleComponent extends GUIVisibleComponent {
 				sortOrder.addRow(new Object[] {joinCondition.getLeftJoinColumns()[i], joinCondition.getRightJoinColumns()[i]});
 			}
 		}
+		paramsPanel.setBorder(BorderFactory.createTitledBorder("Miscellaneous parameters"));
 		
 		panel = new JPanel(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
-		c.fill = GridBagConstraints.HORIZONTAL;
+		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
 		panel.add(paramsPanel, c);
 		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 1;
-		c.fill = GridBagConstraints.HORIZONTAL;
-		c.weightx = 1;
-		c.anchor = GridBagConstraints.FIRST_LINE_START;
-		c.insets = new Insets(0, 5, 0, 0);
-		panel.add(new JLabel("Sort order:"), c);
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 2;
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
 		c.weighty = 1;
-		panel.add(sortOrder, c);
+		
+		JPanel sort = new JPanel(new BorderLayout());
+		sort.setBorder(BorderFactory.createTitledBorder("Sort order"));
+		sort.add(sortOrder);
+		panel.add(sort, c);
+//		c = new GridBagConstraints();
+//		c.gridx = 0;
+//		c.gridy = 2;
+//		c.fill = GridBagConstraints.BOTH;
+//		c.weightx = 1;
+//		c.weighty = 1;
+//		panel.add(sortOrder, c);
 		return panel;
 	}
 

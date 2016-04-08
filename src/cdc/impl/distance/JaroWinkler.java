@@ -8,7 +8,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
-import cdc.components.AbstractDistance;
+import cdc.components.AbstractStringDistance;
 import cdc.datamodel.DataCell;
 import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
@@ -17,7 +17,7 @@ import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.validation.NumberValidator;
 import cdc.utils.RJException;
 
-public class JaroWinkler extends AbstractDistance {
+public class JaroWinkler extends AbstractStringDistance {
 
 	private static class JaroWinklerGUIComponent extends GUIVisibleComponent {
 
@@ -177,7 +177,7 @@ public class JaroWinkler extends AbstractDistance {
 	public static void main(String[] args) {
 		JaroWinkler dst = new JaroWinkler(new HashMap());
 		System.out.println(dst.distance("William YOUNG", "William YOUNG"));
-		System.out.println(dst.distance("DWAYNE", "DUANE"));
+		System.out.println(dst.distance("John", "Jeremy"));
 		System.out.println(dst.distance("YVETTE", "YEVETT"));
 		System.out.println(dst.distance("MASSEY", "MASSIE"));
 	}

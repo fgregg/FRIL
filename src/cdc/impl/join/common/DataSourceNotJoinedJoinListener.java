@@ -81,7 +81,7 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) {
 	}
 
-	public void rowsNotJoined(DataRow rowA, DataRow rowB, AbstractJoinCondition condition) {
+	public void rowsNotJoined(DataRow rowA, DataRow rowB, int confidence, AbstractJoinCondition condition) {
 	}
 
 	public void trashingJoinedTuple(DataRow row) {

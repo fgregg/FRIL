@@ -45,6 +45,7 @@ import java.awt.event.ComponentListener;
 import java.io.IOException;
 import java.util.EventListener;
 
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -106,6 +107,7 @@ public class LinkageConfigureSearchAction extends WizardAction {
 	public JPanel beginStep(AbstractWizard wizard) {
 		wizard.getMainPanel().setLayout(new BorderLayout());
 		JPanel internalPanel = new JPanel();
+		internalPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 		if (scrollPanel != null) {
 			removeAll(scrollPanel);
 		}
@@ -205,7 +207,13 @@ public class LinkageConfigureSearchAction extends WizardAction {
 			}
 		}
 		checkBoxLeft.setEnabled(leftJoinSupported);
+		if (!leftJoinSupported) {
+			checkBoxLeft.setSelected(false);
+		}
 		checkBoxRight.setEnabled(rightJoinSupported);
+		if (!rightJoinSupported) {
+			checkBoxRight.setSelected(false);
+		}
 	}
 
 	private void removeAll(JComboBox activeCombo) {
@@ -272,7 +280,7 @@ public class LinkageConfigureSearchAction extends WizardAction {
 		
 		
 		ConfigLoadDialog dialog = new ConfigLoadDialog(new String[] {ConfigurationPhase.loadingJoinProcessPhase.getPhaseName()});
-		JoinCofigLoaderThread thread = new JoinCofigLoaderThread(dialog, (GUIVisibleComponent)this.activeCombo.getSelectedItem());
+		CofigurationLoaderThread thread = new CofigurationLoaderThread(dialog, (GUIVisibleComponent)this.activeCombo.getSelectedItem());
 		dialog.addCancelListener(new CancelThreadListener(thread));
 		thread.start();
 		dialog.started();

@@ -44,6 +44,7 @@ public class ConverterColumnWrapper extends DataColumnDefinition {
 	
 	public ConverterColumnWrapper(DataColumnDefinition column) {
 		super(column.getColumnName(), column.getColumnType(), column.getSourceName());
+		setEmptyValues(column.getEmptyValues());
 		hash = (getClass().getName() + "_" + getColumnName() + "_" + getSourceName()).hashCode();
 	}
 

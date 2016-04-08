@@ -50,12 +50,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import cdc.components.ManualDecisionModule.ManualDecision;
 import cdc.configuration.Configuration;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
+import cdc.gui.MainFrame;
 import cdc.gui.components.statistics.JoinStatisticalData;
 import cdc.impl.join.common.DataSourceNotJoinedJoinListener;
 import cdc.utils.RJException;
+import cdc.utils.RowUtils;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
 public abstract class AbstractJoin extends SystemComponent {
@@ -64,6 +67,8 @@ public abstract class AbstractJoin extends SystemComponent {
 	public static final String PROPERTY_SRCA_ID = "id-a";
 	public static final String PROPERTY_SRCB_ID = "id-b";
 	public static final String PROPERTY_JOINED = "was-joined";
+	public static final String PROPERTY_MANUAL_REVIEW = "manual";
+	public static final String PROPERTY_MANUAL_REVIEW_CNT = "in-review-cnt";
 	
 	public static final String PROPERTY_RECORD_SRCA = "rec-a";
 	public static final String PROPERTY_RECORD_SRCB = "rec-b";
@@ -74,6 +79,11 @@ public abstract class AbstractJoin extends SystemComponent {
 	private AbstractDataSource sourceB;
 	private DataColumnDefinition[] outColumns;
 	private AbstractJoinCondition joinCondition;
+	private boolean done = false;
+	
+	private ManualDecisionModule manualDecisionModule = new ManualDecisionModule();
+	
+	private int linked = 0;
 	
 	private Object mutex = new Object();
 	
@@ -85,6 +95,8 @@ public abstract class AbstractJoin extends SystemComponent {
 	private volatile AtomicInteger progress = new AtomicInteger(0);
 	private volatile AtomicInteger progressConfig = new AtomicInteger(0);
 	private JoinStatisticalData statsListener;
+	
+	private List manualDecisions = new ArrayList();
 
 	public AbstractJoin(AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition condition, DataColumnDefinition[] outColumns, Map params) throws RJException {
 		super(params);
@@ -225,12 +237,12 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 	}
 	
-	public void notifyNotJoined(DataRow rowA, DataRow rowB) throws RJException {
+	public void notifyNotJoined(DataRow rowA, DataRow rowB, int confidence) throws RJException {
 		synchronized (mutex) {
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
 					JoinListener listener = (JoinListener) iterator.next();
-					listener.rowsNotJoined(rowA, rowB, joinCondition);
+					listener.rowsNotJoined(rowA, rowB, confidence, joinCondition);
 				}
 			}
 		}
@@ -249,7 +261,6 @@ public abstract class AbstractJoin extends SystemComponent {
 	
 	public void notifyTrashingNotJoined(DataRow row) throws RJException {
 		synchronized (mutex) {
-			//System.out.println("Saving minus: " + row);
 			if (listeners != null) {
 				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
 					//System.out.println("Listeners: " + listeners);
@@ -287,18 +298,6 @@ public abstract class AbstractJoin extends SystemComponent {
 	
 	public void close() throws IOException, RJException {
 		doClose();
-//		if (statsListener != null) {
-//			removeJoinListener(statsListener); 
-//			statsListener = null;
-//		}
-//		synchronized(mutex) {
-//			if (listeners != null) {
-//				for (Iterator iterator = listeners.iterator(); iterator.hasNext();) {
-//					JoinListener l = (JoinListener) iterator.next();
-//					l.close();
-//				}
-//			}
-//		}
 		closeListeners();
 	}
 	
@@ -330,6 +329,9 @@ public abstract class AbstractJoin extends SystemComponent {
 		}
 		progress.set(0);
 		progressConfig.set(0);
+		done = false;
+		linked = 0;
+		manualDecisions.clear();
 		doReset(deep);
 		enableJoinStatistics();
 	}
@@ -348,22 +350,69 @@ public abstract class AbstractJoin extends SystemComponent {
 	}
 	
 	public DataRow joinNext() throws IOException, RJException {
-		DataRow row = doJoinNext();
-//		if (row == null) {
-//			closeListeners();
-//		}
-		AbstractDataSource.requestStop(false);
-		return row;
+		while (true) {
+			while (!done) {
+				DataRow row = doJoinNext();
+				if (MainFrame.main != null && row != null && row.getProperty(PROPERTY_MANUAL_REVIEW) != null) {
+					manualDecisionModule.addRow(row);
+				} else if (row != null) {
+					linked++;
+					return row;
+				} else {
+					done = true;
+				}
+			} 
+					
+			while (true) {
+				ManualDecision decision = manualDecisionModule.getNextDecidedRow();
+				if (decision != null) {
+					manualDecisions.add(decision);
+					if (decision.isAccepted()) {
+						linked++;
+						return decision.getRow();
+					}
+				} else {
+					break;
+				}
+			}
+			AbstractDataSource.requestStop(false);
+			for (Iterator iterator = manualDecisions.iterator(); iterator.hasNext();) {
+				ManualDecision decision = (ManualDecision) iterator.next();
+				if (decision.isAccepted()) {
+					RowUtils.linkageManuallyAccepted(decision.getRow());
+				} else {
+					RowUtils.linkageManuallyRejected(decision.getRow());
+				}
+				dealWithManualDecision(decision);
+			}
+			return null;
+		}
 	}
 	
-	public DataRow[] joinNext(int size) throws IOException, RJException {
-		DataRow[] rows  = doJoinNext(size);
-		if (rows == null) {
-			closeListeners();
+	private void dealWithManualDecision(ManualDecision decision) throws RJException {
+		DataRow row = decision.getRow();
+		DataRow rowA = (DataRow) row.getObjectProperty(PROPERTY_RECORD_SRCA);
+		DataRow rowB = (DataRow) row.getObjectProperty(PROPERTY_RECORD_SRCB);
+		if (!decision.isAccepted()) {
+			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(rowA)) {
+				notifyTrashingNotJoined(rowA);
+			}
+			if (RowUtils.shouldReportTrashingNotJoinedAfterManualReview(rowB)) {
+				notifyTrashingNotJoined(rowB);
+			}
 		}
-		AbstractDataSource.requestStop(false);
-		return rows;
 	}
+
+//	This was really not used, and only caused some issues...
+//	public DataRow[] joinNext(int size) throws IOException, RJException {
+//		DataRow[] rows  = doJoinNext(size);
+//		if (rows == null) {
+//			closeListeners();
+//		}
+//		AbstractDataSource.requestStop(false);
+//		return rows;
+//	}
+	
 	protected abstract void doClose() throws IOException, RJException;
 	protected abstract void doReset(boolean deep) throws IOException, RJException;
 	protected abstract DataRow[] doJoinNext(int size) throws IOException, RJException;
@@ -440,6 +489,10 @@ public abstract class AbstractJoin extends SystemComponent {
 		synchronized (mutex) {
 			listeners.clear();
 		}
+	}
+	
+	public int getLinkedCnt() {
+		return linked;
 	}
 	
 	public abstract LinkageSummary getLinkageSummary();

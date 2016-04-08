@@ -62,14 +62,13 @@ public class MinusLoadingThread extends LoadingThread {
 						currentPage++;
 					}
 					int loaded = 0;
-					DataRow row = src.getNextRow();
+					DataRow row;
 					dialog.clearTable();
-					while (!cancel && loaded != dialog.getRecordsPerPage() && row != null) {
+					while (!cancel && loaded != dialog.getRecordsPerPage() && (row = src.getNextRow()) != null) {
 						//add only relevant records...
 						if (currentPage == page.get()) {
 							dialog.addRecord(row);
 						}
-						row = src.getNextRow();
 						loaded++;
 					}
 					dialog.setStatusBarMessage(getMessage());

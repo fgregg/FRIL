@@ -40,6 +40,7 @@ import java.io.IOException;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractDistance;
+import cdc.datamodel.DataCell;
 import cdc.datamodel.DataColumnDefinition;
 import cdc.datamodel.DataRow;
 import cdc.gui.StoppableThread;
@@ -57,6 +58,7 @@ public class AnalysisThread extends StoppableThread  {
 	private DataColumnDefinition colA;
 	private DataColumnDefinition colB;
 	private AbstractDistance distane;
+	private double emptyScore = 0;
 	private volatile boolean stop = false;
 	
 	public AnalysisThread(DynamicAnalysisFrame frame, Object[] params) throws IOException, RJException {
@@ -67,6 +69,8 @@ public class AnalysisThread extends StoppableThread  {
 		this.colA = (DataColumnDefinition) params[2];
 		this.colB = (DataColumnDefinition) params[3];
 		this.distane = (AbstractDistance) params[4];
+		this.emptyScore = ((Double)params[5]).doubleValue();
+		
 		//This is an ugly hack!! Should probably change that.
 		if (colB.getSourceName().equals(sourceA.getSourceName())) {
 			sourceB = sourceA.copy();
@@ -103,15 +107,23 @@ public class AnalysisThread extends StoppableThread  {
 								frame.finished(true);
 								return;
 							}
-							double distance = distane.distance(rowA.getData(colA), rowB.getData(colB));
+							DataCell cellA = rowA.getData(colA);
+							DataCell cellB = rowB.getData(colB);
+							double distance;
+							if (cellA.isEmpty(colA) || cellB.isEmpty(colB)) {
+								distance = emptyScore * 100;
+							} else {
+								distance = distane.distance(cellA, cellB);
+							}
+							
 							tested++;
 							distance = Math.round(distance);
 							if (distance == 0 && !(tested % ZERO_OUT_INTERVAL == 0)) {
 								continue;
 							}
 							tested = 0;
-							frame.addRow(new String[] {String.valueOf(rowA.getData(colA).getValue()), 
-									String.valueOf(rowB.getData(colB).getValue()), String.valueOf(distance)});
+							frame.addRow(new String[] {String.valueOf(cellA.getValue()), 
+									String.valueOf(cellB.getValue()), String.valueOf(distance)});
 							Thread.sleep(1);
 						}
 						rowA = sourceA.getNextRow();

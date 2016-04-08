@@ -152,12 +152,27 @@ public class JoiningThread extends Thread {
 		boolean first = true;
 		DataRow row;
 		Log.log(getClass(), "Thread finished linkage. Draining data sources. (readFromLeft=" + readA + ")", 1);
+		
+		//The below was added on 07/28/09 - fixed missing record in minus file.
+		if (nextA != null) {
+			if (RowUtils.shouldReportTrashingNotJoined(nextA)) {
+				connector.notifyTrashingNotJoined(nextA);
+			}
+		}
+		if (nextB != null) {
+			if (RowUtils.shouldReportTrashingNotJoined(nextB)) {
+				connector.notifyTrashingNotJoined(nextB);
+			}
+		}
+		
 		while ((row = sourceA.getNextRow()) != null) {
 			readA++;
 			if (first) {
 				Log.log(getClass(), "First leftover in " + sourceA.getSourceName() + ": " + row, 2);
 			}
-			connector.notifyTrashingNotJoined(row);
+			if (RowUtils.shouldReportTrashingNotJoined(row)) {
+				connector.notifyTrashingNotJoined(row);
+			}
 			n++;
 			first = false;
 		}
@@ -170,7 +185,9 @@ public class JoiningThread extends Thread {
 			if (first) {
 				Log.log(getClass(), "First leftover in " + sourceB.getSourceName() + ": " + row, 2);
 			}
-			connector.notifyTrashingNotJoined(row);
+			if (RowUtils.shouldReportTrashingNotJoined(row)) {
+				connector.notifyTrashingNotJoined(row);
+			}
 			n++;
 			first = false;
 		}
@@ -268,30 +285,15 @@ public class JoiningThread extends Thread {
 			Log.log(getClass(), "Row1: " + row1Projected, 3);
 			Log.log(getClass(), "Row2: " + row2Projected, 3);
 			EvaluatedCondition eval;
-			//log(rowA.getData("ID").getValue() + "  " + rowB.getData("ID").getValue());
 			if ((eval = connector.getJoinCondition().conditionSatisfied(rowA, rowB)).isSatisfied()) {
-//				if (report) {
-//					System.out.println("Joined: " + rowA.getData("id") + "  ---  " + rowB.getData("id"));
-//				}
-				DataRow joined = RowUtils.buildMergedRow(rowA, rowB, connector.getOutColumns());
-				joined.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
+				DataRow joined = RowUtils.buildMergedRow(rowA, rowB, connector.getOutColumns(), eval);
 				if (connector.isAnyJoinListenerRegistered()) {
-					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
 					connector.notifyJoined(rowA, rowB, joined);
-					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
-					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
 				}
-				rowA.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
-				rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
 				outBuffer.put(joined);
 			} else {
 				if (connector.isAnyJoinListenerRegistered()) {
-					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, String.valueOf(eval.getConfidence()));
-					connector.notifyNotJoined(rowA, rowB);
-					rowA.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
-					rowB.setProperty(AbstractJoin.PROPERTY_CONFIDNCE, "0");
+					connector.notifyNotJoined(rowA, rowB, eval.getConfidence());
 				}
 				String property = rowA.getProperty(PROP_IS_OUT_OF_BUFFER);
 				if (property != null && property.equals("t")) {
@@ -410,7 +412,9 @@ public class JoiningThread extends Thread {
 			if (disposed.getProperty(AbstractJoin.PROPERTY_JOINED) != null) {
 				connector.notifyTrashingJoined(disposed);
 			} else {
-				connector.notifyTrashingNotJoined(disposed);
+				if (RowUtils.shouldReportTrashingNotJoined(disposed)) {
+					connector.notifyTrashingNotJoined(disposed);
+				}
 			}
 		}
 	}

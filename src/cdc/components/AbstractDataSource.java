@@ -55,6 +55,7 @@ import cdc.datamodel.converters.ModelGenerator;
 import cdc.impl.deduplication.DeduplicationConfig;
 import cdc.impl.deduplication.DeduplicationDataSource;
 import cdc.impl.join.strata.StrataJoinWrapper;
+import cdc.utils.Log;
 import cdc.utils.RJException;
 import edu.emory.mathcs.util.xml.DOMUtils;
 
@@ -71,6 +72,9 @@ public abstract class AbstractDataSource extends SystemComponent {
 	private Map columnsIndex = null;
 	
 	private int position = 0;
+	
+	private int strataRejected = 0;
+	private int filterRejected = 0;
 	
 	private AtomicCondition[] filterStrata;
 	private Filter filter;
@@ -104,6 +108,7 @@ public abstract class AbstractDataSource extends SystemComponent {
 		while ((row = nextRow()) != null) {
 			position++;
 			if (filter != null && !filter.isSatisfied(row)) {
+				filterRejected++;
 				continue;
 			}
 			if (filterStrata == null || filterStrata.length == 0) {
@@ -115,10 +120,16 @@ public abstract class AbstractDataSource extends SystemComponent {
 					return row;
 				}
 			}
+			strataRejected++;
 		}
+		logSummaryIfNeeded();
 		return null;
 	}
 	
+	private void logSummaryIfNeeded() {
+		Log.log(getClass(), "Data source " + getSourceName() + " provided all records. Filtered out " + filterRejected + " records. Stratification filtered out " + strataRejected + " records.", 2);
+	}
+
 	public synchronized final DataRow[] getNextRows(int n)  throws IOException, RJException {
 		List l = new ArrayList();
 		DataRow row;
@@ -134,6 +145,8 @@ public abstract class AbstractDataSource extends SystemComponent {
 	
 	public final void reset() throws IOException, RJException {
 		doReset();
+		strataRejected = 0;
+		filterRejected = 0;
 		position = 0;
 	}
 	

@@ -36,6 +36,7 @@
 
 package cdc.gui.components.table;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -56,7 +57,9 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import cdc.gui.Configs;
 import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
@@ -77,13 +80,55 @@ public class TablePanel extends JPanel {
 
 	}
 
-	private static class ButtonEnablerListener implements ListSelectionListener {
+	private class UpDownButtonEnablerListener implements ListSelectionListener {
 		private JButton button;
-		public ButtonEnablerListener(JButton button) {
+		public UpDownButtonEnablerListener(JButton button) {
 			this.button = button;
 		}
 		public void valueChanged(ListSelectionEvent e) {
+			int first = e.getFirstIndex();
+			int last = e.getLastIndex();
 			if (e.getFirstIndex() != -1) {
+				int min = Math.min(first, last);
+				int max = Math.max(first, last);
+				for (int i = min; i <= max; i++) {
+					if (!table.isRowSelected(i)) {
+						continue;
+					}
+					Object marker = tableModel.getValueAt(i, 0);
+					if (marker instanceof MarkedItem && !((MarkedItem)marker).movable) {
+						button.setEnabled(false);
+						return;
+					}
+				}
+				button.setEnabled(true);
+			} else {
+				button.setEnabled(false);
+			}
+		}
+	}
+	
+	private class RemoveButtonEnablerListener implements ListSelectionListener {
+		private JButton button;
+		public RemoveButtonEnablerListener(JButton button) {
+			this.button = button;
+		}
+		public void valueChanged(ListSelectionEvent e) {
+			int first = e.getFirstIndex();
+			int last = e.getLastIndex();
+			if (e.getFirstIndex() != -1) {
+				int min = Math.min(first, last);
+				int max = Math.max(first, last);
+				for (int i = min; i <= max; i++) {
+					if (!table.isRowSelected(i)) {
+						continue;
+					}
+					Object marker = tableModel.getValueAt(i, 0);
+					if (marker instanceof MarkedItem && !((MarkedItem)marker).removable) {
+						button.setEnabled(false);
+						return;
+					}
+				}
 				button.setEnabled(true);
 			} else {
 				button.setEnabled(false);
@@ -164,6 +209,7 @@ public class TablePanel extends JPanel {
 					return TablePanel.this.columnClasses[columnIndex];
 				}
 			}
+			
 		};
 		
 		table = new JTable() {
@@ -177,13 +223,24 @@ public class TablePanel extends JPanel {
 				 }
 				return false; 
 			}
+			public TableCellRenderer getCellRenderer(int row, int column) {
+				TableCellRenderer renderer = super.getCellRenderer(row, column);
+				Object indicator = tableModel.getValueAt(row, column);
+				if (indicator instanceof MarkedItem) {
+					MarkedItem it = (MarkedItem)indicator;
+					if (!it.movable || !it.removable) {
+						((DefaultTableCellRenderer)renderer).setForeground(Color.GRAY);
+					}
+				}
+				return renderer;
+			}
 		};
 		
 		table.getTableHeader().setReorderingAllowed(false);
 		table.setModel(tableModel);
 		
-		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(edit));
-		table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(remove));
+		table.getSelectionModel().addListSelectionListener(new RemoveButtonEnablerListener(edit));
+		table.getSelectionModel().addListSelectionListener(new RemoveButtonEnablerListener(remove));
 		
 		GridBagConstraints c = null;
 		JPanel upDownPanel = new JPanel();
@@ -209,8 +266,8 @@ public class TablePanel extends JPanel {
 			c.weightx = 0;
 			c.weighty = 1;
 			upDownPanel.add(down, c);
-			table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(up));
-			table.getSelectionModel().addListSelectionListener(new ButtonEnablerListener(down));
+			table.getSelectionModel().addListSelectionListener(new UpDownButtonEnablerListener(up));
+			table.getSelectionModel().addListSelectionListener(new UpDownButtonEnablerListener(down));
 			up.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					int[] row = table.getSelectedRows();
@@ -366,6 +423,9 @@ public class TablePanel extends JPanel {
 		Object[] dataOut = new Object[data.size()];
 		for (int i = 0; i < dataOut.length; i++) {
 			dataOut[i] = ((Vector)data.get(i)).toArray();
+			if (((Object[])dataOut[i])[0] instanceof MarkedItem) {
+				((Object[])dataOut[i])[0] = ((MarkedItem)((Object[])dataOut[i])[0]).item; 
+			}
 		}
 		return dataOut;
 	}
@@ -386,6 +446,11 @@ public class TablePanel extends JPanel {
 		tableModel.addRow(row);
 	}
 	
+	public void addRow(Object[] row, boolean removable, boolean movable) {
+		row[0] = new MarkedItem(row[0], movable, removable);
+		tableModel.addRow(row);
+	}
+	
 	public void removeRow(int id) {
 		tableModel.removeRow(id);
 	}
@@ -403,20 +468,15 @@ public class TablePanel extends JPanel {
 	public void removeAllRows() {
 		tableModel.setRowCount(0);
 	}
-	
-	public static void main(String[] args) {
-		JFrame frame = new JFrame("tets");
-		frame.setSize(new Dimension(300, 200));
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.getContentPane().add(new TablePanel(new String[] {"a", "b", "c"}, true));
-		frame.setVisible(true);
-	}
 
 	public Object[] getSelectedRows() {
 		int[] rows = table.getSelectedRows();
 		Object[] rowsSel = new Object[rows.length];
 		for (int i = 0; i < rowsSel.length; i++) {
 			rowsSel[i] = ((Vector)tableModel.getDataVector().get(rows[i])).toArray();
+			if (((Object[])rowsSel[i])[0] instanceof MarkedItem) {
+				((Object[])rowsSel[i])[0] = ((MarkedItem)((Object[])rowsSel[i])[0]).item; 
+			}
 		}
 		return rowsSel;
 	}
@@ -460,4 +520,34 @@ public class TablePanel extends JPanel {
 	public JTable getTable() {
 		return table;
 	}
+	
+	private class MarkedItem {
+		
+		private Object item;
+		private boolean movable = true;
+		private boolean removable = true;
+		
+		public MarkedItem(Object it, boolean movable, boolean removable) {
+			item = it;
+			this.movable = movable;
+			this.removable = removable;
+		}
+		
+		public String toString() {
+			return item.toString();
+		}
+	}
+	
+	public static void main(String[] args) {
+		JFrame frame = new JFrame("tets");
+		frame.setSize(new Dimension(300, 200));
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		TablePanel tablePanel = new TablePanel(new String[] {"a", "b", "c"}, true);
+		tablePanel.addRow(new Object[] {"1", "2", "3"}, true, true);
+		tablePanel.addRow(new Object[] {"4", "5", "6"}, true, false);
+		tablePanel.addRow(new Object[] {"7", "8", "9"}, false, true);
+		frame.getContentPane().add(tablePanel);
+		frame.setVisible(true);
+	}
+	
 }
