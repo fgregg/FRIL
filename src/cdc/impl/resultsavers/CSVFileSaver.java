@@ -77,7 +77,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 			String fileName = (String) params.get(OUTPUT_FILE_PROPERTY);
 			String[] name = Utils.parseFilePath(fileName);
 			if (!name[0].endsWith(".csv")) {
-				name[0] = name + ".csv";
+				name[0] = name[0] + ".csv";
 			}
 			params.put(OUTPUT_FILE_PROPERTY, name[0]);
 			if (name.length == 2) {
