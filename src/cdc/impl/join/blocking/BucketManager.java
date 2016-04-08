@@ -232,6 +232,14 @@ public class BucketManager {
 				synchronized(BucketManager.this) {
 					exception = e;
 				}
+			} catch (Exception e) {
+				error = true;
+				Log.log(getClass(), "Unexpected error.", 2);
+				e.printStackTrace();
+			} catch (Error e) {
+				error = true;
+				Log.log(getClass(), "Unexpected error.", 2);
+				e.printStackTrace();
 			}
 			Log.log(getClass(), "Thread has completed with error.", 2);
 			thread = null;

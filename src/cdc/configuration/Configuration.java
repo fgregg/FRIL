@@ -201,7 +201,9 @@ public class Configuration {
 				} else {
 					system = new ConfiguredSystem(sources[0]);
 				}
-				listener.systemUpdated(system);
+				if (listener != null) {
+					listener.systemUpdated(system);
+				}
 			}
 			//System.out.println("Configuration read done.");
 		} catch (SAXException e) {

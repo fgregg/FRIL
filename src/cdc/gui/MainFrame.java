@@ -170,6 +170,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		} catch (IOException e) {
 			System.out.println("[WARN] CANNOT save to file: "
 					+ PERSISTENT_PROPERTIES_FILE_NAME);
+			e.printStackTrace();
 		}
 	}
 
