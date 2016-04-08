@@ -171,7 +171,7 @@ public class ReplaceConverter extends AbstractColumnConverter {
 					String[] defaults = new String[2];
 					Object[] row = (Object[]) table.getSelectedRows()[0];
 					defaults[0] = row[0].toString();
-					defaults[1] = row[1].toString();
+					defaults[1] = (row[1] == null ? null : row[1].toString());
 					ParamsPanel panel = new ParamsPanel(new String[] {PARAM_REGEX, PARAM_WITH}, 
 							new String[] {"Regular expression", "Replace with"}, defaults);
 					Map validators = new HashMap();

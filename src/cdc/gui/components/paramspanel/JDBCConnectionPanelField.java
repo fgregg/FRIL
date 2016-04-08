@@ -89,6 +89,8 @@ public class JDBCConnectionPanelField extends ParamPanelField {
 	private JLabel error;
 	private JLabel paramName;
 	
+	private ParamPanelField driverTextField = null;
+	
 	public JDBCConnectionPanelField(JComponent parent, String param, String label, String defaultValue) {
 		
 		this.userLabel = label;
@@ -157,6 +159,9 @@ public class JDBCConnectionPanelField extends ParamPanelField {
 					dialog.setMainPanel(panel);
 					if (dialog.getResult() == OptionDialog.RESULT_OK) {
 						field.setText(panel.getConnectionString());
+						if (driverTextField != null && panel.getDriver() != null) {
+							driverTextField.setValue(panel.getDriver());
+						}
 					}
 				} catch (RJException ex) {
 					JXErrorDialog.showDialog(MainFrame.main, "Error", ex);
@@ -189,6 +194,10 @@ public class JDBCConnectionPanelField extends ParamPanelField {
 		return userLabel;
 	}
 	
+	public void setDriverParamPanelField(ParamPanelField driverField) {
+		this.driverTextField = driverField;
+	}
+	
 	public void error(String message) {
 		if (message != null) {
 			error.setVisible(true);
@@ -209,5 +218,6 @@ public class JDBCConnectionPanelField extends ParamPanelField {
 	public void removeConfigurationChangeListener(ChangedConfigurationListener listener) {
 		field.getDocument().removeDocumentListener((DocumentListener) listeners.remove(listener));
 	}
+
 
 }

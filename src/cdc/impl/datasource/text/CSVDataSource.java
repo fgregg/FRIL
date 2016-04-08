@@ -39,7 +39,6 @@ package cdc.impl.datasource.text;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
@@ -69,7 +68,7 @@ public class CSVDataSource extends AbstractDataSource {
 	public static final String PARAM_DELIM = "column-separator";
 	public static final String PARAM_INPUT_FILE = "input-file";
 	
-	private File inputFile;
+	private String inputFilePath;
 	private CSVReader parser;
 	private boolean opened = false;
 	private char delim = DEFAULT_DELIM;
@@ -78,28 +77,26 @@ public class CSVDataSource extends AbstractDataSource {
 	
 	public CSVDataSource(String sourceName, Map params) throws IOException, RJException {
 		super(sourceName, readDataModel(sourceName, Utils.getParam(params, PARAM_INPUT_FILE, true), Utils.getParam(params, PARAM_DELIM, true).charAt(0)), params);
-		inputFile = new File(Utils.getParam(params, PARAM_INPUT_FILE, true));
+		inputFilePath = Utils.getParam(params, PARAM_INPUT_FILE, true);
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(inputFile) - 1;
+		size = LineNumber.size(new File(Utils.parseFilePath(inputFilePath)[0])) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
-		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFile, 1);
+		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFilePath, 1);
 	}
 
 	public CSVDataSource(String sourceName, DataColumnDefinition[] model, String path, char delim, Map params) throws IOException, RJException {
 		super(sourceName, model, params);
-		inputFile = new File(Utils.getParam(params, PARAM_INPUT_FILE, true));
+		inputFilePath = Utils.getParam(params, PARAM_INPUT_FILE, true);
 		this.delim = Utils.getParam(params, PARAM_DELIM, true).charAt(0);
-		size = LineNumber.size(inputFile) - 1;
+		size = LineNumber.size(new File(Utils.parseFilePath(inputFilePath)[0])) - 1;
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
-		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFile, 1);
+		Log.log(CSVDataSource.class, "Data source created. Delim is: " + delim + "; file=" + inputFilePath, 1);
 	}
 	
 	private void doOpenFile() throws IOException, RJException {
 		Log.log(CSVDataSource.class, "Opening input file", 2);
-		if (!inputFile.exists()) {
-			throw new RJException("File does not exist: " + inputFile);
-		}
-		parser = new CSVReader(new BufferedReader(new FileReader(inputFile)), delim);
+		//parser = new CSVReader(new BufferedReader(new FileReader(inputFile)), delim);
+		parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath)), delim);
 		opened = true;
 		//skip the first, header line
 		parser.readNext();
@@ -185,7 +182,7 @@ public class CSVDataSource extends AbstractDataSource {
 		Log.log(CSVDataSource.class, "Resetting data source", 2);
 		if (parser != null) {
 			parser.close();
-			parser = new CSVReader(new BufferedReader(new FileReader(inputFile)), delim);
+			parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(inputFilePath)), delim);
 			parser.readNext();
 		}
 	}
@@ -200,11 +197,7 @@ public class CSVDataSource extends AbstractDataSource {
 	
 	public static final DataColumnDefinition[] readDataModel(String sourceName, String fileName, char delim) throws IOException, RJException {
 		Log.log(CSVDataSource.class, "Reading data model", 1);
-		File inputFile = new File(fileName);
-		if (!inputFile.exists()) {
-			throw new RJException("File does not exist: " + inputFile);
-		}
-		CSVReader parser = new CSVReader(new BufferedReader(new FileReader(inputFile)), delim);
+		CSVReader parser = new CSVReader(new BufferedReader(Utils.openTextFileForReading(fileName)), delim);
 		//skip the first, header line
 		String[] csvRow = parser.readNext();
 		Log.log(CSVDataSource.class, "Row retrieved from csv: " + PrintUtils.printArray(csvRow), 2);

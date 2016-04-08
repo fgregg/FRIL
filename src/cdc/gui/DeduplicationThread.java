@@ -41,7 +41,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import cdc.components.AbstractDataSource;
@@ -53,7 +52,6 @@ import cdc.impl.deduplication.DeduplicationDataSource;
 import cdc.impl.resultsavers.CSVFileSaver;
 import cdc.utils.Log;
 import cdc.utils.RJException;
-import cdc.utils.Utils;
 
 public class DeduplicationThread extends StoppableThread {
 	
@@ -115,13 +113,12 @@ public class DeduplicationThread extends StoppableThread {
 			nDup = ((DeduplicationDataSource)source).getDuplicatesCount();
 			Log.log(getClass(), "Deduplication completed. Identified " + nDup + " duplicates. Elapsed time: " + (t2 - t1) + "ms.", 1);
 			closeProgress();
-			//animation.stopAnimation();
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					if (stopped) {
 						Log.log(getClass(), "Deduplication was cancelled", 1);
 					}
-					JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(MainFrame.main.getConfiguredSystem(), stopped, t2-t1, n));
+					MainFrame.main.setCompletedLinkageSummary(MainFrame.main.getConfiguredSystem(), stopped, t2-t1, n);
 				}
 			});
 			

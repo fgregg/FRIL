@@ -78,6 +78,7 @@ public class JDBCConfigurationPanel extends JPanel {
 	
 	private JComboBox dbType;
 	private JComponent[] fields;
+	private String[] drivers;
 	
 	public JDBCConfigurationPanel() {
 		initialize();
@@ -162,12 +163,19 @@ public class JDBCConfigurationPanel extends JPanel {
 		protocols = new String[dbs.length];
 		formats = new String[dbs.length];
 		dbParsed = new String[dbs.length][];
+		drivers = new String[dbs.length];
 		for (int i = 0; i < labels.length; i++) {
 			String[] db = dbs[i].split(",");
 			dbParsed[i] = db;
 			labels[i] = db[0];
 			protocols[i] = db[1];
 			formats[i] = db[5];
+			if (db.length > 6) {
+				drivers[i] = db[6];
+			} else {
+				drivers[i] = null;
+			}
+			
 		}
 		
 		setLayout(new GridBagLayout());
@@ -246,11 +254,15 @@ public class JDBCConfigurationPanel extends JPanel {
 	public static void main(String[] args) throws RJException {
 		OptionDialog dialog = new OptionDialog((JDialog)null, "JDBC configuration");
 		System.out.println(new File(".").toURI());
-		JDBCConfigurationPanel panel = new JDBCConfigurationPanel("jdbc:jtds:sqlserver://sqi-cdcdv1:1398/VITALRECORDS");
+		JDBCConfigurationPanel panel = new JDBCConfigurationPanel("jdbc:jtds:sqlserver://aaaa.com:1398/data");
 		dialog.setMainPanel(panel);
 		dialog.setVisible(true);
 		if (dialog.getResult() == OptionDialog.RESULT_OK) {
 			System.out.println(panel.getConnectionString());
 		}
+	}
+
+	public String getDriver() {
+		return drivers[this.dbType.getSelectedIndex()];
 	}
 }

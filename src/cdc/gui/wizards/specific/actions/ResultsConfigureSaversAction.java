@@ -171,7 +171,6 @@ public class ResultsConfigureSaversAction extends WizardAction {
 	}
 	
 	public JPanel beginStep(AbstractWizard wizard) {
-		//wizard.getMainPanel().setLayout(new BoxLayout(wizard.getMainPanel(), BoxLayout.LINE_AXIS));
 		parent = wizard;
 		
 		table = new TablePanel(new String[] {"Result saver type", "Parameters"}, true);

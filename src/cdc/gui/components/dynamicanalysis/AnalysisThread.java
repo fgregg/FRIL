@@ -138,7 +138,7 @@ public class AnalysisThread extends StoppableThread  {
 			frame.setWarningMessage(e.toString());
 			return;
 		} finally {
-			System.out.println("Analysis thread done. Closing data sources.");
+			System.out.println("[INFO] Analysis thread done. Closing data sources.");
 			try {
 				sourceA.close();
 			} catch (IOException e) {

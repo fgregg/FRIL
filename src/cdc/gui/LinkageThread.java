@@ -39,7 +39,6 @@ package cdc.gui;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import cdc.configuration.ConfiguredSystem;
@@ -48,7 +47,6 @@ import cdc.gui.components.progress.JoinInfoPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.utils.Log;
 import cdc.utils.RJException;
-import cdc.utils.Utils;
 
 public class LinkageThread extends StoppableThread {
 	
@@ -140,7 +138,8 @@ public class LinkageThread extends StoppableThread {
 					if (stopped) {
 						Log.log(getClass(), "Linkage was cancelled", 1);
 					}
-					JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(system, stopped, t2 - t1, n));
+					MainFrame.main.setCompletedLinkageSummary(system, stopped, t2 - t1, n);
+					//JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(system, stopped, t2 - t1, n));
 				}
 
 			});

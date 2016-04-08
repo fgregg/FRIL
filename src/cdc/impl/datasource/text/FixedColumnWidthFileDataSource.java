@@ -39,7 +39,6 @@ package cdc.impl.datasource.text;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -68,7 +67,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 	
 	private boolean closed = false;
 	private BufferedReader isReader = null;
-	private File file = null;
+	private String filePath = null;
 
 	private int size = -1;
 	
@@ -79,24 +78,16 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		checkFile(Utils.getParam(params, PARAM_FILE_NAME, true));
 		Log.log(FixedColumnWidthFileDataSource.class, "Data source created", 1);
 	}
-
-//	public FixedColumnWidthFileDataSource(String name, Map params) throws RJException {
-//		super(name, readSchema(getGenericSchemaFileName(Utils.getParam(params, PARAM_FILE_NAME, true)), name), params);
-//		checkFile(Utils.getParam(params, PARAM_FILE_NAME, true));
-//		Log.log(FixedColumnWidthFileDataSource.class, "Data source created", 1);
-//	}
 	
 	private void checkFile(String fileName) throws RJException, IOException {
-		this.file = new File(fileName);
-		if (!file.exists() || !file.isFile() || !file.canRead()) {
-			throw new RJException("Provided input file " + fileName + " does not exist or cannot be read.");
-		}
-		size  = LineNumber.size(file);
+		this.filePath = fileName;
+		size  = LineNumber.size(new File(Utils.parseFilePath(fileName)[0]));
 		Log.log(getClass(), getSourceName() + ": Number of records in data source: " + size, 1);
 	}
 
 	public static String getGenericSchemaFileName(String fileName) {
 		int schemaPosition = 0;
+		fileName = Utils.parseFilePath(fileName)[0];
 		if ((schemaPosition = fileName.lastIndexOf('.')) == -1) {
 			return fileName + "." + SCHEMA_FILE_EXT;
 		} else {
@@ -110,7 +101,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		int index = 0;
 		List columns = new ArrayList();
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(schemaFile));
+			BufferedReader reader = new BufferedReader(Utils.openTextFileForReading(schemaFile));
 			String schemaLine = null;
 			while ((schemaLine = reader.readLine()) != null && (schemaLine = schemaLine.trim()) != "") {
 				schemaLine = schemaLine.replaceAll("  ", " ");
@@ -141,7 +132,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 			closed = false;
 		}
 		if (this.isReader == null) {
-			this.isReader = new BufferedReader(new FileReader(this.file));
+			this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath));
 		}
 	}
 	
@@ -208,7 +199,7 @@ public class FixedColumnWidthFileDataSource extends AbstractDataSource {
 		if (this.isReader != null) {
 			this.isReader.close();
 		}
-		this.isReader = new BufferedReader(new FileReader(this.file));
+		this.isReader = new BufferedReader(Utils.openTextFileForReading(this.filePath));
 	}
 
 	public Node saveToXML() {

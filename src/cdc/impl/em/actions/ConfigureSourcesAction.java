@@ -61,6 +61,7 @@ import cdc.utils.RJException;
 
 public class ConfigureSourcesAction extends WizardAction {
 
+	private static final double DESIRED = 1000000;
 	private AbstractDataSource sourceA;
 	private AbstractDataSource sourceB;
 	
@@ -75,7 +76,7 @@ public class ConfigureSourcesAction extends WizardAction {
 	private JSpinner numberBlocks;
 	private int row = 0;
 	
-	public ConfigureSourcesAction(AbstractDataSource sourceA, AbstractDataSource sourceB) {
+	public ConfigureSourcesAction(AbstractDataSource sourceA, AbstractDataSource sourceB) throws IOException, RJException {
 		
 		this.sourceA = sourceA;
 		this.sourceB = sourceB;
@@ -83,7 +84,16 @@ public class ConfigureSourcesAction extends WizardAction {
 		panel = new JPanel(new GridBagLayout());
 		panel.add(new JLabel("Choose sampling method for EM computation:"), getNextConstraints());
 		
-		percentageRandom = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+		long m = sourceA.size() * sourceB.size();
+		int perc = (int) ((DESIRED / (double)m) * 100);
+		if (perc < 1) {
+			perc = 1;
+		}
+		if (perc > 100) {
+			perc = 100;
+		}
+		
+		percentageRandom = new JSpinner(new SpinnerNumberModel(perc, 1, 100, 1));
 		fieldSourceA = new JSpinner(new SpinnerNumberModel(1, 1, 100000, 1));
 		fieldSourceB = new JSpinner(new SpinnerNumberModel(1, 1, 100000, 1));
 		numberBlocks = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));

@@ -57,6 +57,7 @@ import cdc.datamodel.converters.AbstractColumnConverter;
 import cdc.gui.components.datasource.JDataSource;
 import cdc.impl.datasource.wrappers.propertiescache.CacheInterface;
 import cdc.impl.datasource.wrappers.propertiescache.CachedObjectInterface;
+import cdc.impl.join.strata.StrataJoinWrapper;
 
 public class RowUtils {
 	
@@ -77,12 +78,6 @@ public class RowUtils {
 		Map props = new HashMap();
 		row.setProperies(props);
 		
-		//The below became not necessary as the schema for setting properties in records have changed..
-		//if (rowA.getProperties() != null) {
-		//	props.putAll(rowA.getProperties());
-		//}
-		
-		
 		//Now we will set some properties of the newly created joined record
 		
 		//Set linkage confidence and joined property for the joined records
@@ -101,6 +96,19 @@ public class RowUtils {
 			}
 			synchronized (rowB) {
 				rowB.setProperty(AbstractJoin.PROPERTY_JOINED, "true");
+			}
+		}
+		
+		//Set the stratum name
+		synchronized (rowA) {
+			if (rowA.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME) != null) {
+				row.setProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME, rowA.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME));
+			}
+		}
+		
+		synchronized (rowB) {
+			if (rowB.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME) != null) {
+				row.setProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME, rowB.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME));
 			}
 		}
 		

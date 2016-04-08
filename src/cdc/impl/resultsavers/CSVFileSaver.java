@@ -38,8 +38,8 @@ package cdc.impl.resultsavers;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -57,11 +57,14 @@ import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.utils.Log;
 import cdc.utils.RJException;
+import cdc.utils.Utils;
 
 public class CSVFileSaver extends AbstractResultsSaver {
 
 	public static final String DEFAULT_FILE = "results.csv";
+	public static final String DEFAULT_ENCODING = "UTF-8";
 	public static final String OUTPUT_FILE_PROPERTY = "output-file";
+	public static final String OUTPUT_FILE_ENCODING = "encoding";
 	public static final String SAVE_SOURCE_NAME = "save-source-name";
 	public static final String SAVE_CONFIDENCE = "save-confidence";
 	
@@ -72,18 +75,27 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		public Object generateSystemComponent() throws RJException, IOException {
 			Map params = panel.getParams();
 			String fileName = (String) params.get(OUTPUT_FILE_PROPERTY);
-			if (!fileName.endsWith(".csv")) {
-				fileName = fileName + ".csv";
-				params.put(OUTPUT_FILE_PROPERTY, fileName);
+			String[] name = Utils.parseFilePath(fileName);
+			if (!name[0].endsWith(".csv")) {
+				name[0] = name + ".csv";
 			}
+			params.put(OUTPUT_FILE_PROPERTY, name[0]);
+			if (name.length == 2) {
+				params.put(OUTPUT_FILE_ENCODING, name[1]);
+			}
+			
 			return new CSVFileSaver(params);
 		}
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
-			
-			String[] defs = new String[] {DEFAULT_FILE};
+			String file = DEFAULT_FILE;
+			String enc = getRestoredParam(OUTPUT_FILE_PROPERTY) == null ? DEFAULT_ENCODING : "US-ASCII";
 			if (getRestoredParam(OUTPUT_FILE_PROPERTY) != null) {
-				defs[0] = getRestoredParam(OUTPUT_FILE_PROPERTY);
+				file = getRestoredParam(OUTPUT_FILE_PROPERTY);
 			}
+			if (getRestoredParam(OUTPUT_FILE_ENCODING) != null) {
+				enc = getRestoredParam(OUTPUT_FILE_ENCODING);
+			}
+			String[] defs = new String[] {file + "#ENC=" + enc + "#"};
 			Map map = new HashMap();
 			map.put(OUTPUT_FILE_PROPERTY, new FileChoosingPanelFieldCreator(FileChoosingPanelFieldCreator.SAVE));
 			panel = new ParamsPanel(
@@ -92,7 +104,6 @@ public class CSVFileSaver extends AbstractResultsSaver {
 					defs,
 					map
 			);
-				//panel.setPreferredSize(new Dimension(400, 100));
 			
 			return panel;
 		}
@@ -108,6 +119,7 @@ public class CSVFileSaver extends AbstractResultsSaver {
 	}
 	
 	private File file;
+	private Charset encoding = Utils.DEFAULT_ENCODING.getCharset();
 	private CSVWriter printer;
 	private boolean saveConfidence = true;
 	private boolean closed = false;
@@ -123,6 +135,10 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		if (properties.containsKey(SAVE_SOURCE_NAME)) {
 			saveSourceName = Boolean.parseBoolean((String)properties.get(SAVE_SOURCE_NAME));
 		}
+		if (properties.containsKey(OUTPUT_FILE_ENCODING)) {
+			encoding = Utils.getEncodingForName((String)properties.get(OUTPUT_FILE_ENCODING)).getCharset();
+		}
+		Log.log(getClass(), "Saver created. Encoding=" + encoding, 2);
 		if (file.exists() && !file.isFile()) {
 			throw new RJException("Output file cannot be directory or other special file");
 		}
@@ -131,45 +147,39 @@ public class CSVFileSaver extends AbstractResultsSaver {
 		}
 	}
 	
-	public void saveRow(DataRow row) throws RJException, IOException {
-		//System.out.println(file.getName() + ": Adding row: " + row);
-			//wait until we can safely write
+	public void saveRow(DataRow row) throws RJException, IOException {	
+		String stratum = row.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME);
+		if (printer == null) {
 			
-			String stratum = row.getProperty(StrataJoinWrapper.PROPERTY_STRATUM_NAME);
-			if (printer == null) {
-//				if (file.exists()) {
-//					file.delete();
-//				}
-				printer = new CSVWriter(new BufferedWriter(new FileWriter(file)));
-				String[] header = new String[row.getData().length + (saveConfidence ? 1 : 0) + (stratum != null?1:0)];
-				for (int i = 0; i < header.length - (stratum != null?1:0) - (saveConfidence ? 1 : 0); i++) {
-					if (saveSourceName) {
-						header[i] = row.getRowModel()[i].toString();
-					} else {
-						header[i] = row.getRowModel()[i].getColumnName();
-					}
+			printer = new CSVWriter(new BufferedWriter(Utils.openTextFileForWriting(file, encoding)));
+			String[] header = new String[row.getData().length + (saveConfidence ? 1 : 0) + (stratum != null?1:0)];
+			for (int i = 0; i < header.length - (stratum != null?1:0) - (saveConfidence ? 1 : 0); i++) {
+				if (saveSourceName) {
+					header[i] = row.getRowModel()[i].toString();
+				} else {
+					header[i] = row.getRowModel()[i].getColumnName();
 				}
-				if (stratum != null) {
-					header[header.length - (saveConfidence ? 2 : 1)] = "Stratum name";
-				}
-				if (saveConfidence) {
-					header[header.length - 1] = "Confidence";
-				}
-				printer.writeNext(header);
-			}
-			DataCell[] cells = row.getData();
-			//System.out.println("Cells were in row (" + row.hashCode() + "):" + PrintUtils.printArray(cells));
-			String[] strRow = new String[cells.length + (saveConfidence ? 1 : 0) + (stratum != null ? 1 : 0)];
-			for (int i = 0; i < strRow.length - (stratum != null ? 1 : 0) - (saveConfidence ? 1 : 0); i++) {
-				strRow[i] = cells[i].getValue().toString();
 			}
 			if (stratum != null) {
-				strRow[strRow.length - (saveConfidence ? 2 : 1)] = stratum;
+				header[header.length - (saveConfidence ? 2 : 1)] = "Stratum name";
 			}
 			if (saveConfidence) {
-				strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
+				header[header.length - 1] = "Confidence";
 			}
-			printer.writeNext(strRow);
+			printer.writeNext(header);
+		}
+		DataCell[] cells = row.getData();
+		String[] strRow = new String[cells.length + (saveConfidence ? 1 : 0) + (stratum != null ? 1 : 0)];
+		for (int i = 0; i < strRow.length - (stratum != null ? 1 : 0) - (saveConfidence ? 1 : 0); i++) {
+			strRow[i] = cells[i].getValue().toString();
+		}
+		if (stratum != null) {
+			strRow[strRow.length - (saveConfidence ? 2 : 1)] = stratum;
+		}
+		if (saveConfidence) {
+			strRow[strRow.length - 1] = row.getProperty(AbstractJoin.PROPERTY_CONFIDNCE);
+		}
+		printer.writeNext(strRow);
 
 	}
 	

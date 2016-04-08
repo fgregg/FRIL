@@ -37,17 +37,28 @@
 package cdc.utils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoin;
 import cdc.components.AbstractResultsSaver;
+import cdc.components.LinkageSummary;
 import cdc.configuration.ConfiguredSystem;
 import cdc.gui.MainFrame;
 import cdc.impl.deduplication.DeduplicationDataSource;
-import cdc.impl.join.strata.StrataJoinWrapper;
 import cdc.impl.resultsavers.DeduplicatingResultsSaver;
 
 public class Utils {
@@ -101,12 +112,12 @@ public class Utils {
 	private static String prepareLinkageMessage(ConfiguredSystem system, boolean cancelled, long elapsedTime, int nn) {
 		String msg = cancelled ? "Linkage cancelled by user.\n\n" : "Linkage successfully completed :)\n\n";
 		
-		if (!(system.getJoin() instanceof StrataJoinWrapper)) {
-			msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcA(), system.getSourceA());
-			msg += "\n\n";
-			msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcB(), system.getSourceB());
-			msg += "\n\n";
-		}
+		//Before this was wrapped in if that checked whether system used strata join wrapper...
+		msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcA(), system.getSourceA());
+		msg += "\n\n";
+		msg += getSourceSummary(system.getJoin().getLinkageSummary().getCntReadSrcB(), system.getSourceB());
+		msg += "\n\n";
+		
 		msg += getLinkageSummary(system.getJoin(), system.getResultSaver());
 		msg += "\n\n";
 		msg += (cancelled ? "The linkage process interrupted after " : "Overall the linkage process took ") + elapsedTime + "ms.";
@@ -149,6 +160,15 @@ public class Utils {
 			return msg;
 		}
 	}
+	
+	private static String[] getShortSourceSummary(int srcRecordsCnt, AbstractDataSource src) {
+		if (!(src.getPreprocessedDataSource() instanceof DeduplicationDataSource)) {
+			return new String[] {String.valueOf(srcRecordsCnt)};
+		} else {
+			DeduplicationDataSource dedupe = (DeduplicationDataSource)src.getPreprocessedDataSource();
+			return new String[] {String.valueOf(dedupe.getInputRecordsCount()), String.valueOf(dedupe.getDuplicatesCount())};
+		}
+	}
 
 	private static String prepareDeduplicationMessage(ConfiguredSystem system, boolean cancelled, long elapsedTime, int nn) {
 		AbstractDataSource src = system.getSourceA();
@@ -159,6 +179,298 @@ public class Utils {
 		msg += (cancelled ? "The deduplication process interrupted after " : "Overall the deduplication process took ") + elapsedTime + "ms.";
 		
 		return msg;
+	}
+
+	public static String getStatusBarSummaryMessage(ConfiguredSystem system, boolean cancelled, long time, int cnt) {
+		if (system.isDeduplication()) {
+			if (cancelled) {
+				return "Deduplication was cancelled by user.";
+			} else {
+				return "Deduplication completed.";
+			}
+		} else {
+			if (cancelled) {
+				return "Linkage cancelled by user.";
+			} else {
+				if (system.getResultSaver() instanceof DeduplicatingResultsSaver) {
+					return "Linkage completed (saved " + ((DeduplicatingResultsSaver)system.getResultSaver()).getSavedCnt() + " linkages).";
+				} else {
+					return "Linkage completed (saved " + system.getJoin().getLinkageSummary().getCntLinked() + " linkages).";
+				}
+			}
+		}
+	}
+	
+	public static String[][] getShortSummary(ConfiguredSystem system, boolean cancelled, long time, int cnt) {
+		if (system.isDeduplication()) {
+			DeduplicationDataSource dedupe = (DeduplicationDataSource)system.getSourceA().getPreprocessedDataSource();
+			String[][] summary = new String[3][];
+			summary[0] = new String[] {"size (" + system.getSourceA().getSourceName() + "): ", String.valueOf(dedupe.getInputRecordsCount())};
+			summary[1] = new String[] {"#duplicates: ", String.valueOf(dedupe.getDuplicatesCount())};
+			summary[2] = new String[] {"time: ", time + "ms"};
+			return summary;
+		} else {
+			LinkageSummary s = system.getJoin().getLinkageSummary();
+			List summary = new ArrayList();
+			String[] sum1 = getShortSourceSummary(s.getCntReadSrcA(), system.getSourceA());
+			summary.add(new String[] {"size (" + system.getSourceA().getSourceName() + "): ", sum1[0]});
+			if (sum1.length > 1) {
+				summary.add(new String[] {"#duplicates (" + system.getSourceA().getSourceName() + "): ", sum1[1]});
+			}
+			String[] sum2 = getShortSourceSummary(s.getCntReadSrcB(), system.getSourceB());
+			summary.add(new String[] {"size (" + system.getSourceB().getSourceName() + "): ", sum2[0]});
+			if (sum2.length > 1) {
+				summary.add(new String[] {"#duplicates (" + system.getSourceB().getSourceName() + "): ", sum2[1]});
+			}
+			if (system.getResultSaver() instanceof DeduplicatingResultsSaver) {
+				DeduplicatingResultsSaver saver = (DeduplicatingResultsSaver)system.getResultSaver();
+				summary.add(new String[] {"#linkages: ", String.valueOf(saver.getSavedCnt())});
+			} else {
+				summary.add(new String[] {"#linkages: ", String.valueOf(s.getCntLinked())});
+			}
+			summary.add(new String[] {"time: ", time + "ms"});
+			return (String[][])summary.toArray(new String[][] {});
+		}
+	}
+	
+	public static Encoding recognizeEncoding(File inputFile) throws IOException {
+		
+		InputStream str = null;
+		try {
+			byte[] magic = new byte[4];
+			str = new FileInputStream(inputFile);
+			int read = readGuaranteed(magic, str);
+			
+			//now the recognition can happen
+			
+			if (read < 2) {
+				return getEncodingForName("US-ASCII");
+			}
+			
+			//UTF-16(BE)
+			if (magic[0] == (byte)0xFE && magic[1] == (byte)0xFF) {
+				return getEncodingForName("UTF-16BE");
+			}
+			
+			//UTF-16(LE)
+			if (magic[0] == (byte)0xFF && magic[1] == (byte)0xFE) {
+				return getEncodingForName("UTF-16LE");
+			}
+			
+			if (read < 3) {
+				return getEncodingForName("US-ASCII");
+			}
+			
+			//UTF-8
+			if (magic[0] == (byte)0xEF && magic[1] == (byte)0xBB && magic[2] == (byte)0xBF) {
+				return getEncodingForName("UTF-8");
+			}
+			
+			if (read < 4) {
+				return getEncodingForName("US-ASCII");
+			}
+			
+			//UTF-32(BE)
+			if (magic[0] == (byte)0x00 && magic[1] == (byte)0x00 && magic[2] == (byte)0xFE && magic[3] == (byte)0xFF) {
+				return getEncodingForName("UTF-32BE");
+			}
+			
+			//UTF-32(LE)
+			if (magic[0] == (byte)0xFF && magic[1] == (byte)0xFE && magic[2] == (byte)0x00 && magic[3] == (byte)0x00) {
+				return getEncodingForName("UTF-32LE");
+			}
+			
+			//Try to recognize UTF-8 without magic code
+			str.close();
+			str = new FileInputStream(inputFile);
+			
+			int utf8Compilant = 0;
+			int asciiCompilant = 0;
+			for (int i = 0; i < 10000; i++) {
+				int b = str.read();
+				if (b == -1) {
+					break;
+				}
+				if (b < 128) {
+					asciiCompilant++;
+				} else {
+					//This potentially is n-byte code in utf-8
+					//1. Determine length
+					//2. Check next codes - if they are correct
+					int len = getUtf8Len(b);
+					if (len == -1) {
+						return getEncodingForName("US-ASCII");
+					}
+					for (int j = 0; j < len - 1; j++) {
+						b = str.read();
+						if (b == -1 || !isValidUTF(b, j + 1)) {
+							return getEncodingForName("US-ASCII");
+						}
+					}
+					utf8Compilant++;
+				}
+				
+			}
+			str.close();
+			if (utf8Compilant == 0) {
+				return getEncodingForName("US-ASCII");
+			} else {
+				return getEncodingForName("UTF-8");
+			}
+		} finally {
+			if (str != null) {
+				str.close();
+			}
+		}
+	}
+	
+	private static int readGuaranteed(byte[] magic, InputStream str) throws IOException {
+		int read = 0;
+		int tmp = 0;
+		while ((tmp = str.read(magic, read, magic.length - read)) != -1) {
+			read += tmp;
+			if (read == magic.length) {
+				break;
+			}
+		}
+		return read;
+	}
+
+	private static boolean isValidUTF(int b, int i) {
+		return (b & (1<<7)) == (1<<7) && (b & (1<<6)) == 0;
+	}
+
+	private static int getUtf8Len(int b) {
+		for (int i = 0; i < 8; i++) {
+			int mask = 1<<(8-i-1);
+			if ((mask & b) == 0) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	public static Reader openTextFileForReading(String filePath) throws IOException {
+		String[] parsedFile = parseFilePath(filePath);
+		File f = new File(parsedFile[0]);
+		Charset encoding = DEFAULT_ENCODING.getCharset();
+		if (parsedFile.length > 1) {
+			encoding = getEncodingForName(parsedFile[1]).getCharset();
+		}
+		
+		//Some encoding is used, will read that format
+		Log.log(Utils.class, "File " + f.getName() + " encoding identifed: " + encoding);
+		FileInputStream in = new FileInputStream(f);
+		long header = getHeaderLen(in, encoding);
+		in.close();
+		in = new FileInputStream(f);
+		Log.log(Utils.class, "Header length was determined to be " + header + " byte(s).");
+		in.skip(header);
+		InputStreamReader inputStreamReader = new InputStreamReader(in, encoding);
+		return inputStreamReader;
+	}
+	
+	public static Writer openTextFileForWriting(File f, Charset encoding) throws IOException {
+		FileOutputStream fos = new FileOutputStream(f);
+		byte[] header = getHeader(encoding);
+		if (!encoding.toString().equals("UTF-8")) {
+			fos.write(header);
+		}
+		return new OutputStreamWriter(fos, encoding);
+	}
+	
+	private static byte[] getHeader(Charset encoding) {
+		byte[] header = null;
+		if (encoding.toString().equals("UTF-32LE")) {
+			header = new byte[] {(byte)0xFF, (byte)0xFE, (byte)0x00, (byte)0x00};
+		} else if (encoding.toString().equals("UTF-32BE")) {
+			header = new byte[] {(byte)0x00, (byte)0x00, (byte)0xFE, (byte)0xFF};
+		} else if (encoding.toString().equals("UTF-16LE")) {
+			header = new byte[] {(byte)0xFF, (byte)0xFE};
+		} else if (encoding.toString().equals("UTF-16BE")) {
+			header = new byte[] {(byte)0xFE, (byte)0xFF};
+		} else if (encoding.toString().equals("UTF-8")) {
+			header = new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF};
+		} else {
+			header = new byte[] {};
+		}
+		return header;
+	}
+
+	private static long getHeaderLen(FileInputStream in, Charset encoding) throws IOException {
+		byte[] expectedHeader = getHeader(encoding);
+		byte[] magic = new byte[expectedHeader.length];
+		int read = readGuaranteed(magic, in);
+		if (read != expectedHeader.length) {
+			return 0;
+		}
+		for (int i = 0; i < magic.length; i++) {
+			if (magic[i] != expectedHeader[i]) {
+				return 0;
+			}
+		}
+		return magic.length;
+	}
+
+	public static final Encoding[] SUPPORTED_ENCODINGS = new Encoding[] {
+		new Encoding("ASCII", "US-ASCII"),
+		new Encoding("UTF-8", "UTF-8"),
+		new Encoding("UTF-16", "UTF-16LE"),
+		new Encoding("UTF-16 Big Endian", "UTF-16BE"),
+		new Encoding("UTF-32", "UTF-32LE"),
+		new Encoding("UTF-32 Big Endian", "UTF-32BE")
+	};
+	
+	public static final Encoding DEFAULT_ENCODING = SUPPORTED_ENCODINGS[0];
+	
+	public static Encoding getEncodingForName(String name) {
+		for (int i = 0; i < SUPPORTED_ENCODINGS.length; i++) {
+			if (SUPPORTED_ENCODINGS[i].getCharset().toString().equals(name)) {
+				return SUPPORTED_ENCODINGS[i];
+			}
+		}
+		Log.log(Utils.class, "ERROR: Coding \"" + name + "\" was not found in FRIL. Using default (" + DEFAULT_ENCODING.getCharset().toString() + ")");
+		return DEFAULT_ENCODING;
+	}
+	
+	public static Encoding getEncodingForUserLabel(String name) {
+		for (int i = 0; i < SUPPORTED_ENCODINGS.length; i++) {
+			if (SUPPORTED_ENCODINGS[i].toString().equals(name)) {
+				return SUPPORTED_ENCODINGS[i];
+			}
+		}
+		Log.log(Utils.class, "ERROR: Coding \"" + name + "\" was not found in FRIL. Using default (" + DEFAULT_ENCODING.toString() + ")");
+		return DEFAULT_ENCODING;
+	}
+	
+	public static String[] parseFilePath(String val) {
+		if (val.lastIndexOf("#ENC=") != -1) {
+			String fileName = val.substring(0, val.lastIndexOf("#ENC="));
+			String enc = val.substring(val.lastIndexOf("#ENC=") + "#ENC=".length(), val.length() - 1);
+			return new String[] {fileName, enc};
+		} else {
+			return new String[] {val};
+		}
+	}
+	
+	public static class Encoding {
+		
+		private String label;
+		private Charset charset;
+		
+		private Encoding(String label, String charsetCode) {
+			this.label = label;
+			this.charset = Charset.forName(charsetCode);
+		}
+		
+		public Charset getCharset() {
+			return charset;
+		}
+		
+		public String toString() {
+			return label;
+		}
+		
 	}
 	
 }

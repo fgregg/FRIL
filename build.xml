@@ -5,7 +5,6 @@
         <pathelement location="bin"/>
         <pathelement location="lib/commons-logging-1.1.jar"/>
         <pathelement location="lib/emory-util-all.jar"/>
-        <pathelement location="lib/jtds-1.2.2.jar"/>
         <pathelement location="lib/jwf-1.0.1.jar"/>
         <pathelement location="lib/log4j-1.2.13.jar"/>
         <pathelement location="lib/opencsv-1.8.jar"/>
@@ -15,7 +14,6 @@
         <pathelement location="lib/poi-contrib-3.1-FINAL-20080629.jar"/>
         <pathelement location="lib/libsvm.jar"/>
         <pathelement location="lib/poi-scratchpad-3.1-FINAL-20080629.jar"/>
-        <pathelement location="lib/postgresql-8.2dev-503.jdbc3.jar"/>
         <pathelement location="lib/secondstring-20060615.jar"/>
         <pathelement location="lib/serializer.jar"/>
         <pathelement location="lib/swing-layout-1.0.jar"/>
@@ -69,6 +67,9 @@
         </copy>
         <copy todir="build">
             <fileset dir="run"/>
+        </copy>
+        <copy todir="build/jdbc">
+            <fileset dir="jdbc"/>
         </copy>
         <chmod file="build/fril.sh*" perm="755" verbose="yes"/>
         <jar destfile="build/jars/join.jar" basedir="bin"/>

@@ -1,12 +1,26 @@
-Version 1.0 patch7 (current)
+Version 2.0 (current)
 
 IMPORTANT: If your linkage produces large number of linkages (>80,000 or so),
 and if you are enablind results desuplication (in either available form),
 make sure to increase the memory available for FRIL. Go to FAQ section of the
 webpage for instructions.
 
-
 Latest features:
+1. New feature: Information in status bar about linkage results
+2. New feature: User can turn on linkage summary (click on icon in status bar)
+3. New feature: When reading text files (CSV, plain text), file encoding is recognized
+                FRIL supports plain ASCII, utf-8, utf-16 and utf-32 encodings.
+4. Fix: Street address distance restores all parameters properly
+5. Fix: Replace string converter fully supports empty string
+6. Fix: Strata join did not save the strata info and had bug in strata join results dedupe
+7. Update: EM method 'suggests' percentage of data source for sampling
+8. Update: Empty value slider (linkage/dedupe) triggers analysis window update
+9. Update: Automated support of JDBC drivers. New drivers should be placede in
+                jdbc directory (see FAQ on FRIL webpage for details).
+10.Results viewer shows row numbers
+
+
+Version 1.0 patch7:
 1. New feature: Street address distance
 2. New feature: Manual decision module can be closed, rejecting or accepting all linkages
 3. New feature: Sort enabled in table in dynamic analysis window
@@ -15,9 +29,7 @@ Latest features:
 6. Fix: Possible exception when removing item from condition (dedupe condition)
 7. Update: Updated deduplication condition configuration window
 
-
-
-Version 1.0 patch5:
+Version 1.0 patch6:
 1.  New feature: Deduplication supports weightsb and acceptance level
 2.  New feature: Support for comparing empty values
 3.  New feature: Empty values can be set for each of attributes used in FRIL (Data source config.)

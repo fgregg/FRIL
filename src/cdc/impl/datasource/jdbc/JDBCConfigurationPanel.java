@@ -39,12 +39,17 @@ package cdc.impl.datasource.jdbc;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 
 import cdc.components.AbstractDataSource;
 import cdc.gui.GUIVisibleComponent;
+import cdc.gui.components.paramspanel.DefaultParamPanelField;
+import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
+import cdc.gui.components.paramspanel.JDBCConnectionPanelField;
 import cdc.gui.components.paramspanel.JDBCConnectionPanelFieldCreator;
+import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
 import cdc.gui.validation.NonEmptyValidator;
 import cdc.utils.RJException;
@@ -52,11 +57,16 @@ import cdc.utils.RJException;
 public class JDBCConfigurationPanel extends GUIVisibleComponent {
 
 	private ParamsPanel panel;
+	private JDBCConnectionPanelField jdbcField;
+	private DefaultParamPanelField driverField;
 	
 	public JPanel getConfigurationPanel(Object[] params, int sizeX, int sizeY) {
 		
-		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, JDBCDataSource.PARAM_DRIVER, JDBCDataSource.PARAM_URL, JDBCDataSource.PARAM_TABLE, JDBCDataSource.PARAM_TEST_SELECT, JDBCDataSource.PARAM_USER, JDBCDataSource.PARAM_PASSWORD};
-		String[] defaults = new String[] {"jdbc-source", "net.sourceforge.jtds.jdbc.Driver", "", "", "", "", ""};
+		jdbcField = null;
+		driverField = null;
+		
+		String[] availableparams = new String[] {AbstractDataSource.PARAM_SOURCE_NAME, JDBCDataSource.PARAM_URL, JDBCDataSource.PARAM_DRIVER, JDBCDataSource.PARAM_TABLE, JDBCDataSource.PARAM_TEST_SELECT, JDBCDataSource.PARAM_USER, JDBCDataSource.PARAM_PASSWORD};
+		String[] defaults = new String[] {"jdbc-source", "", "", "", "", "", ""};
 		for (int i = 0; i < defaults.length; i++) {
 			if (getRestoredParam(availableparams[i]) != null) {
 				defaults[i] = getRestoredParam(availableparams[i]);
@@ -68,11 +78,12 @@ public class JDBCConfigurationPanel extends GUIVisibleComponent {
 		}
 		
 		Map creators = new HashMap();
-		creators.put(JDBCDataSource.PARAM_URL, new JDBCConnectionPanelFieldCreator());
+		creators.put(JDBCDataSource.PARAM_URL, new JDBCConnectionPanelFieldCreator1());
+		creators.put(JDBCDataSource.PARAM_DRIVER, new DriverPanelFieldCreator());
 		
 		panel = new ParamsPanel(
 				availableparams, 
-				new String[] {"Source name", "Driver class", "Database location", "Source table", "Test select", "User name", "Password"}, 
+				new String[] {"Source name", "Database location", "Driver class", "Source table", "Test select", "User name", "Password"}, 
 				defaults, creators);
 		
 		Map validators = new HashMap();
@@ -103,6 +114,26 @@ public class JDBCConfigurationPanel extends GUIVisibleComponent {
 
 	public boolean validate(JDialog dialog) {
 		return panel.doValidate();
+	}
+	
+	private class JDBCConnectionPanelFieldCreator1 extends JDBCConnectionPanelFieldCreator {
+		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+			jdbcField = (JDBCConnectionPanelField) super.create(parent, param, label, defaultValue);
+			if (jdbcField != null) {
+				jdbcField.setDriverParamPanelField(driverField);
+			}
+			return jdbcField;
+		}
+	}
+	
+	private class DriverPanelFieldCreator extends DefaultParamPanelFieldCreator {
+		public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
+			driverField = (DefaultParamPanelField) super.create(parent, param, label, defaultValue);
+			if (jdbcField != null) {
+				jdbcField.setDriverParamPanelField(driverField);
+			}
+			return driverField;
+		}
 	}
 
 }

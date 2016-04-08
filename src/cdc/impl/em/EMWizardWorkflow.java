@@ -36,6 +36,8 @@
 
 package cdc.impl.em;
 
+import java.io.IOException;
+
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoinCondition;
 import cdc.gui.wizards.WizardAction;
@@ -44,13 +46,14 @@ import cdc.impl.em.actions.ConfigureBlockingMethod;
 import cdc.impl.em.actions.ConfigureSearchMethodAction;
 import cdc.impl.em.actions.ConfigureSourcesAction;
 import cdc.impl.em.actions.EMRunnerAction;
+import cdc.utils.RJException;
 
 public class EMWizardWorkflow implements Workflow {
 
 	private WizardAction[] actions;
 	private int currentStep = 0;
 	
-	public EMWizardWorkflow(AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition cond) {
+	public EMWizardWorkflow(AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition cond) throws IOException, RJException {
 		actions = new WizardAction[4];
 		actions[0] = new ConfigureSourcesAction(sourceA, sourceB);
 		actions[1] = new ConfigureSearchMethodAction();

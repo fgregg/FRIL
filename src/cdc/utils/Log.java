@@ -116,7 +116,7 @@ public class Log {
 		File f = new File(LOG_PROPERTIES);
 		if (f.exists()) {
 			if (!f.canRead()) {
-				System.out.println("ERROR: log.properties cannot be read!");
+				System.out.println("[ERROR] Log.properties cannot be read!");
 			} else {
 				levels = new Properties();
 				try {
@@ -130,7 +130,7 @@ public class Log {
 		
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
-				System.out.println("Closing log.");
+				System.out.println("[INFO] Closing log.");
 				synchronized (sinks) {
 					for (Iterator iterator = sinks.iterator(); iterator.hasNext();) {
 						LogSink sink = (LogSink) iterator.next();

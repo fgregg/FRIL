@@ -102,6 +102,9 @@ public class Configs {
 	
 	public static final ImageIcon bulbOff = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-off.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
 	public static final ImageIcon bulbOn = new ImageIcon(new ImageIcon("icons" + File.separator + "bulb-on.png").getImage().getScaledInstance(10, 10, Image.SCALE_SMOOTH));
+	
+	public static final ImageIcon arrowUpDash = new ImageIcon(new ImageIcon("icons" + File.separator + "arrow-up-dash.png").getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH));
+	public static final ImageIcon arrowDownDash = new ImageIcon(new ImageIcon("icons" + File.separator + "arrow-down-dash.png").getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH));
 
 	public static final ImageIcon linkModeIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "link-mode.png").getImage().getScaledInstance(225, 60, Image.SCALE_SMOOTH));
 	public static final ImageIcon dedupeModeIcon = new ImageIcon(new ImageIcon("icons" + File.separator + "dedupe-mode.png").getImage().getScaledInstance(225, 60, Image.SCALE_SMOOTH));

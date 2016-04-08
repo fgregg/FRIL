@@ -91,9 +91,6 @@ public class Main implements FrilAppInterface {
 	 */
 	public static void main(String[] args) throws IOException, RJException {
 		
-		//testSortingSource();
-		//testFixedWidthDS();
-		//testJDBCDS();
 		String configFile = Configuration.DEFAULT_CONFIGURATION_FILE;
 		if (System.getProperty("config") != null) {
 			configFile = System.getProperty("config");

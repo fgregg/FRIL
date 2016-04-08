@@ -74,8 +74,9 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 		}
 		props.put(CSVFileSaver.SAVE_SOURCE_NAME, "false");
 		props.put(CSVFileSaver.SAVE_CONFIDENCE, "false");
+		props.put(CSVFileSaver.OUTPUT_FILE_ENCODING, "UTF-8");
 		saver = new CSVFileSaver(props);
-		System.out.println("Saver created: " + props);
+		System.out.println("[INFO] Saver created: " + props);
 	}
 
 	public void rowsJoined(DataRow rowA, DataRow rowB, DataRow row, AbstractJoinCondition condition) {
@@ -100,7 +101,7 @@ public class DataSourceNotJoinedJoinListener implements JoinListener {
 	}
 
 	public void close() throws RJException {
-		System.out.println("Minus saver closed.");
+		System.out.println("[INFO] Minus saver closed.");
 		if (saver != null) {
 			try {
 				//saver.flush();

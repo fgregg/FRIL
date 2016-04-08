@@ -186,15 +186,19 @@ public class LinkageSystemPanel extends SystemPanel {
 	
 	private class ResultsSaversButtonListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			ResultsSaversWizard wizard = new ResultsSaversWizard(MainFrame.main, LinkageSystemPanel.this);
-			wizard.loadConfig(resultSavers);
-			if (wizard.getResult() == AbstractWizard.RESULT_OK) {
-				resultSavers = wizard.getConfiguredResultSaver();
-				wizard.dispose();
-				updateSystem();
-				configured(saversButton, statSaversLabel);
-				//altered = true;
-				MainFrame.main.autosaveIfNeeded();
+			if (getSystem() == null || getSystem().getJoin() == null) {
+				JOptionPane.showMessageDialog(MainFrame.main, "Please configure linkage before result savers.", "Linkage configuration required", JOptionPane.INFORMATION_MESSAGE);
+			} else {
+				ResultsSaversWizard wizard = new ResultsSaversWizard(MainFrame.main, LinkageSystemPanel.this);
+				wizard.loadConfig(resultSavers);
+				if (wizard.getResult() == AbstractWizard.RESULT_OK) {
+					resultSavers = wizard.getConfiguredResultSaver();
+					wizard.dispose();
+					updateSystem();
+					configured(saversButton, statSaversLabel);
+					//altered = true;
+					MainFrame.main.autosaveIfNeeded();
+				}
 			}
 		}
 	}

@@ -39,11 +39,14 @@ package cdc.impl.em;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import cdc.components.AbstractDataSource;
 import cdc.components.AbstractJoinCondition;
 import cdc.gui.MainFrame;
+import cdc.gui.external.JXErrorDialog;
 import cdc.gui.wizards.AbstractWizard;
+import cdc.utils.RJException;
 
 public class EMWizard {
 	
@@ -54,33 +57,39 @@ public class EMWizard {
 	
 	public int[] emWizard(AbstractWizard parent, AbstractDataSource sourceA, AbstractDataSource sourceB, AbstractJoinCondition condition) {
 		
-		EMWizardWorkflow workflow = new EMWizardWorkflow(sourceA, sourceB, condition);
-		AbstractWizard wizard = new AbstractWizard(MainFrame.main, new Dimension(500, 350), workflow.getActions(), workflow, workflow.getLabels());
-		wizard.setResizable(true);
-		wizard.setMinimum(500, 350);
-		wizard.setLocationRelativeTo(parent);
-		if (wizard.getResult() == AbstractWizard.RESULT_OK) {
-			System.out.println("Will apply weights");
-			reporter = new EMResultsReporter(parent);
-			reporter.setLocationRelativeTo(parent);
-			thread = new EMThread(reporter, workflow.getActions(), condition);
-			reporter.addCancelListener(new ActionListener() {
-				public void actionPerformed(ActionEvent arg0) {
-					thread.scheduleStop();
-					reporter.dispose();
-				}
-			});
-			reporter.addApplyListener(new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					weights = thread.getFinalWeights();
-					reporter.dispose();
-				}
-			});
-			thread.start();
-			reporter.setVisible(true);
+		try {
+			EMWizardWorkflow workflow = new EMWizardWorkflow(sourceA, sourceB, condition);
+			AbstractWizard wizard = new AbstractWizard(MainFrame.main, new Dimension(500, 350), workflow.getActions(), workflow, workflow.getLabels());
+			wizard.setResizable(true);
+			wizard.setMinimum(500, 350);
+			wizard.setLocationRelativeTo(parent);
+			if (wizard.getResult() == AbstractWizard.RESULT_OK) {
+				reporter = new EMResultsReporter(parent);
+				reporter.setLocationRelativeTo(parent);
+				thread = new EMThread(reporter, workflow.getActions(), condition);
+				reporter.addCancelListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						thread.scheduleStop();
+						reporter.dispose();
+					}
+				});
+				reporter.addApplyListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						weights = thread.getFinalWeights();
+						reporter.dispose();
+					}
+				});
+				thread.start();
+				reporter.setVisible(true);
+			}
+			
+			return weights;
+		} catch (IOException e) {
+			JXErrorDialog.showDialog(parent, "Error", e);
+		} catch (RJException e) {
+			JXErrorDialog.showDialog(parent, "Error", e);
 		}
-		
-		return weights;
+		return null;
 	}
 	
 	

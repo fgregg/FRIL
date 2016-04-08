@@ -39,15 +39,20 @@ package cdc.gui.components.paramspanel;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -60,6 +65,8 @@ import cdc.gui.Configs;
 import cdc.gui.components.dynamicanalysis.ChangedConfigurationListener;
 import cdc.utils.GuiUtils;
 import cdc.utils.StringUtils;
+import cdc.utils.Utils;
+import cdc.utils.Utils.Encoding;
 
 public class FileChoosingPanelField extends ParamPanelField {
 
@@ -80,20 +87,25 @@ public class FileChoosingPanelField extends ParamPanelField {
 	}
 	
 	private Map listeners = new HashMap();
-	private JPanel panel;
+	private JPanel mainPanel;
 	private JTextField field;
 	private String userLabel;
 	private JLabel error;
 	private JLabel paramName;
 	
 	private int type;
+	private JComboBox encodingCombo;
+	private JLabel encodingLabel;
+	private JLabel codingTextLabel;
+	private JButton encodingButton;
+	private JPanel encPanel;
 	
 	public FileChoosingPanelField(JComponent parent, int type, String param, String label, String defaultValue) {
 		
 		this.userLabel = label;
 		this.type = type;
 		
-		panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		mainPanel = new JPanel(new GridBagLayout());
 		field = new JTextField(GuiUtils.EMPTY);
 		
 		field.addFocusListener(new FocusListener() {
@@ -128,9 +140,6 @@ public class FileChoosingPanelField extends ParamPanelField {
 		
 		paramName = new JLabel(label);
 		//paramName.setPreferredSize(new Dimension(200, (int)paramName.getPreferredSize().getHeight()));
-		if (!StringUtils.isNullOrEmpty(defaultValue)) {
-			field.setText(defaultValue);
-		}
 		field.setPreferredSize(new Dimension(200, (int)field.getPreferredSize().getHeight()));
 		
 		error = new JLabel(Configs.errorInfoIcon);
@@ -145,25 +154,83 @@ public class FileChoosingPanelField extends ParamPanelField {
 		errorPanel.setPreferredSize(new Dimension(20, 20));
 		
 		//panel.add(paramName);
-		panel.add(errorPanel);
-		panel.add(field);
+		mainPanel.add(errorPanel, new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,10,0,0), 0, 0));
+		mainPanel.add(field, new GridBagConstraints(1, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
 		
 		JButton button = new JButton("...");
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser chooser = new JFileChooser(new File("."));	
+				File parent = new File(".");
+				if (!field.getText().equals(GuiUtils.EMPTY)) {
+					File f = new File(field.getText());
+					if (f.getParentFile() != null) {
+						parent = f.getParentFile();
+					}
+				}
+				JFileChooser chooser = new JFileChooser(parent);	
 				int retVal = (FileChoosingPanelField.this.type == FileChoosingPanelFieldCreator.OPEN ? chooser.showOpenDialog(null) : chooser.showSaveDialog(null));
 				if (retVal == JFileChooser.APPROVE_OPTION) {
 					field.setText(chooser.getSelectedFile().getAbsolutePath());
+					testEncoding();
 				}
 			}
 		});
 		button.setPreferredSize(new Dimension(30, 20));
-		panel.add(button);
+		mainPanel.add(button, new GridBagConstraints(2, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
+	
+		field.getDocument().addDocumentListener(new DocumentListener() {
+			public void removeUpdate(DocumentEvent e) {
+				testEncoding();
+			}
+			public void insertUpdate(DocumentEvent e) {
+				testEncoding();
+			}
+			public void changedUpdate(DocumentEvent e) {
+				testEncoding();
+			}
+		});
+		
+		encodingButton = new JButton("Modify");
+		encodingButton.setPreferredSize(new Dimension(encodingButton.getPreferredSize().width, 20));
+		encodingButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				codingTextLabel.setText("Encoding: ");
+				encodingLabel.setVisible(false);
+				encodingCombo.setVisible(true);
+				encodingButton.setEnabled(false);
+				encPanel.validate();
+				//encPanel.repaint();
+			}
+		});
+		
+		codingTextLabel = new JLabel("Encoding (auto): ");
+		encodingCombo = new JComboBox(Utils.SUPPORTED_ENCODINGS);
+		encodingCombo.setSelectedItem(Utils.DEFAULT_ENCODING);
+		encodingLabel = new JLabel("ASCII");
+		encPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		encPanel.add(codingTextLabel);
+		encPanel.add(encodingLabel);
+		encPanel.add(encodingCombo);
+		encodingCombo.setVisible(false);
+		mainPanel.add(encPanel, new GridBagConstraints(0, 1, 2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,30,0,0), 0, 0));
+		mainPanel.add(encodingButton, new GridBagConstraints(2, 1, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0,0,0,0), 0, 0));
+		setValue(defaultValue);
+	}
+	
+	private void testEncoding() {
+		try {
+			Encoding e = Utils.recognizeEncoding(new File(field.getText()));
+			encodingCombo.setSelectedItem(e);
+			encodingLabel.setText(e.toString());
+		} catch (IOException ex) {
+			//encodingCombo.setSelectedItem(Utils.DEFAULT_ENCODING);
+			//encodingLabel.setText(Utils.DEFAULT_ENCODING.toString());
+		}
+		
 	}
 	
 	public JComponent getComponentInputField() {	
-		return panel;
+		return mainPanel;
 	}
 	
 	public JComponent getComponentLabel() {
@@ -174,10 +241,24 @@ public class FileChoosingPanelField extends ParamPanelField {
 		if (field.getText().equals(GuiUtils.EMPTY)) {
 			return null;
 		}
-		return field.getText();
+		if (!encodingCombo.getSelectedItem().equals(Utils.DEFAULT_ENCODING)) {
+			return field.getText() + "#ENC=" + ((Encoding)encodingCombo.getSelectedItem()).getCharset() + "#";
+		} else {
+			return field.getText();
+		}
 	}
 
 	public void setValue(String val) {
+		if (!StringUtils.isNullOrEmpty(val)) {
+			String[] parsedFile = Utils.parseFilePath(val);
+			if (parsedFile.length == 1) {
+				this.field.setText(parsedFile[0]);
+			} else {
+				this.field.setText(parsedFile[0]);
+				this.encodingLabel.setText(Utils.getEncodingForName(parsedFile[1]).toString());
+				this.encodingCombo.setSelectedItem(Utils.getEncodingForName(parsedFile[1]));
+			}
+		}
 	}
 
 	public String getUserLabel() {

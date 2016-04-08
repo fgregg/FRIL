@@ -70,7 +70,7 @@ public class Props {
 	private static String readProperty(String name) {
 		String prop = (String)properties.get(name);
 		if (print) {
-			System.out.println("Retrieved property: " + name + "=" + prop);
+			System.out.println("[INFO] Retrieved property: " + name + "=" + prop);
 		}
 		return prop;
 	}

@@ -242,6 +242,7 @@ public class NewWeightedConditionPanel extends AbstractConditionPanel {
 		JPanel emptyVals = new JPanel(new GridBagLayout());
 		emptyVals.setBorder(BorderFactory.createTitledBorder("Empty value score"));
 		emptyValue = new LabelWithSliderPanel("Score for matching empty values", 0.0, 1.0, 0.0);
+		emptyValue.addSliderListener(analysisButtonListener);
 		emptyVals.add(emptyValue, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 5, 0, 0), 0, 0));
 		c = new GridBagConstraints();
 		c.gridx = 0;

@@ -97,7 +97,14 @@ public class JDBCDataSource extends AbstractDataSource {
 				synchronized (mutex) {
 					if (!libLoaded) {
 						File file = new File(".");
-						System.load(file.getAbsolutePath() + File.separator + "ntlmauth.dll");
+						try {
+							System.load(file.getAbsolutePath() + File.separator + "ntlmauth.dll");
+						} catch (UnsatisfiedLinkError e) {
+							System.out.println("[WARN] It appears that ntlmauth.dll could not be loaded.");
+							System.out.println("[WARN]    Either you are using non-Windows operating system, or the file is");
+							System.out.println("[WARN]    not located in FRIL home directory. See below for error details:");
+							System.out.println("[WARN]    " + e.getMessage());
+						}
 						libLoaded = true;
 					}
 				}
@@ -201,6 +208,7 @@ public class JDBCDataSource extends AbstractDataSource {
 	private void ensureConnection() throws RJException {
 		if (this.jdbcConnection == null) {
 			try {
+				//Utils.loadJDBCDriverClass(connectionConfig.driver);
 				Class.forName(connectionConfig.driver);
 			} catch (ClassNotFoundException e) {
 				throw new RJException("Could not load driver class: " + connectionConfig.driver + ". Make sure the name is correct and that correct library is in classpath.");
@@ -327,6 +335,7 @@ public class JDBCDataSource extends AbstractDataSource {
 	public static DataColumnDefinition[] readSchema(String name, JDBCConnectionConfig config, String testSelect) throws RJException {
 		log("Reading schema...");
 		try {
+			//Utils.loadJDBCDriverClass(config.driver);
 			Class.forName(config.driver);
 		} catch (ClassNotFoundException e) {
 			throw new RJException("Could not load driver class: " + config.driver + ". Make sure the name is correct and that correct library is in classpath.");

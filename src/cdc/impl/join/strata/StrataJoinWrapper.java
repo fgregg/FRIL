@@ -71,6 +71,8 @@ public class StrataJoinWrapper extends AbstractJoin {
 	//private JoinListener listener;
 	private boolean[] set = new boolean[0];
 	
+	private LinkageSummary dataSourceSummary = null;
+	
 	private boolean enabledLeft = false;
 	private boolean enabledRight = false;
 	
@@ -165,7 +167,6 @@ public class StrataJoinWrapper extends AbstractJoin {
 	}
 
 	protected void doClose() throws IOException, RJException {
-		System.out.println("Close.");
 		synchronized (this) {
 			if (optimizedJoins != null) {
 				for (int i = 0; i < optimizedJoins.length; i++) {
@@ -202,6 +203,7 @@ public class StrataJoinWrapper extends AbstractJoin {
 		DataRow next = null;
 		if (optimizedJoins != null) {
 			while ((next = optimizedJoins[activeJoin.get()].joinNext()) == null) {
+				this.dataSourceSummary = optimizedJoins[activeJoin.get()].getLinkageSummary();
 				if (isCancelled()) {
 					return null;
 				}
@@ -559,6 +561,10 @@ public class StrataJoinWrapper extends AbstractJoin {
 	}
 	
 	public LinkageSummary getLinkageSummary() {
-		return new LinkageSummary(-1, -1, linked);
+		if (dataSourceSummary != null) {
+			return new LinkageSummary(dataSourceSummary.getCntReadSrcA(), dataSourceSummary.getCntReadSrcB(), linked);
+		} else {
+			return new LinkageSummary(-1, -1, linked);
+		}
 	}
 }

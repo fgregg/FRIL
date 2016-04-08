@@ -131,7 +131,6 @@ public class ConfiguredSystem {
 			}
 			sourceB = null;
 		}
-		System.out.println("System closed.");
 	}
 	
 	public boolean isDeduplication() {

@@ -83,6 +83,7 @@ import cdc.configuration.ConfiguredSystem;
 import cdc.gui.components.dialogs.OneTimeTipDialog;
 import cdc.gui.components.uicomponents.MemoryInfoComponent;
 import cdc.gui.components.uicomponents.PropertiesPanel;
+import cdc.gui.components.uicomponents.StatusBarLinkageInfoPanel;
 import cdc.gui.external.JXErrorDialog;
 import cdc.impl.FrilAppInterface;
 import cdc.impl.MainApp;
@@ -95,6 +96,7 @@ import cdc.utils.Log;
 import cdc.utils.LogSink;
 import cdc.utils.Props;
 import cdc.utils.RJException;
+import cdc.utils.Utils;
 
 public class MainFrame extends JFrame implements FrilAppInterface {
 
@@ -147,6 +149,8 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	private Map persistentParams = null;
 	private Properties propertiesVersion = new Properties();
 	private SavedConfigManager configManager;
+	
+	private StatusBarLinkageInfoPanel statusBarLinkageInfo;
 
 	private int cpus;
 
@@ -164,7 +168,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			os.flush();
 			os.close();
 		} catch (IOException e) {
-			System.out.println("WARNING: CANNOT save to file: "
+			System.out.println("[WARN] CANNOT save to file: "
 					+ PERSISTENT_PROPERTIES_FILE_NAME);
 		}
 	}
@@ -187,7 +191,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			persistentParams = (Map) is.readObject();
 			return true;
 		} catch (Exception e) {
-			System.out.println("INFO [this is not an error]: CANNOT read file: " + PERSISTENT_PROPERTIES_FILE_NAME);
+			System.out.println("[INFO] [this is not an error]: CANNOT read file: " + PERSISTENT_PROPERTIES_FILE_NAME);
 		}
 		return false;
 	}
@@ -205,7 +209,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 			setTitle(getTitle() + " "
 					+ propertiesVersion.getProperty(VERSION_PROPERTY_CODENAME));
 		} catch (IOException e) {
-			System.out.println("ERROR reading version.properties....");
+			System.out.println("[ERROR] Cannot read version.properties....");
 			e.printStackTrace();
 		}
 
@@ -246,14 +250,13 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		applicationWrappingPanel = new JPanel(new BorderLayout());	
 		createSystemPanel();
 
-		logPanel = new JPanel(new BorderLayout());
+		logPanel = new JPanel(new GridBagLayout());
 		JTextArea logArea = new JTextArea();
 		logArea.setEditable(false);
 		JScrollPane scroll = new JScrollPane(logArea);
-		// scroll.setPreferredSize(new Dimension(800, 200));
-		logPanel.add(scroll, BorderLayout.CENTER);
+		logPanel.add(scroll, new GridBagConstraints(1, 0, 1, 1, 1, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
 		Log.setSinks(new LogSink[] { new GUILogSink(logArea) });
-
+		
 		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, applicationWrappingPanel, logPanel);
 		splitPane.setDividerLocation(400);
 
@@ -263,7 +266,10 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 		JPanel statusBar = new JPanel(new GridBagLayout());
 		JPanel mm = new MemoryInfoComponent(1000);
 		mm.setBorder(BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-		statusBar.add(mm, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		statusBarLinkageInfo = new StatusBarLinkageInfoPanel();
+		logPanel.add(statusBarLinkageInfo.getDetailsPanel(), new GridBagConstraints(0, 0, 1, 1, 0.4, 1, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0));
+		statusBar.add(statusBarLinkageInfo, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		statusBar.add(mm, new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 		add(statusBar, BorderLayout.SOUTH);
 	}
 
@@ -372,6 +378,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 						applicationPanel.setSystem(new ConfiguredSystem(null, null, null, null));
 						applicationPanel.unloadConfiguration();
 						configManager = new SavedConfigManager(null);
+						statusBarLinkageInfo.clearCurrentSummary();
 					} catch (RJException e1) {
 						e1.printStackTrace();
 					}
@@ -515,7 +522,7 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	}
 
 	private boolean closing() {
-		System.out.println("Application closing. Please wait for cleanup.");
+		System.out.println("[INFO] Application closing. Please wait for cleanup.");
 		Log.log(MainFrame.this.getClass(), "Application is being closed. Please wait for cleanup...", 1);
 		if (!fireClosingSystemViewListeners()) {
 			return false;
@@ -674,6 +681,11 @@ public class MainFrame extends JFrame implements FrilAppInterface {
 	public void surrenderConfiguration() {
 		configManager.deleteBackup();
 		configManager = new SavedConfigManager(null);
+	}
+
+	public void setCompletedLinkageSummary(ConfiguredSystem system, boolean cancelled, long time, int linkages) {
+		statusBarLinkageInfo.linkageCompleted(system, cancelled, time, linkages);
+		JOptionPane.showMessageDialog(MainFrame.main, Utils.getSummaryMessage(system, cancelled, time, linkages));
 	}
 
 }

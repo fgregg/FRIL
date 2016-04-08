@@ -36,11 +36,14 @@
 
 package cdc.impl.distance;
 
-import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
@@ -53,8 +56,8 @@ import cdc.gui.GUIVisibleComponent;
 import cdc.gui.components.paramspanel.DefaultParamPanelFieldCreator;
 import cdc.gui.components.paramspanel.ParamPanelField;
 import cdc.gui.components.paramspanel.ParamsPanel;
-import cdc.gui.slope.SlopePanel;
 import cdc.gui.validation.NumberValidator;
+import cdc.impl.distance.EditDistance.EditDistanceVisibleComponent;
 import cdc.utils.Log;
 import cdc.utils.RJException;
 import cdc.utils.StringUtils;
@@ -67,29 +70,7 @@ public class SoundexDistance extends AbstractStringDistance {
 	
 	public static final int DFAULT_SIZE = 5;
 	
-	private static class SoundexVisibleComponent extends GUIVisibleComponent {
-
-		private class CreatorV1 extends DefaultParamPanelFieldCreator {
-			private SlopePanel slope;
-			public CreatorV1(SlopePanel slope) {this.slope = slope;}
-			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-				ParamPanelField field = super.create(parent, param, label, defaultValue);
-				slope.bindV1(field);
-				field.addConfigurationChangeListener(SoundexVisibleComponent.this);
-				return field;
-			}
-		}
-
-		private class CreatorV2 extends DefaultParamPanelFieldCreator {
-			private SlopePanel slope;
-			public CreatorV2(SlopePanel slope) {this.slope = slope;}
-			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
-				ParamPanelField field = super.create(parent, param, label, defaultValue);
-				slope.bindV2(field);
-				field.addConfigurationChangeListener(SoundexVisibleComponent.this);
-				return field;
-			}
-		}
+	private static class SoundexVisibleComponent extends EditDistanceVisibleComponent {
 		
 		private class CreatorQ extends DefaultParamPanelFieldCreator {
 			public ParamPanelField create(JComponent parent, String param, String label, String defaultValue) {
@@ -99,70 +80,51 @@ public class SoundexDistance extends AbstractStringDistance {
 			}
 		}
 		
-		private ParamsPanel panel;
+		private ParamsPanel editDst;
+		private ParamsPanel soundexDst;
 		
 		public Object generateSystemComponent() throws RJException, IOException {
-			return new SoundexDistance(panel.getParams());
+			Map props = new HashMap(editDst.getParams());
+			props.putAll(soundexDst.getParams());
+			return new SoundexDistance(props);
 		}
 
 		public JPanel getConfigurationPanel(Object[] objects, int sizeX, int sizeY) {
-			Boolean boolCond = (Boolean)objects[0];
-			String[] defs = new String[boolCond.booleanValue() ? 2:3];
+			
+			editDst = (ParamsPanel) super.getConfigurationPanel(objects, sizeX, sizeY);
+			editDst.setBorder(BorderFactory.createTitledBorder("Underlying edit distance properties"));
+			if (getRestoredParam(EditDistance.PROP_BEGIN_APPROVE_LEVEL) == null) {
+				editDst.setPropertyValue(EditDistance.PROP_BEGIN_APPROVE_LEVEL, "0");
+			}
+			if (getRestoredParam(EditDistance.PROP_END_APPROVE_LEVEL) == null) {
+				editDst.setPropertyValue(EditDistance.PROP_END_APPROVE_LEVEL, "0");
+			}
+			
+			String[] defs = new String[1];
 			if (getRestoredParam(PROP_SIZE) != null) {
 				defs[0] = getRestoredParam(PROP_SIZE);
 			} else {
 				defs[0] = String.valueOf(DFAULT_SIZE);
 			}
-			if (getRestoredParam(EditDistance.PROP_BEGIN_APPROVE_LEVEL) != null) {
-				defs[1] = getRestoredParam(EditDistance.PROP_BEGIN_APPROVE_LEVEL);
-			} else {
-				defs[1] = String.valueOf(0);
-			}
-			if (boolCond.booleanValue()) {
-				panel = new ParamsPanel(
-						new String[] {PROP_SIZE, EditDistance.PROP_BEGIN_APPROVE_LEVEL},
-						new String[] {"Soundex size", "Acceptance level (edit distance)"},
-						defs
-				);
-				
-				Map validators = new HashMap();
-				validators.put(PROP_SIZE, new NumberValidator(NumberValidator.INTEGER));
-				validators.put(EditDistance.PROP_BEGIN_APPROVE_LEVEL, new NumberValidator(NumberValidator.DOUBLE));
-				panel.setValidators(validators);
-				
-			} else {
-				if (getRestoredParam(EditDistance.PROP_END_APPROVE_LEVEL) != null) {
-					defs[2] = getRestoredParam(EditDistance.PROP_END_APPROVE_LEVEL);
-				} else {
-					defs[2] = String.valueOf(0);
-				}
-				
-				SlopePanel slope = new SlopePanel(Double.parseDouble(defs[1]), Double.parseDouble(defs[2]));
-				slope.setPreferredSize(new Dimension(240, 70));
-				CreatorV1 v1 = new CreatorV1(slope);
-				CreatorV2 v2 = new CreatorV2(slope);
-				CreatorQ l = new CreatorQ();
-				Map creators = new HashMap();
-				creators.put(EditDistance.PROP_BEGIN_APPROVE_LEVEL, v1);
-				creators.put(EditDistance.PROP_END_APPROVE_LEVEL, v2);
-				creators.put(PROP_SIZE, l);
-				
-				panel = new ParamsPanel(
-						new String[] {PROP_SIZE, EditDistance.PROP_BEGIN_APPROVE_LEVEL, EditDistance.PROP_END_APPROVE_LEVEL},
-						new String[] {"Soundex length", "Approve level (edit distance)", "Disapprove level (edit distance)"},
-						defs, creators
-				);
-				panel.append(slope);
-				
-				Map validators = new HashMap();
-				validators.put(PROP_SIZE, new NumberValidator(NumberValidator.INTEGER));
-				validators.put(EditDistance.PROP_BEGIN_APPROVE_LEVEL, new NumberValidator(NumberValidator.DOUBLE));
-				validators.put(EditDistance.PROP_END_APPROVE_LEVEL, new NumberValidator(NumberValidator.DOUBLE));
-				panel.setValidators(validators);
-				
-			}
+			CreatorQ l = new CreatorQ();
+			Map creators = new HashMap();
+			creators.put(PROP_SIZE, l);
+			soundexDst = new ParamsPanel(
+					new String[] {PROP_SIZE},
+					new String[] {"Soundex length"},
+					defs, creators
+			);
+			soundexDst.setBorder(BorderFactory.createTitledBorder("Soundex properties"));
+			Map validators = new HashMap();
+			validators.put(PROP_SIZE, new NumberValidator(NumberValidator.INTEGER));
+			soundexDst.setValidators(validators);
 			
-			return panel;
+			JPanel mainPanel = new JPanel(new GridBagLayout());
+			mainPanel.add(soundexDst, new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+			mainPanel.add(editDst, new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+			mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+			return mainPanel;
+
 		}
 
 		public Class getProducedComponentClass() {
@@ -174,7 +136,7 @@ public class SoundexDistance extends AbstractStringDistance {
 		}
 
 		public boolean validate(JDialog dialog) {
-			return panel.doValidate();
+			return soundexDst.doValidate() && editDst.doValidate();
 		}
 		
 	}
